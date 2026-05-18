@@ -1,0 +1,11 @@
+@OpenGameBuilder.Api_HostAddress = http://localhost:5000
+
+GET {{OpenGameBuilder.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{OpenGameBuilder.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###

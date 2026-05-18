@@ -1,0 +1,26 @@
+<Project>
+
+  <!--
+    Auto-install Husky.Net git hooks on first build.
+    The sentinel-file condition makes the target idempotent: it runs on whichever
+    project happens to build first, then skips on every subsequent build because
+    .husky/_/husky.sh exists. We deliberately hook Build (not Restore) so the
+    inner `dotnet tool restore` doesn't race with Visual Studio's NuGet restore.
+    Skip in CI by setting HUSKY=0, or when building outside of a git working tree.
+  -->
+  <Target Name="HuskyInstall"
+    BeforeTargets="Build"
+    Condition=" '$(HUSKY)' != '0' AND Exists('$(MSBuildThisFileDirectory).git') AND !Exists('$(MSBuildThisFileDirectory).husky/_/husky.sh') ">
+    <Exec Command="dotnet tool restore"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      ContinueOnError="true"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="High" />
+    <Exec Command="dotnet husky install"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      ContinueOnError="true"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="High" />
+  </Target>
+
+</Project>

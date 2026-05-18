@@ -1,0 +1,30 @@
+{
+  "dotnet.defaultSolution": "opengamebuilder.slnx",
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[razor]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "cSpell.words": [
+    "accessibilities",
+    "ASPNETCORE",
+    "Blazor",
+    "buildtransitive",
+    "contentfiles",
+    "importmap",
+    "opengamebuilder",
+    "resx",
+    "slnx",
+    "webp",
+    "Xunit"
+  ]
+}

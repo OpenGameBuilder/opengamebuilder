@@ -1,0 +1,21 @@
+{
+  "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+  "tasks": [
+    {
+      "name": "dotnet-format-staged",
+      "group": "pre-commit",
+      "command": "dotnet",
+      "args": [
+        "format",
+        "opengamebuilder.slnx",
+        "--include",
+        "${staged}",
+        "--verbosity",
+        "minimal"
+      ],
+      "include": [
+        "**/*.cs"
+      ]
+    }
+  ]
+}

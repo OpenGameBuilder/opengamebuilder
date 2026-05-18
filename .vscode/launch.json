@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-api",
+      "program": "${workspaceFolder}/src/OpenGameBuilder.Api/bin/Debug/net10.0/OpenGameBuilder.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/OpenGameBuilder.Api",
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7000;http://localhost:5000"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/scalar"
+      }
+    },
+    {
+      "name": "Launch Web (Blazor WASM)",
+      "type": "blazorwasm",
+      "request": "launch",
+      "preLaunchTask": "build-web",
+      "cwd": "${workspaceFolder}/src/OpenGameBuilder.Web",
+      "url": "https://localhost:7001",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7001;http://localhost:5001"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch All (API + Web)",
+      "configurations": [
+        "Launch API",
+        "Launch Web (Blazor WASM)"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "1_main",
+        "order": 1
+      }
+    }
+  ]
+}

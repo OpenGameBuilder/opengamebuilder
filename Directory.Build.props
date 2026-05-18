@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>OpenGameBuilder</Authors>
+    <Company>OpenGameBuilder</Company>
+    <Product>OpenGameBuilder</Product>
+    <RepositoryUrl>https://github.com/OpenGameBuilder/opengamebuilder</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- Treat warnings as errors in production code, but not in test projects -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

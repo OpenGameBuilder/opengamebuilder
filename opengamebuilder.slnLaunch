@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Full-stack",
+    "Projects": [
+      {
+        "Path": "src\\OpenGameBuilder.Api\\OpenGameBuilder.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\OpenGameBuilder.Web\\OpenGameBuilder.Web.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
