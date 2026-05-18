@@ -1,10 +1,10 @@
-# opengamebuilder
+# OpenGameBuilder
 
-Open source re-implementation of the original 2007-2011 Flash site mygamebuilder.com!
+An open-source community reimplementation of the original 2007-2011 Flash site mygamebuilder.com!
 
-> Status: **early development** — TODO.
+> Status: **under construction**.
 
-## Prerequisites
+## Developer Setup
 
 - **Visual Studio 2026+** (Community is fine) with the **ASP.NET and web development** workload — the repo ships a [`.vsconfig`](.vsconfig) so Visual Studio will offer to install missing components automatically when you open the solution.
 - [.NET SDK 10.0.300+](https://dotnet.microsoft.com/download) (see [global.json](global.json)). Visual Studio 2026 already includes a compatible SDK.
