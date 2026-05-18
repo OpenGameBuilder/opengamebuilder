@@ -21,9 +21,12 @@
     "buildtransitive",
     "contentfiles",
     "importmap",
+    "mygamebuilder",
+    "nologo",
     "opengamebuilder",
     "resx",
     "slnx",
+    "vsconfig",
     "webp",
     "Xunit"
   ]
