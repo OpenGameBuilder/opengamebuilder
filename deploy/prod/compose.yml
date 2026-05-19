@@ -14,7 +14,7 @@ services:
       - api
 
   api:
-    image: ghcr.io/opengamebuilder/opengamebuilder-api:latest
+    image: ghcr.io/opengamebuilder/opengamebuilder-api:prod
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
