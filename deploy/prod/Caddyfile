@@ -1,0 +1,23 @@
+www.opengamebuilder.com {
+    redir https://www.opengamebuilder.com{uri} permanent
+}
+
+opengamebuilder.com {
+    encode zstd gzip
+
+    handle /health {
+        respond "ok" 200
+    }
+
+    handle /api/* {
+        reverse_proxy localhost:8080
+    }
+
+    handle {
+        root * /srv/opengamebuilder/web
+        try_files {path} /index.html
+        file_server {
+            precompressed br gzip
+        }
+    }
+}

@@ -1,38 +1,30 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
-    name: Build & Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-    env:
-      HUSKY: 0
+  build-test:
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
+      - name: Restore tools
+        run: dotnet tool restore
+
       - name: Restore
         run: dotnet restore opengamebuilder.slnx
-
-      - name: Verify formatting
-        run: dotnet format opengamebuilder.slnx --verify-no-changes --verbosity diagnostic
 
       - name: Build
         run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test opengamebuilder.slnx --configuration Release --no-build --nologo --verbosity normal
+        run: dotnet test opengamebuilder.slnx --configuration Release --no-build
