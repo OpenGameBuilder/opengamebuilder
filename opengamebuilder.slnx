@@ -1,5 +1,17 @@
 <Solution>
+  <Folder Name="/.github/" />
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/ci.yml" />
+    <File Path=".github/workflows/deploy-prod.yml" />
+  </Folder>
+  <Folder Name="/deploy/" />
+  <Folder Name="/deploy/prod/">
+    <File Path="deploy/prod/Caddyfile" />
+    <File Path="deploy/prod/compose.yml" />
+  </Folder>
+  <Folder Name="/docs/" />
   <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
