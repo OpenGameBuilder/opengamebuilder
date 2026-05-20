@@ -1,5 +1,5 @@
 www.opengamebuilder.com {
-    redir https://www.opengamebuilder.com{uri} permanent
+    redir https://opengamebuilder.com{uri} permanent
 }
 
 opengamebuilder.com {
@@ -10,7 +10,7 @@ opengamebuilder.com {
     }
 
     handle /api/* {
-        reverse_proxy localhost:8080
+        reverse_proxy api:8080
     }
 
     handle {
