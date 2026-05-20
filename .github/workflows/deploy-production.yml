@@ -2,9 +2,8 @@ name: Deploy Production
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - "v*"
 
 concurrency:
   group: deploy-production
@@ -21,6 +20,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +44,18 @@ jobs:
       - name: Publish Web
         run: dotnet publish src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj --configuration Release --output ./artifacts/web
 
+      - name: Locate Web Publish Output
+        run: |
+          if [ -f ./artifacts/web/wwwroot/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web/wwwroot" >> "$GITHUB_ENV"
+          elif [ -f ./artifacts/web/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web" >> "$GITHUB_ENV"
+          else
+            echo "Could not find published index.html"
+            find ./artifacts/web -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
@@ -64,27 +76,43 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
-
-      - name: Sync deployment files
+          
+      - name: Sync production deployment files
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /srv/opengamebuilder/prod/web"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            mkdir -p /srv/opengamebuilder/edge
+            mkdir -p /srv/opengamebuilder/production/web
+            mkdir -p /srv/opengamebuilder/production/web
+            docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
+          EOF
 
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
-            ./artifacts/web/wwwroot/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/prod/web/
+            "$WEB_SOURCE/" \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/production/web/
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
-            ./deploy/prod/compose.yml \
-            ./deploy/prod/Caddyfile \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/prod/
+            ./deploy/production/compose.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/production/compose.yml
 
-      - name: Restart services
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            ./deploy/edge/compose.yml \
+            ./deploy/edge/Caddyfile \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/edge/
+
+      - name: Restart production services
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             set -e
-            cd /srv/opengamebuilder/prod
+
+            cd /srv/opengamebuilder/production
             docker compose pull
             docker compose up -d
+
+            cd /srv/opengamebuilder/edge
+            docker compose pull
+            docker compose up -d
+            docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
+
             docker image prune -f
           EOF

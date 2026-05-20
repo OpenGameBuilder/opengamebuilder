@@ -1,0 +1,47 @@
+www.opengamebuilder.com {
+    redir https://opengamebuilder.com{uri} permanent
+}
+
+opengamebuilder.com {
+    encode zstd gzip
+
+    header /_framework/blazor.boot.json Blazor-Environment Production
+
+    handle /health {
+        respond "ok prod" 200
+    }
+
+    handle /api/* {
+        reverse_proxy api-prod:8080
+    }
+
+    handle {
+        root * /srv/opengamebuilder/prod/web
+        try_files {path} /index.html
+        file_server {
+            precompressed br gzip
+        }
+    }
+}
+
+preview.opengamebuilder.com {
+    encode zstd gzip
+
+    header /_framework/blazor.boot.json Blazor-Environment Preview
+
+    handle /health {
+        respond "ok preview" 200
+    }
+
+    handle /api/* {
+        reverse_proxy api-preview:8080
+    }
+
+    handle {
+        root * /srv/opengamebuilder/preview/web
+        try_files {path} /index.html
+        file_server {
+            precompressed br gzip
+        }
+    }
+}
