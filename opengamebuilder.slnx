@@ -41,7 +41,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj" Id="2a78f2b9-9f57-45ab-8314-885b03c4daf3" />
-    <Project Path="src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj" Id="df43ac45-a2d2-48b9-b243-6dfaf3b9a717" />
+    <Project Path="src/OpenGameBuilder.Web/OpenGameBuilder.Web.Client.csproj" Id="df43ac45-a2d2-48b9-b243-6dfaf3b9a717" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenGameBuilder.Api.Tests/OpenGameBuilder.Api.Tests.csproj" Id="049421a4-49af-4d6f-91ee-e0beea9b153e" />

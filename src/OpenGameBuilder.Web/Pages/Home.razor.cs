@@ -1,12 +1,18 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
 
-namespace OpenGameBuilder.Web.Pages;
+namespace OpenGameBuilder.Web.Client.Pages;
 
 public partial class Home
 {
     [Inject]
     private IConfiguration Configuration { get; init; } = default!;
 
-    private string Title => (Configuration["Title"] ?? "Open Game Builder") + " v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0");
+    private string Title
+    {
+        get
+        {
+            return (Configuration["Title"] ?? "Open Game Builder") + " v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0");
+        }
+    }
 }

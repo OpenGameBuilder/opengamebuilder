@@ -7,7 +7,7 @@
         "Action": "Start"
       },
       {
-        "Path": "src\\OpenGameBuilder.Web\\OpenGameBuilder.Web.csproj",
+        "Path": "src\\OpenGameBuilder.Web\\OpenGameBuilder.Web.Client.csproj",
         "Action": "Start"
       }
     ]
