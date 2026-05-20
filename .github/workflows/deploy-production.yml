@@ -109,7 +109,7 @@ jobs:
 
             cd /srv/opengamebuilder/edge
             docker compose pull
-            docker compose up -d
+            docker compose up -d --force-recreate
             docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
             docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
 
