@@ -1,16 +1,16 @@
-name: ogb-prod
+name: ogb-preview
 
 services:
   api:
-    image: ghcr.io/opengamebuilder/opengamebuilder-api:production
+    image: ghcr.io/opengamebuilder/opengamebuilder-api:preview
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Preview
       ASPNETCORE_URLS: http://+:8080
     networks:
       ogb-edge:
         aliases:
-          - api-production
+          - api-preview
 
 networks:
   ogb-edge:

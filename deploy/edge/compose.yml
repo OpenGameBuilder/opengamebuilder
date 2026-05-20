@@ -1,0 +1,25 @@
+name: ogb-edge
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../production/web:/srv/opengamebuilder/production/web:ro
+      - ../preview/web:/srv/opengamebuilder/preview/web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - ogb-edge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  ogb-edge:
+    external: true

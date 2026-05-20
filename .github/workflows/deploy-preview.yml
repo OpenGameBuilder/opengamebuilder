@@ -1,0 +1,119 @@
+name: Deploy Preview
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-preview
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_PREVIEW: ghcr.io/opengamebuilder/opengamebuilder-api:preview
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: preview
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore opengamebuilder.slnx
+
+      - name: Build
+        run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test opengamebuilder.slnx --configuration Release --no-build
+
+      - name: Publish Web
+        run: dotnet publish src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj --configuration Release --output ./artifacts/web
+
+      - name: Locate Web Publish Output
+        run: |
+          if [ -f ./artifacts/web/wwwroot/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web/wwwroot" >> "$GITHUB_ENV"
+          elif [ -f ./artifacts/web/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web" >> "$GITHUB_ENV"
+          else
+            echo "Could not find published index.html"
+            find ./artifacts/web -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/OpenGameBuilder.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE_PREVIEW }}
+            ghcr.io/opengamebuilder/opengamebuilder-api:${{ github.sha }}
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Sync preview deployment files
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            mkdir -p /srv/opengamebuilder/edge
+            mkdir -p /srv/opengamebuilder/preview/web
+            mkdir -p /srv/opengamebuilder/prod/web
+            docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
+          EOF
+
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            "$WEB_SOURCE/" \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/preview/web/
+
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            ./deploy/preview/compose.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/preview/compose.yml
+
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            ./deploy/edge/compose.yml \
+            ./deploy/edge/Caddyfile \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/edge/
+
+      - name: Restart preview services
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+
+            cd /srv/opengamebuilder/preview
+            docker compose pull
+            docker compose up -d
+
+            cd /srv/opengamebuilder/edge
+            docker compose pull
+            docker compose up -d
+            docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
+            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
+
+            docker image prune -f
+          EOF
