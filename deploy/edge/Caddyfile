@@ -5,10 +5,6 @@ www.opengamebuilder.com {
 opengamebuilder.com {
     encode zstd gzip
     
-    header /_framework/blazor.boot.json Blazor-Environment Production
-    header /_framework/blazor.boot.json.br Blazor-Environment Production
-    header /_framework/blazor.boot.json.gz Blazor-Environment Production
-
     handle /health {
         respond "ok prod" 200
     }
@@ -28,10 +24,6 @@ opengamebuilder.com {
 
 preview.opengamebuilder.com {
     encode zstd gzip
-
-    header /_framework/blazor.boot.json Blazor-Environment Preview
-    header /_framework/blazor.boot.json.br Blazor-Environment Preview
-    header /_framework/blazor.boot.json.gz Blazor-Environment Preview
 
     handle /health {
         respond "ok preview" 200
