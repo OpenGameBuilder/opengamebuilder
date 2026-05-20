@@ -13,8 +13,8 @@
   <Folder Name="/deploy/preview/">
     <File Path="deploy/preview/compose.yml" />
   </Folder>
-  <Folder Name="/deploy/prod/">
-    <File Path="deploy/prod/compose.yml" />
+  <Folder Name="/deploy/production/">
+    <File Path="deploy/production/compose.yml" />
   </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/Solution Items/">
