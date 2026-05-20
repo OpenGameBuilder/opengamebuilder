@@ -6,15 +6,15 @@ opengamebuilder.com {
     encode zstd gzip
     
     handle /health {
-        respond "ok prod" 200
+        respond "ok production" 200
     }
 
     handle /api/* {
-        reverse_proxy api-prod:8080
+        reverse_proxy api-production:8080
     }
 
     handle {
-        root * /srv/opengamebuilder/prod/web
+        root * /srv/opengamebuilder/production/web
         try_files {path} /index.html
         file_server {
             precompressed br gzip

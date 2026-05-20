@@ -15,7 +15,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/opengamebuilder/opengamebuilder-api:prod
+  API_IMAGE: ghcr.io/opengamebuilder/opengamebuilder-api:production
 
 jobs:
   deploy:
@@ -81,7 +81,6 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             mkdir -p /srv/opengamebuilder/edge
-            mkdir -p /srv/opengamebuilder/production/web
             mkdir -p /srv/opengamebuilder/production/web
             docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
           EOF

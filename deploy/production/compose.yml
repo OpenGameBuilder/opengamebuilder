@@ -1,4 +1,4 @@
-name: ogb-prod
+name: ogb-production
 
 services:
   api:
