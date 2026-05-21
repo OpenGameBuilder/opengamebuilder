@@ -8,8 +8,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
     <VersionPrefix>0.0.6</VersionPrefix>
-    <VersionSuffix>development</VersionSuffix>
-    <Version>$(VersionPrefix)-$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>OpenGameBuilder</Authors>

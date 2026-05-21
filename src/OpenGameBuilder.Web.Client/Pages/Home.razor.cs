@@ -14,5 +14,9 @@ public partial class Home
     {
         var about = await Client.GetAboutAsync();
         _title = $"{about.ApplicationName} {about.Version}";
+        if (about.ApiEnvironmentName != "Production")
+        {
+            _title += $" ({about.ApiEnvironmentName})";
+        }
     }
 }
