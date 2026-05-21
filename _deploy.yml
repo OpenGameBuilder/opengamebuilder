@@ -1,26 +1,28 @@
-name: Deploy Production
+name: _ Deploy
 
 on:
-  push:
-    tags:
-      - "v*"
-
-concurrency:
-  group: deploy-production
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-  packages: write
+  workflow_call:
+    inputs:
+      environment-slug:
+        required: true
+        type: string
+      dotnet-environment:
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/opengamebuilder/opengamebuilder-api:production
+  DEPLOY_ROOT: /srv/opengamebuilder
+  EDGE_DIR: /srv/opengamebuilder/edge
+  APP_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}
+  WEB_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}/web
+  COMPOSE_FILE: ./deploy/${{ inputs.environment-slug }}/compose.yml
+  API_IMAGE: ghcr.io/opengamebuilder/opengamebuilder-api:${{ inputs.environment-slug }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ inputs.environment-slug }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +44,12 @@ jobs:
         run: dotnet test opengamebuilder.slnx --configuration Release --no-build
 
       - name: Publish Web
-        run: dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --output ./artifacts/web -p:WasmApplicationEnvironmentName=Production
+        run: >
+          dotnet publish
+          src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj
+          --configuration Release
+          --output ./artifacts/web
+          -p:WasmApplicationEnvironmentName=${{ inputs.dotnet-environment }}
 
       - name: Locate Web Publish Output
         run: |
@@ -76,39 +83,38 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
-          
-      - name: Sync production deployment files
+
+      - name: Sync deployment files
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
-            mkdir -p /srv/opengamebuilder/edge
-            mkdir -p /srv/opengamebuilder/staging/web
-            mkdir -p /srv/opengamebuilder/production/web
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << EOF
+            mkdir -p "${EDGE_DIR}"
+            mkdir -p "${WEB_DIR}"
             docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
           EOF
 
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
             "$WEB_SOURCE/" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/production/web/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${WEB_DIR}/"
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
-            ./deploy/production/compose.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/production/compose.yml
+            "${COMPOSE_FILE}" \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/compose.yml"
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
             ./deploy/edge/compose.yml \
             ./deploy/edge/Caddyfile \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/edge/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${EDGE_DIR}/"
 
-      - name: Restart production services
+      - name: Restart services
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << EOF
             set -e
 
-            cd /srv/opengamebuilder/production
+            cd "${APP_DIR}"
             docker compose pull
             docker compose up -d
 
-            cd /srv/opengamebuilder/edge
+            cd "${EDGE_DIR}"
             docker compose pull
             docker compose up -d --force-recreate
             docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile

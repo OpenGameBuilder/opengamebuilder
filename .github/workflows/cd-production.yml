@@ -1,0 +1,22 @@
+name: 🚀 CD Production
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment-slug: production
+      dotnet-environment: Production
+    secrets: inherit
