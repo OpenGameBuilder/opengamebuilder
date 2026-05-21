@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: ./.github/workflows/_deploy.yml
+    uses: ./_deploy.yml
     with:
       environment-slug: staging
       dotnet-environment: Staging
