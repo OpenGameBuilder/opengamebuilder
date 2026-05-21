@@ -1,4 +1,4 @@
-name: Deploy Preview
+name: Deploy Staging
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-preview
+  group: deploy-staging
   cancel-in-progress: true
 
 permissions:
@@ -16,12 +16,12 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE_PREVIEW: ghcr.io/opengamebuilder/opengamebuilder-api:preview
+  API_IMAGE_STAGING: ghcr.io/opengamebuilder/opengamebuilder-api:staging
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: preview
+    environment: staging
 
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
         run: dotnet test opengamebuilder.slnx --configuration Release --no-build
 
       - name: Publish Web
-        run: dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --output ./artifacts/web -p:WasmApplicationEnvironmentName=Preview
+        run: dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --output ./artifacts/web -p:WasmApplicationEnvironmentName=Staging
 
       - name: Locate Web Publish Output
         run: |
@@ -67,7 +67,7 @@ jobs:
           file: src/OpenGameBuilder.Api/Dockerfile
           push: true
           tags: |
-            ${{ env.API_IMAGE_PREVIEW }}
+            ${{ env.API_IMAGE_STAGING }}
             ghcr.io/opengamebuilder/opengamebuilder-api:${{ github.sha }}
 
       - name: Set up SSH
@@ -78,33 +78,34 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Sync preview deployment files
+      - name: Sync staging deployment files
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             mkdir -p /srv/opengamebuilder/edge
-            mkdir -p /srv/opengamebuilder/preview/web
+            mkdir -p /srv/opengamebuilder/staging/web
+            mkdir -p /srv/opengamebuilder/production/web
             docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
           EOF
 
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
             "$WEB_SOURCE/" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/preview/web/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/staging/web/
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
-            ./deploy/preview/compose.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/preview/compose.yml
+            ./deploy/staging/compose.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/staging/compose.yml
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
             ./deploy/edge/compose.yml \
             ./deploy/edge/Caddyfile \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/opengamebuilder/edge/
 
-      - name: Restart preview services
+      - name: Restart staging services
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             set -e
 
-            cd /srv/opengamebuilder/preview
+            cd /srv/opengamebuilder/staging
             docker compose pull
             docker compose up -d
 

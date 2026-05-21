@@ -2,19 +2,19 @@
   <Folder Name="/.github/" />
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/ci.yml" />
-    <File Path=".github/workflows/deploy-preview.yml" />
     <File Path=".github/workflows/deploy-production.yml" />
+    <File Path=".github/workflows/deploy-staging.yml" />
   </Folder>
   <Folder Name="/deploy/" />
   <Folder Name="/deploy/edge/">
     <File Path="deploy/edge/Caddyfile" />
     <File Path="deploy/edge/compose.yml" />
   </Folder>
-  <Folder Name="/deploy/preview/">
-    <File Path="deploy/preview/compose.yml" />
-  </Folder>
   <Folder Name="/deploy/production/">
     <File Path="deploy/production/compose.yml" />
+  </Folder>
+  <Folder Name="/deploy/staging/">
+    <File Path="deploy/staging/compose.yml" />
   </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/Solution Items/">
