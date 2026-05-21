@@ -26,7 +26,7 @@
       "type": "blazorwasm",
       "request": "launch",
       "preLaunchTask": "build-web",
-      "cwd": "${workspaceFolder}/src/OpenGameBuilder.Web",
+      "cwd": "${workspaceFolder}/src/OpenGameBuilder.Web.Client",
       "url": "https://localhost:7001",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",

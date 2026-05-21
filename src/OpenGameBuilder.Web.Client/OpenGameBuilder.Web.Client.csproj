@@ -14,4 +14,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\OpenGameBuilder.Api.Client\OpenGameBuilder.Api.Client.csproj" />
+  </ItemGroup>
+
 </Project>

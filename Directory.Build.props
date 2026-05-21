@@ -8,6 +8,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
     <VersionPrefix>0.0.6</VersionPrefix>
+    <InformationalVersion>$(Version)</InformationalVersion>
     <Authors>OpenGameBuilder</Authors>
     <Company>OpenGameBuilder</Company>
     <Product>OpenGameBuilder</Product>
