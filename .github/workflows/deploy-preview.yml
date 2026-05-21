@@ -43,7 +43,7 @@ jobs:
         run: dotnet test opengamebuilder.slnx --configuration Release --no-build
 
       - name: Publish Web
-        run: dotnet publish src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj --configuration Release --output ./artifacts/web -p:WasmApplicationEnvironmentName=Preview
+        run: dotnet publish src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj --configuration Release --output ./artifacts/web -p:WasmApplicationEnvironmentName=Preview -p:VersionSuffix=preview
 
       - name: Locate Web Publish Output
         run: |
