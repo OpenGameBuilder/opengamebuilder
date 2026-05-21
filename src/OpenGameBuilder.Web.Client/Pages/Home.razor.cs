@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Hosting;
 using OpenGameBuilder.Api.Client.About;
 
 namespace OpenGameBuilder.Web.Client.Pages;
@@ -14,7 +15,7 @@ public partial class Home
     {
         var about = await Client.GetAboutAsync();
         _title = $"{about.ApplicationName} {about.Version}";
-        if (about.ApiEnvironmentName != "Production")
+        if (about.ApiEnvironmentName != Environments.Production)
         {
             _title += $" ({about.ApiEnvironmentName})";
         }
