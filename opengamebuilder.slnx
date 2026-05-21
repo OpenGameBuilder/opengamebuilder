@@ -1,23 +1,4 @@
 <Solution>
-  <Folder Name="/.github/" />
-  <Folder Name="/.github/workflows/">
-    <File Path=".github/workflows/cd-production.yml" />
-    <File Path=".github/workflows/cd-staging.yml" />
-    <File Path=".github/workflows/ci.yml" />
-    <File Path="_deploy.yml" />
-  </Folder>
-  <Folder Name="/deploy/" />
-  <Folder Name="/deploy/edge/">
-    <File Path="deploy/edge/Caddyfile" />
-    <File Path="deploy/edge/compose.yml" />
-  </Folder>
-  <Folder Name="/deploy/production/">
-    <File Path="deploy/production/compose.yml" />
-  </Folder>
-  <Folder Name="/deploy/staging/">
-    <File Path="deploy/staging/compose.yml" />
-  </Folder>
-  <Folder Name="/docs/" />
   <Folder Name="/Solution Items/">
     <File Path=".dockerignore" />
     <File Path=".editorconfig" />
@@ -32,11 +13,30 @@
     <File Path="opengamebuilder.slnLaunch" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/Solution Items/.github/" />
+  <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/cd-production.yml" />
+    <File Path=".github/workflows/cd-staging.yml" />
+    <File Path=".github/workflows/ci.yml" />
+    <File Path=".github/workflows/_deploy.yml" />
+  </Folder>
   <Folder Name="/Solution Items/.husky/">
     <File Path=".config/dotnet-tools.json" />
     <File Path=".husky/pre-commit" />
     <File Path=".husky/task-runner.json" />
   </Folder>
+  <Folder Name="/Solution Items/deploy/" />
+  <Folder Name="/Solution Items/deploy/edge/">
+    <File Path="deploy/edge/Caddyfile" />
+    <File Path="deploy/edge/compose.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/deploy/production/">
+    <File Path="deploy/production/compose.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/deploy/staging/">
+    <File Path="deploy/staging/compose.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/" />
   <Folder Name="/src/">
     <Project Path="src/OpenGameBuilder.Api.Client/OpenGameBuilder.Api.Client.csproj" Id="2cf0a4e2-b929-48b9-859c-14ec2d08d350" />
     <Project Path="src/OpenGameBuilder.Api.Contracts/OpenGameBuilder.Api.Contracts.csproj" Id="e4e1c6f7-cfbf-4d8b-829e-6ce14a951cd6" />
