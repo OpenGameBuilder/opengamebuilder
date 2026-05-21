@@ -1,0 +1,23 @@
+name: 🛰️ CD Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment-slug: staging
+      dotnet-environment: Staging
+    secrets: inherit

@@ -1,9 +1,10 @@
 <Solution>
   <Folder Name="/.github/" />
   <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/cd-production.yml" />
+    <File Path=".github/workflows/cd-staging.yml" />
     <File Path=".github/workflows/ci.yml" />
-    <File Path=".github/workflows/deploy-production.yml" />
-    <File Path=".github/workflows/deploy-staging.yml" />
+    <File Path="_deploy.yml" />
   </Folder>
   <Folder Name="/deploy/" />
   <Folder Name="/deploy/edge/">
@@ -30,9 +31,6 @@
     <File Path="LICENSE" />
     <File Path="opengamebuilder.slnLaunch" />
     <File Path="README.md" />
-  </Folder>
-  <Folder Name="/Solution Items/.github/">
-    <File Path=".github/workflows/ci.yml" />
   </Folder>
   <Folder Name="/Solution Items/.husky/">
     <File Path=".config/dotnet-tools.json" />
