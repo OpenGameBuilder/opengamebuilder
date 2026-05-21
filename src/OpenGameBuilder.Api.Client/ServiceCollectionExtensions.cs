@@ -13,8 +13,6 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var test = configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName);
-
         services.AddOptions<OpenGameBuilderApiClientOptions>()
             .Bind(configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName))
             .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl is required.")
