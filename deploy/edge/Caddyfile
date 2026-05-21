@@ -22,19 +22,19 @@ opengamebuilder.com {
     }
 }
 
-preview.opengamebuilder.com {
+staging.opengamebuilder.com {
     encode zstd gzip
 
     handle /health {
-        respond "ok preview" 200
+        respond "ok staging" 200
     }
 
     handle /api/* {
-        reverse_proxy api-preview:8080
+        reverse_proxy api-staging:8080
     }
 
     handle {
-        root * /srv/opengamebuilder/preview/web
+        root * /srv/opengamebuilder/staging/web
         try_files {path} /index.html
         file_server {
             precompressed br gzip

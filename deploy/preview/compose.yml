@@ -1,16 +1,16 @@
-name: ogb-preview
+name: ogb-staging
 
 services:
   api:
-    image: ghcr.io/opengamebuilder/opengamebuilder-api:preview
+    image: ghcr.io/opengamebuilder/opengamebuilder-api:staging
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Preview
+      ASPNETCORE_ENVIRONMENT: Staging
       ASPNETCORE_URLS: http://+:8080
     networks:
       ogb-edge:
         aliases:
-          - api-preview
+          - api-staging
 
 networks:
   ogb-edge:

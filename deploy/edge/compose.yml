@@ -10,7 +10,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../production/web:/srv/opengamebuilder/production/web:ro
-      - ../preview/web:/srv/opengamebuilder/preview/web:ro
+      - ../staging/web:/srv/opengamebuilder/staging/web:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
