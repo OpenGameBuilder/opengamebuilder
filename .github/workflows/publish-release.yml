@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "normal releases come from main; patch releases come from release/X.Y"
+        description: "normal releases come from main; patch releases come from release/X.Y.Z"
         required: true
         type: choice
         options:
           - normal
           - patch
       source_ref:
-        description: "main or release/X.Y"
+        description: "main or release/X.Y.Z"
         required: true
         type: string
         default: main
@@ -258,14 +258,13 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Create release branch and next-version PR
+      - name: Open next-version PR
         shell: pwsh
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
           RELEASED_VERSION: ${{ needs.validate.outputs.version }}
           NEXT_VERSION: ${{ needs.validate.outputs.next_main_version }}
-          RELEASE_BRANCH: ${{ needs.validate.outputs.release_branch }}
           TAG: ${{ needs.validate.outputs.tag }}
         run: ./scripts/post-normal-release.ps1
 

@@ -91,7 +91,7 @@ function Set-OgbVersion {
 
     $propsPath = Get-OgbDirectoryBuildPropsPath
     $content = Get-Content -Path $propsPath -Raw
-    m
+
     $m = [regex]::Matches($content, '<VersionPrefix>[^<]+</VersionPrefix>')
 
     if ($m.Count -ne 1) {

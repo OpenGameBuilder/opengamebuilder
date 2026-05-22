@@ -21,7 +21,6 @@ A standard release does this:
 - smoke test production
 - create `vX.Y.0` tag
 - create GitHub Release
-- create `release/X.Y` branch
 - open PR bumping main to `X.(Y+1).0`
 
 The release tag is created only after production deploys successfully and the production smoke test passes.
@@ -101,7 +100,6 @@ If validation fails:
 - no release tag
 - no GitHub Release
 - no version bump PR
-- no release branch
 
 If build or tests fail:
 
@@ -109,21 +107,18 @@ If build or tests fail:
 - no release tag
 - no GitHub Release
 - no version bump PR
-- no release branch
 
 If production deploy fails:
 
 - no release tag
 - no GitHub Release
 - no version bump PR
-- no release branch
 
 If the production smoke test fails:
 
 - no release tag
 - no GitHub Release
 - no version bump PR
-- no release branch
 
 If GitHub Release creation fails after the tag is created, rerun the workflow. The workflow is intended to be idempotent for already-created tags/releases that point to the expected commit.
 

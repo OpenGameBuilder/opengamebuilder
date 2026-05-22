@@ -1,7 +1,6 @@
 param(
     [string] $ReleasedVersion = $env:RELEASED_VERSION,
     [string] $NextVersion = $env:NEXT_VERSION,
-    [string] $ReleaseBranch = $env:RELEASE_BRANCH,
     [string] $Tag = $env:TAG
 )
 
@@ -13,10 +12,6 @@ if ([string]::IsNullOrWhiteSpace($ReleasedVersion)) {
 
 if ([string]::IsNullOrWhiteSpace($NextVersion)) {
     throw "NEXT_VERSION is required."
-}
-
-if ([string]::IsNullOrWhiteSpace($ReleaseBranch)) {
-    throw "RELEASE_BRANCH is required."
 }
 
 if ([string]::IsNullOrWhiteSpace($Tag)) {
@@ -31,15 +26,6 @@ Invoke-OgbNative git fetch origin main
 
 Invoke-OgbNative git config user.name "OpenGameBuilder Release Bot"
 Invoke-OgbNative git config user.email "release-bot@users.noreply.github.com"
-
-if (Test-OgbRemoteBranch -BranchName $ReleaseBranch) {
-    Write-Host "Release branch '$ReleaseBranch' already exists."
-}
-else {
-    Write-Host "Creating release branch '$ReleaseBranch' from '$Tag'."
-    Invoke-OgbNative git branch $ReleaseBranch $Tag
-    Invoke-OgbNative git push origin "refs/heads/$ReleaseBranch"
-}
 
 $bumpBranch = "chore/bump-version-to-$NextVersion"
 
@@ -72,7 +58,6 @@ Post-release version bump after $Tag.
 
 Released version: $ReleasedVersion
 Next main version: $NextVersion
-Release branch: $ReleaseBranch
 "@
 
     Invoke-OgbNative gh pr create `

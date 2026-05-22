@@ -43,7 +43,7 @@ $version = Get-OgbVersion
 $parts = ConvertTo-OgbVersionParts -Version $version
 $tag = "v$version"
 $sourceSha = Get-OgbNativeOutput git rev-parse HEAD
-$releaseBranch = "release/$($parts.Major).$($parts.Minor)"
+$releaseBranch = ""
 $previousTag = ""
 
 if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
@@ -169,7 +169,9 @@ Write-Host "  Source ref:        $sourceRefName"
 Write-Host "  Source SHA:        $sourceSha"
 Write-Host "  Version:           $version"
 Write-Host "  Tag:               $tag"
-Write-Host "  Release branch:    $releaseBranch"
+if (-not [string]::IsNullOrWhiteSpace($releaseBranch)) {
+    Write-Host "  Release branch:    $releaseBranch"
+}
 
 if (-not [string]::IsNullOrWhiteSpace($previousTag)) {
     Write-Host "  Previous tag:      $previousTag"

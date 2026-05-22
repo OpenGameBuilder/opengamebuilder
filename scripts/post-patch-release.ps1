@@ -21,7 +21,7 @@ if ([string]::IsNullOrWhiteSpace($Tag)) {
 Assert-OgbPlainSemVer -Version $ReleasedVersion
 
 $releasedParts = ConvertTo-OgbVersionParts -Version $ReleasedVersion
-$expectedReleaseBranch = "release/$($releasedParts.Major).$($releasedParts.Minor)"
+$expectedReleaseBranch = "release/$ReleasedVersion"
 
 if ($ReleaseBranch -ne $expectedReleaseBranch) {
     throw "Release branch '$ReleaseBranch' does not match released version '$ReleasedVersion'. Expected '$expectedReleaseBranch'."

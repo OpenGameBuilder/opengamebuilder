@@ -9,11 +9,10 @@ if ($null -eq $baseRelease) {
     throw "No stable GitHub Release was found. Publish a normal release first."
 }
 
-$releaseLine = "$($baseRelease.Parts.Major).$($baseRelease.Parts.Minor)"
 $nextPatch = $baseRelease.Parts.Patch + 1
 $nextVersion = "$($baseRelease.Parts.Major).$($baseRelease.Parts.Minor).$nextPatch"
 $nextTag = "v$nextVersion"
-$releaseBranch = "release/$releaseLine"
+$releaseBranch = "release/$nextTag"
 $prepareBranch = "chore/prepare-$nextTag"
 
 if (Test-OgbRemoteTag -TagName $nextTag) {
