@@ -9,6 +9,10 @@ on:
       dotnet-environment:
         required: true
         type: string
+      git-ref:
+        required: false
+        type: string
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -17,7 +21,7 @@ env:
   APP_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}
   WEB_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}/web
   COMPOSE_FILE: ./deploy/${{ inputs.environment-slug }}/compose.yml
-  API_IMAGE: ghcr.io/opengamebuilder/opengamebuilder-api:${{ inputs.environment-slug }}
+  API_IMAGE_NAME: ghcr.io/opengamebuilder/opengamebuilder-api
 
 jobs:
   deploy:
@@ -26,6 +30,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        if: ${{ inputs.git-ref == '' }}
+
+      - uses: actions/checkout@v6
+        if: ${{ inputs.git-ref != '' }}
+        with:
+          ref: ${{ inputs.git-ref }}
 
       - uses: actions/setup-dotnet@v5
         with:
@@ -63,6 +73,19 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve deployment image
+        id: deployment
+        run: |
+          set -euo pipefail
+
+          commit_sha="$(git rev-parse HEAD)"
+          api_image="${API_IMAGE_NAME}:${commit_sha}"
+
+          echo "commit-sha=${commit_sha}" >> "$GITHUB_OUTPUT"
+          echo "api-image=${api_image}" >> "$GITHUB_OUTPUT"
+
+          echo "Deploying API image: ${api_image}"
+
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
@@ -72,9 +95,7 @@ jobs:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
           push: true
-          tags: |
-            ${{ env.API_IMAGE }}
-            ghcr.io/opengamebuilder/opengamebuilder-api:${{ github.sha }}
+          tags: ${{ steps.deployment.outputs.api-image }}
 
       - name: Set up SSH
         run: |
@@ -87,8 +108,14 @@ jobs:
       - name: Sync deployment files
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << EOF
+            set -e
+
             mkdir -p "${EDGE_DIR}"
+            mkdir -p "${APP_DIR}"
             mkdir -p "${WEB_DIR}"
+
+            printf '%s\n' "API_IMAGE=${{ steps.deployment.outputs.api-image }}" > "${APP_DIR}/.env"
+
             docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
           EOF
 

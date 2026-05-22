@@ -1,0 +1,82 @@
+name: Compatibility Issue
+description: Report behavior that differs from MyGameBuilder or affects restored games.
+title: "[Compatibility]: "
+labels: ["compatibility", "needs triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MyGameBuilder compatibility.
+
+        Use this form for behavior differences, restored game issues, or cases where OpenGameBuilder does not match expected original MyGameBuilder behavior.
+
+        Please do not include private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
+
+        Describe observed behavior, not decompiled implementation details.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing issues to avoid creating a duplicate.
+          required: true
+        - label: This report does not include private, sensitive, security-related, proprietary, or decompiled-source material.
+          required: true
+        - label: This report describes behavior, not copied or translated source code.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Original MyGameBuilder behavior
+      description: Briefly describe the behavior that seems wrong or missing.
+      placeholder: In MyGameBuilder, this appeared to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Current OpenGameBuilder behavior
+      description: What happens currently?
+      placeholder: In OpenGameBuilder, this currently...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What should someone do to see the issue?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Best guess is fine.
+      multiple: true
+      options:
+        - TODO
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or reference
+      description: Add safe screenshots, video, notes, links, or examples that show the expected behavior.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Add any other context that may help.
+    validations:
+      required: false
