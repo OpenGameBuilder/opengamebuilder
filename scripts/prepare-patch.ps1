@@ -12,7 +12,7 @@ if ($null -eq $baseRelease) {
 $nextPatch = $baseRelease.Parts.Patch + 1
 $nextVersion = "$($baseRelease.Parts.Major).$($baseRelease.Parts.Minor).$nextPatch"
 $nextTag = "v$nextVersion"
-$releaseBranch = "release/$nextTag"
+$patchBranch = "patch/$nextTag"
 $prepareBranch = "chore/prepare-$nextTag"
 
 if (Test-OgbRemoteTag -TagName $nextTag) {
@@ -22,31 +22,32 @@ if (Test-OgbRemoteTag -TagName $nextTag) {
 Invoke-OgbNative git config user.name "OpenGameBuilder Release Bot"
 Invoke-OgbNative git config user.email "release-bot@users.noreply.github.com"
 
-if (Test-OgbRemoteBranch -BranchName $releaseBranch) {
-    Write-Host "Release branch '$releaseBranch' already exists."
+if (Test-OgbRemoteBranch -BranchName $patchBranch) {
+    Write-Host "Patch branch '$patchBranch' already exists."
 
-    Invoke-OgbNative git fetch origin "+refs/heads/$releaseBranch:refs/remotes/origin/$releaseBranch"
-    Invoke-OgbNative git switch --detach "origin/$releaseBranch"
+    Invoke-OgbNative git fetch origin "+refs/heads/$patchBranch:refs/remotes/origin/$patchBranch"
+    Invoke-OgbNative git switch --detach "origin/$patchBranch"
 
     $branchVersion = Get-OgbVersion
 
     if ($branchVersion -eq $nextVersion) {
-        throw "Release branch '$releaseBranch' is already prepared for '$nextVersion'. Run the Publish Release workflow when the patch is ready."
+        throw "Patch branch '$patchBranch' is already prepared for '$nextVersion'. Run the Publish Release workflow when the patch is ready."
     }
 
     if ($branchVersion -ne $baseRelease.Version) {
-        throw "Release branch '$releaseBranch' has VersionPrefix '$branchVersion', but latest stable release is '$($baseRelease.Version)'. Fix the branch before preparing another patch."
+        throw "Patch branch '$patchBranch' has VersionPrefix '$branchVersion', but latest stable release is '$($baseRelease.Version)'. Fix the branch before preparing another patch."
     }
 
-    $baseRef = "origin/$releaseBranch"
+    $baseRef = "origin/$patchBranch"
 }
 else {
-    Write-Host "Creating release branch '$releaseBranch' from '$($baseRelease.TagName)'."
+    Write-Host "Creating patch branch '$patchBranch' from '$($baseRelease.TagName)'."
 
-    Invoke-OgbNative git branch $releaseBranch $baseRelease.TagName
-    Invoke-OgbNative git push origin "refs/heads/$releaseBranch"
 
-    $baseRef = $releaseBranch
+    Invoke-OgbNative git branch $patchBranch $baseRelease.TagName
+    Invoke-OgbNative git push origin "refs/heads/$patchBranch"
+
+    $baseRef = $patchBranch
 }
 
 if (Test-OgbRemoteBranch -BranchName $prepareBranch) {
@@ -69,24 +70,24 @@ else {
     Invoke-OgbNative git push origin "HEAD:refs/heads/$prepareBranch"
 }
 
-$existingPr = Get-OgbNativeOutput gh pr list --base $releaseBranch --head $prepareBranch --state open --json number --jq '.[0].number'
+$existingPr = Get-OgbNativeOutput gh pr list --base $patchBranch --head $prepareBranch --state open --json number --jq '.[0].number'
 
 if ([string]::IsNullOrWhiteSpace($existingPr)) {
     $body = @"
 Prepares patch release $nextTag.
 
 Base release: $($baseRelease.TagName)
-Release branch: $releaseBranch
+Patch branch: $patchBranch
 
-After this PR is merged and any patch fixes are included on $releaseBranch, run the Publish Release workflow with:
+After this PR is merged and any patch fixes are included on $patchBranch, run the Publish Release workflow with:
 
 kind: patch
-source_ref: $releaseBranch
+source_ref: $patchBranch
 expected_version: $nextVersion
 "@
 
     Invoke-OgbNative gh pr create `
-        --base $releaseBranch `
+        --base $patchBranch `
         --head $prepareBranch `
         --title "chore: prepare $nextTag" `
         --body $body
@@ -98,5 +99,5 @@ else {
 Write-Host "Prepared patch release:"
 Write-Host "  Base release:    $($baseRelease.TagName)"
 Write-Host "  Next tag:        $nextTag"
-Write-Host "  Release branch:  $releaseBranch"
+Write-Host "  Patch branch:    $patchBranch"
 Write-Host "  Prepare branch:  $prepareBranch"

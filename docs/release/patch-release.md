@@ -1,6 +1,6 @@
 # Patch release
 
-A patch release publishes a fix for the currently deployed release line.
+A patch release publishes a fix or small change for the currently deployed release.
 
 Patch releases use versions like:
 
@@ -8,19 +8,19 @@ Patch releases use versions like:
 - `1.0.2`
 - `2.9.3`
 
-Patch releases are made from a `release/vX.Y.Z` branch, not from `main`.
+Patch releases are made from a `patch/vX.Y.Z` branch, not from `main`.
 
 ## Summary
 
 If the latest stable release is vX.Y.Z, a patch release does this
-- prepare `release/vX.Y.(Z+1)` branch
-- open PR bumping `release/vX.Y.(Z+1)` to **X.Y.(Z+1)**
-- merge patch fixes into `release/vX.Y.(Z+1)`
-- deploy exact `release/vX.Y.(Z+1)` commit to production
+- prepare `patch/vX.Y.(Z+1)` branch
+- open PR bumping `patch/vX.Y.(Z+1)` to **X.Y.(Z+1)**
+- merge patch fixes into `patch/vX.Y.(Z+1)`
+- deploy exact `patch/vX.Y.(Z+1)` commit to production
 - smoke test production
 - create `vX.Y.(Z+1)` tag
 - create GitHub Release
-- open merge-back PR from `release/vX.Y.(Z+1)` into `main`
+- open merge-back PR from `patch/vX.Y.(Z+1)` into `main`
 
 The release tag is created only after production deploys successfully and the production smoke test passes.
 
@@ -42,11 +42,11 @@ The workflow uses the latest stable GitHub Release as the base.
 
 For example, if the latest stable release is `v1.9.0`, the workflow prepares:
 
-- **release branch:** `release/v1.9.1`
+- **patch branch:** `patch/v1.9.1`
 - **next patch version:** `1.9.1`
 - **next patch tag:** `v1.9.1`
 
-That PR updates `Directory.Build.props` on `release/v1.9.1`:
+That PR updates `Directory.Build.props` on `patch/v1.9.1`:
 
 ```xml
 <VersionPrefix>1.9.1</VersionPrefix>
@@ -56,15 +56,15 @@ Merge the prepare PR.
 
 ## Step 2: Add the patch fix
 
-Add the actual patch fix to the release branch through normal PRs.
+Add the actual patch fix to the patch branch through normal PRs.
 
-The target branch should be `release/vX.Y.(Z+1)`.
+The target branch should be `patch/vX.Y.(Z+1)`.
 
 Keep the patch narrow. A patch release should fix the production issue or be a minor change, not sneak in a pile of unrelated improvements wearing a fake mustache.
 
 ## Step 3: Publish the patch release
 
-When the release branch is ready, go to:
+When the patch branch is ready, go to:
 
 ```text
 GitHub -> Actions -> 🚀 Publish Release -> Run workflow
@@ -73,13 +73,13 @@ GitHub -> Actions -> 🚀 Publish Release -> Run workflow
 Use these inputs:
 
 - **kind:** patch
-- **source_ref:** `release/v1.9.1`
+- **source_ref:** `patch/v1.9.1`
 - **expected_version:** `1.9.1`
 - **next_main_version:** *leave blank*
 
 The workflow validates:
 
-- The source branch is `release/vX.Y.Z`.
+- The source branch is `patch/vX.Y.Z`.
 - The branch name matches the version.
 - The patch number is greater than `0`.
 - The version is the next patch after the latest release in that line.
@@ -92,7 +92,7 @@ The workflow deploys to the `production` GitHub Environment.
 
 Production has required reviewers configured, wait for an assigned reviewer to approve.
 
-The workflow deploys the exact validated commit SHA from the release branch.
+The workflow deploys the exact validated commit SHA from the patch branch.
 
 ## What happens after approval
 
@@ -103,7 +103,7 @@ The workflow will:
 3. Run the production smoke test.
 4. Create the immutable release tag, such as `v1.9.1`.
 5. Create the GitHub Release.
-6. Open a merge-back PR from `release/v1.9.1` into `main`.
+6. Open a merge-back PR from `patch/v1.9.1` into `main`.
 
 ## Step 5: Merge the patch back into main
 
@@ -145,8 +145,8 @@ Do not manually push `v*` tags.
 
 Do not release patch versions from `main`.
 
-Do not make broad feature changes on release branches.
+Do not make broad feature changes on patch branches.
 
 Do not skip the merge-back PR unless the patch already exists on `main`.
 
-Do not let `main` keep an older version than the patched release line.
+Do not let `main` keep an older version than the patched release.

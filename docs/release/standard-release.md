@@ -79,8 +79,7 @@ The workflow will:
 3. Run the production smoke test.
 4. Create the immutable release tag, such as `v1.9.0`.
 5. Create the GitHub Release.
-6. Create or confirm the release branch, such as `release/1.9`.
-7. Open a PR to bump `main` to the next minor version.
+6. Open a PR to bump `main` to the next minor version.
 
 Example post-release PR:
 

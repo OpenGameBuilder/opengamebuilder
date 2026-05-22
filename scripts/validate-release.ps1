@@ -43,7 +43,7 @@ $version = Get-OgbVersion
 $parts = ConvertTo-OgbVersionParts -Version $version
 $tag = "v$version"
 $sourceSha = Get-OgbNativeOutput git rev-parse HEAD
-$releaseBranch = ""
+$patchBranch = ""
 $previousTag = ""
 
 if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
@@ -111,10 +111,10 @@ if ($ReleaseKind -eq "normal") {
 }
 
 if ($ReleaseKind -eq "patch") {
-    $branchMatch = [regex]::Match($sourceRefName, '^release/(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)$')
+    $branchMatch = [regex]::Match($sourceRefName, '^patch/(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)$')
 
     if (-not $branchMatch.Success) {
-        throw "Patch releases must be published from release/X.Y. Received source ref '$sourceRefName'."
+        throw "Patch releases must be published from patch/X.Y. Received source ref '$sourceRefName'."
     }
 
     $branchMajor = [int] $branchMatch.Groups["major"].Value
@@ -160,7 +160,7 @@ if ($ReleaseKind -eq "patch") {
 Write-OgbGitHubOutput -Name "version" -Value $version
 Write-OgbGitHubOutput -Name "tag" -Value $tag
 Write-OgbGitHubOutput -Name "source_sha" -Value $sourceSha
-Write-OgbGitHubOutput -Name "release_branch" -Value $releaseBranch
+Write-OgbGitHubOutput -Name "patch_branch" -Value $patchBranch
 Write-OgbGitHubOutput -Name "next_main_version" -Value $NextMainVersion
 Write-OgbGitHubOutput -Name "previous_tag" -Value $previousTag
 
@@ -169,8 +169,8 @@ Write-Host "  Source ref:        $sourceRefName"
 Write-Host "  Source SHA:        $sourceSha"
 Write-Host "  Version:           $version"
 Write-Host "  Tag:               $tag"
-if (-not [string]::IsNullOrWhiteSpace($releaseBranch)) {
-    Write-Host "  Release branch:    $releaseBranch"
+if (-not [string]::IsNullOrWhiteSpace($patchBranch)) {
+    Write-Host "  Patch branch:    $patchBranch"
 }
 
 if (-not [string]::IsNullOrWhiteSpace($previousTag)) {

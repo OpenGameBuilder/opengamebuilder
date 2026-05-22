@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "normal releases come from main; patch releases come from release/X.Y.Z"
+        description: "normal releases come from main; patch releases come from patch/X.Y.Z"
         required: true
         type: choice
         options:
           - normal
           - patch
       source_ref:
-        description: "main or release/X.Y.Z"
+        description: "main or patch/X.Y.Z"
         required: true
         type: string
         default: main
@@ -43,7 +43,7 @@ jobs:
       version: ${{ steps.validate.outputs.version }}
       tag: ${{ steps.validate.outputs.tag }}
       source_sha: ${{ steps.validate.outputs.source_sha }}
-      release_branch: ${{ steps.validate.outputs.release_branch }}
+      patch_branch: ${{ steps.validate.outputs.patch_branch }}
       next_main_version: ${{ steps.validate.outputs.next_main_version }}
       previous_tag: ${{ steps.validate.outputs.previous_tag }}
 
@@ -298,6 +298,6 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
           RELEASED_VERSION: ${{ needs.validate.outputs.version }}
-          RELEASE_BRANCH: ${{ needs.validate.outputs.release_branch }}
+          PATCH_BRANCH: ${{ needs.validate.outputs.patch_branch }}
           TAG: ${{ needs.validate.outputs.tag }}
         run: ./scripts/post-patch-release.ps1

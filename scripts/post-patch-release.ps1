@@ -1,6 +1,6 @@
 param(
-    [string] $ReleasedVersion = $env:RELEASED_VERSION,
-    [string] $ReleaseBranch = $env:RELEASE_BRANCH,
+    [string] $ReleasedVersion = $env:PATCH_VERSION,
+    [string] $PatchBranch = $env:PATCH_BRANCH,
     [string] $Tag = $env:TAG
 )
 
@@ -10,8 +10,8 @@ if ([string]::IsNullOrWhiteSpace($ReleasedVersion)) {
     throw "RELEASED_VERSION is required."
 }
 
-if ([string]::IsNullOrWhiteSpace($ReleaseBranch)) {
-    throw "RELEASE_BRANCH is required."
+if ([string]::IsNullOrWhiteSpace($PatchBranch)) {
+    throw "PATCH_BRANCH is required."
 }
 
 if ([string]::IsNullOrWhiteSpace($Tag)) {
@@ -21,17 +21,17 @@ if ([string]::IsNullOrWhiteSpace($Tag)) {
 Assert-OgbPlainSemVer -Version $ReleasedVersion
 
 $releasedParts = ConvertTo-OgbVersionParts -Version $ReleasedVersion
-$expectedReleaseBranch = "release/$ReleasedVersion"
+$expectedPatchBranch = "patch/$ReleasedVersion"
 
-if ($ReleaseBranch -ne $expectedReleaseBranch) {
-    throw "Release branch '$ReleaseBranch' does not match released version '$ReleasedVersion'. Expected '$expectedReleaseBranch'."
+if ($PatchBranch -ne $expectedPatchBranch) {
+    throw "Patch branch '$PatchBranch' does not match released version '$ReleasedVersion'. Expected '$expectedPatchBranch'."
 }
 
 $mergeBranch = "chore/merge-$Tag-into-main"
 
 Invoke-OgbNative git fetch --force --tags origin
 Invoke-OgbNative git fetch origin main
-Invoke-OgbNative git fetch origin "+refs/heads/$ReleaseBranch:refs/remotes/origin/$ReleaseBranch"
+Invoke-OgbNative git fetch origin "+refs/heads/$PatchBranch:refs/remotes/origin/$PatchBranch"
 
 Invoke-OgbNative git config user.name "OpenGameBuilder Release Bot"
 Invoke-OgbNative git config user.email "release-bot@users.noreply.github.com"
@@ -60,7 +60,7 @@ else {
 
     Invoke-OgbNative git switch -c $mergeBranch
 
-    & git merge --no-ff --no-commit "origin/$ReleaseBranch"
+    & git merge --no-ff --no-commit "origin/$PatchBranch"
 
     if ($LASTEXITCODE -ne 0) {
         $conflicts = @(git diff --name-only --diff-filter=U)
@@ -102,10 +102,10 @@ if ([string]::IsNullOrWhiteSpace($existingPr)) {
 Merges patch release $Tag back into main.
 
 Released version: $ReleasedVersion
-Release branch: $ReleaseBranch
+Patch branch: $PatchBranch
 
 Version policy:
-- main keeps its current VersionPrefix if it is already beyond the patched release line.
+- main keeps its current VersionPrefix if it is already beyond the patched release.
 - otherwise main is bumped to $($releasedParts.Major).$($releasedParts.Minor + 1).0.
 
 After this PR merges, the normal staging deploy should run from the push to main.
