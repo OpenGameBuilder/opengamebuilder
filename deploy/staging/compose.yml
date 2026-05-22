@@ -2,7 +2,7 @@ name: ogb-staging
 
 services:
   api:
-    image: ghcr.io/opengamebuilder/opengamebuilder-api:staging
+    image: ${API_IMAGE:?API_IMAGE is required}
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Staging

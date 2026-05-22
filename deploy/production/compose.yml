@@ -2,7 +2,7 @@ name: ogb-production
 
 services:
   api:
-    image: ghcr.io/opengamebuilder/opengamebuilder-api:production
+    image: ${API_IMAGE:?API_IMAGE is required}
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production

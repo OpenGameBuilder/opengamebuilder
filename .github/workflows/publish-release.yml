@@ -1,0 +1,303 @@
+name: 🚀 Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "normal releases come from main; patch releases come from patch/vX.Y.Z"
+        required: true
+        type: choice
+        options:
+          - normal
+          - patch
+      source_ref:
+        description: "main or patch/vX.Y.Z"
+        required: true
+        type: string
+        default: main
+      expected_version:
+        description: "Optional safety check, e.g. 0.7.0"
+        required: false
+        type: string
+      next_main_version:
+        description: "Optional override for normal releases; defaults to X.(Y+1).0"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+      source_sha: ${{ steps.validate.outputs.source_sha }}
+      patch_branch: ${{ steps.validate.outputs.patch_branch }}
+      next_main_version: ${{ steps.validate.outputs.next_main_version }}
+      previous_tag: ${{ steps.validate.outputs.previous_tag }}
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: read
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Fetch tags
+        run: git fetch --force --tags origin
+
+      - name: Validate release
+        id: validate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_KIND: ${{ inputs.kind }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+          NEXT_MAIN_VERSION: ${{ inputs.next_main_version }}
+        run: ./scripts/validate-release.ps1
+
+  build-test:
+    name: Build and test release SHA
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore opengamebuilder.slnx
+
+      - name: Build
+        run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test opengamebuilder.slnx --configuration Release --no-build
+
+  deploy-production:
+    name: Deploy production
+    needs:
+      - validate
+      - build-test
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      environment-slug: production
+      dotnet-environment: Production
+      git-ref: ${{ needs.validate.outputs.source_sha }}
+    secrets: inherit
+
+  smoke-test-production:
+    name: Smoke test production
+    needs:
+      - validate
+      - deploy-production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check production
+        env:
+          SMOKE_TEST_URL: ${{ vars.PRODUCTION_SMOKE_TEST_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SMOKE_TEST_URL}" ]; then
+            echo "Set repository variable PRODUCTION_SMOKE_TEST_URL to a production URL that should return HTTP 2xx."
+            exit 1
+          fi
+
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --location \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            "${SMOKE_TEST_URL}" \
+            >/dev/null
+
+  create-tag:
+    name: Create release tag
+    needs:
+      - validate
+      - smoke-test-production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Create annotated tag
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            existing_sha="$(git rev-list -n 1 "${TAG}")"
+
+            if [ "${existing_sha}" != "${SOURCE_SHA}" ]; then
+              echo "Tag ${TAG} already exists at ${existing_sha}, expected ${SOURCE_SHA}."
+              exit 1
+            fi
+
+            echo "Tag ${TAG} already exists at the expected SHA."
+            exit 0
+          fi
+
+          git config user.name "OpenGameBuilder Release Bot"
+          git config user.email "release-bot@users.noreply.github.com"
+
+          git tag -a "${TAG}" "${SOURCE_SHA}" -m "Release ${TAG}"
+          git push origin "refs/tags/${TAG}"
+
+  create-github-release:
+    name: Create GitHub Release
+    needs:
+      - validate
+      - create-tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          PREVIOUS_TAG: ${{ needs.validate.outputs.previous_tag }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "GitHub Release ${TAG} already exists."
+            exit 0
+          fi
+
+          args=(release create "${TAG}" --verify-tag --generate-notes --title "${TAG}")
+
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            args+=(--notes-start-tag "${PREVIOUS_TAG}")
+          fi
+
+          gh "${args[@]}"
+
+  post-normal-release:
+    name: Post normal release housekeeping
+    if: ${{ inputs.kind == 'normal' }}
+    needs:
+      - validate
+      - create-github-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Open next-version PR
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASED_VERSION: ${{ needs.validate.outputs.version }}
+          NEXT_VERSION: ${{ needs.validate.outputs.next_main_version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: ./scripts/post-normal-release.ps1
+
+  post-patch-release:
+    name: Open patch merge-back PR
+    if: ${{ inputs.kind == 'patch' }}
+    needs:
+      - validate
+      - create-github-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Open merge-back PR
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASED_VERSION: ${{ needs.validate.outputs.version }}
+          PATCH_BRANCH: ${{ needs.validate.outputs.patch_branch }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: ./scripts/post-patch-release.ps1

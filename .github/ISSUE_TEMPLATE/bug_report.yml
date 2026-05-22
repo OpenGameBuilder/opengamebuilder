@@ -1,0 +1,81 @@
+name: Bug Report
+description: Report something broken or not working as expected.
+title: "[Bug]: "
+labels: ["bug", "needs triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        Please do not include passwords, tokens, private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
+
+        Security issues should be reported privately using `SECURITY.md`.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing issues to avoid creating a duplicate.
+          required: true
+        - label: This report does not include private, sensitive, security-related, proprietary, or decompiled-source material.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What should someone do to see the problem?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Best guess is fine.
+      multiple: true
+      options:
+        - Web client
+        - API/backend
+        - Development setup
+        - CI/CD
+        - Not sure
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Add anything relevant about where this happened. For example, your OS, browser, game setup, or anything else that might help.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or extra context
+      description: Paste errors or attach screenshots/video if useful. Remove private or sensitive information first.
+      placeholder: Add anything else that might help.
+    validations:
+      required: false

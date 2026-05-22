@@ -1,0 +1,12 @@
+# Browser support policy for frontend compatibility tooling.
+# See docs/frontend/browser-support.md.
+
+last 2 Chrome major versions
+last 2 Edge major versions
+last 2 Firefox major versions
+last 2 Safari major versions
+last 2 iOS major versions
+last 2 Android major versions
+not dead
+not ie <= 11
+not op_mini all

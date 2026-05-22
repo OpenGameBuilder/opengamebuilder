@@ -1,22 +1,51 @@
-name: 🚀 CD Production
+name: 🚑 CD Production Manual
 
 on:
-  push:
-    tags:
-      - "v*"
-
-concurrency:
-  group: cd-production
-  cancel-in-progress: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to redeploy, e.g. v1.9.0"
+        required: true
+        type: string
 
 permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Validate tag matches Directory.Build.props
+        id: validate
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: ./scripts/validate-release-tag.ps1
+
   deploy:
+    name: Deploy production
+    needs: validate
     uses: ./.github/workflows/_deploy.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       environment-slug: production
       dotnet-environment: Production
+      git-ref: ${{ needs.validate.outputs.tag }}
     secrets: inherit
