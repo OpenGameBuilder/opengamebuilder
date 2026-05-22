@@ -25,7 +25,7 @@ updates:
     cooldown:
       semver-major-days: 14
       semver-minor-days: 3
-      semver-patch-days: 0
+      semver-patch-days: 1
 
   # .NET SDK version in global.json.
   - package-ecosystem: "dotnet-sdk"
