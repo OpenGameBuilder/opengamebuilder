@@ -1,5 +1,5 @@
 param(
-    [string] $ReleasedVersion = $env:PATCH_VERSION,
+    [string] $ReleasedVersion = $env:RELEASED_VERSION,
     [string] $PatchBranch = $env:PATCH_BRANCH,
     [string] $Tag = $env:TAG
 )
@@ -21,7 +21,7 @@ if ([string]::IsNullOrWhiteSpace($Tag)) {
 Assert-OgbPlainSemVer -Version $ReleasedVersion
 
 $releasedParts = ConvertTo-OgbVersionParts -Version $ReleasedVersion
-$expectedPatchBranch = "patch/$ReleasedVersion"
+$expectedPatchBranch = "patch/v$ReleasedVersion"
 
 if ($PatchBranch -ne $expectedPatchBranch) {
     throw "Patch branch '$PatchBranch' does not match released version '$ReleasedVersion'. Expected '$expectedPatchBranch'."

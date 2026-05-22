@@ -111,18 +111,22 @@ if ($ReleaseKind -eq "normal") {
 }
 
 if ($ReleaseKind -eq "patch") {
-    $branchMatch = [regex]::Match($sourceRefName, '^patch/(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)$')
+    $branchMatch = [regex]::Match(
+        $sourceRefName,
+        '^patch/v(?<version>(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))$'
+    )
 
     if (-not $branchMatch.Success) {
-        throw "Patch releases must be published from patch/X.Y. Received source ref '$sourceRefName'."
+        throw "Patch releases must be published from patch/vX.Y.Z. Received source ref '$sourceRefName'."
     }
 
-    $branchMajor = [int] $branchMatch.Groups["major"].Value
-    $branchMinor = [int] $branchMatch.Groups["minor"].Value
+    $branchVersion = $branchMatch.Groups["version"].Value
 
-    if ($parts.Major -ne $branchMajor -or $parts.Minor -ne $branchMinor) {
-        throw "Patch branch '$sourceRefName' does not match Directory.Build.props version '$version'."
+    if ($branchVersion -ne $version) {
+        throw "Patch branch '$sourceRefName' does not match Directory.Build.props version '$version'. Expected branch 'patch/v$version'."
     }
+
+    $patchBranch = "patch/v$version"
 
     if ($parts.Patch -le 0) {
         throw "Patch releases must use patch > 0. Received '$version'."

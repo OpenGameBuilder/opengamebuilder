@@ -31,10 +31,9 @@ if (Test-OgbRemoteBranch -BranchName $patchBranch) {
     $branchVersion = Get-OgbVersion
 
     if ($branchVersion -eq $nextVersion) {
-        throw "Patch branch '$patchBranch' is already prepared for '$nextVersion'. Run the Publish Release workflow when the patch is ready."
+        Write-Host "Patch branch '$patchBranch' is already prepared for '$nextVersion'."
     }
-
-    if ($branchVersion -ne $baseRelease.Version) {
+    elseif ($branchVersion -ne $baseRelease.Version) {
         throw "Patch branch '$patchBranch' has VersionPrefix '$branchVersion', but latest stable release is '$($baseRelease.Version)'. Fix the branch before preparing another patch."
     }
 

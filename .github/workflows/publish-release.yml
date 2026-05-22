@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "normal releases come from main; patch releases come from patch/X.Y.Z"
+        description: "normal releases come from main; patch releases come from patch/vX.Y.Z"
         required: true
         type: choice
         options:
           - normal
           - patch
       source_ref:
-        description: "main or patch/X.Y.Z"
+        description: "main or patch/vX.Y.Z"
         required: true
         type: string
         default: main

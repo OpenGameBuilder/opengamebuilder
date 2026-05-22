@@ -201,7 +201,7 @@ function ConvertFrom-OgbReleaseTag {
 }
 
 function Get-OgbStableGitHubReleases {
-    $json = Get-OgbNativeOutput gh release list --limit 200 --json tagName, isDraft, isPrerelease, publishedAt
+    $json = Get-OgbNativeOutput gh release list --limit 200 --json "tagName,isDraft,isPrerelease,publishedAt"
 
     if ([string]::IsNullOrWhiteSpace($json)) {
         return @()

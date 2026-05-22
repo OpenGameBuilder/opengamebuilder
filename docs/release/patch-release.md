@@ -1,6 +1,6 @@
 # Patch release
 
-A patch release publishes a fix or small change for the currently deployed release.
+A patch release publishes a fix for the currently deployed release.
 
 Patch releases use versions like:
 
@@ -127,7 +127,7 @@ If build or tests fail:
 - no GitHub Release
 - no merge-back PR
 
-- If production deploy fails:
+If production deploy fails:
 - no release tag
 - no GitHub Release
 - no merge-back PR
