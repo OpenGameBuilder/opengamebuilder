@@ -6,7 +6,7 @@ workflows you need to know about:
 | Workflow              | Trigger                                            | What it does                                                                |
 | --------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
 | 🛰️ **CD Staging**    | Every push to `main`                               | Build, test, deploy to staging, smoke test                                  |
-| 🚀 **CD Production** | Manually dispatched from `main` with a `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
+| 🚀 **CD Production** | Manually dispatched (usually from `main`) with a `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
 | 🩹 **Prepare Patch** | Manually dispatched                                | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag   |
 
 The single source of truth for the version is `<VersionPrefix>` in
@@ -34,10 +34,10 @@ The single source of truth for the version is `<VersionPrefix>` in
 5. On success the workflow tags `vX.Y.(Z+1)`, creates the GitHub Release, and
    opens `chore: merge vX.Y.(Z+1) into main`. Review and merge that PR.
 
-> **Note:** CD Production always runs the workflow file from the branch it is
-> dispatched on (usually `main`), but it deploys whichever `ref` you specify.
-> This lets us release patch branches that were cut from older tags without
-> requiring those tags to contain the current workflow.
+> **Note:** CD Production runs the workflow file from the branch it is
+> dispatched on (usually `main`), but it checks out the specified `ref` before
+> running validation and release scripts. Ensure patch branches contain
+> compatible release scripts for their release run.
 
 ## What the production workflow validates
 

@@ -1,10 +1,10 @@
 name: 🚀 CD Production
 
-# Always dispatch this workflow from main (so the latest workflow file and
-# release scripts run). For a standard release, leave `ref` blank or set it to
-# main. For a patch release, set `ref` to `patch/vX.Y.Z`. The workflow detects
-# which kind of release this is from the version in Directory.Build.props on
-# the dispatched ref.
+# Dispatch this workflow from main so the latest workflow file is used.
+# For a standard release, leave `ref` as main. For a patch release, set `ref`
+# to `patch/vX.Y.Z`. The workflow checks out `ref`, so release scripts and
+# validation run from that ref. It detects release kind from the version in
+# Directory.Build.props on the checked-out ref.
 #
 # On success it:
 #   1. Validates the version vs. the latest GitHub Release
@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch to release. Use `main` for standard releases or `patch/vX.Y.Z` for patch releases. Defaults to `main`."
+        description: "Ref to release and use for release scripts. Use `main` for standard releases or `patch/vX.Y.Z` for patch releases. Defaults to `main`."
         required: false
         type: string
         default: main
