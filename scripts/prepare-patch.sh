@@ -39,7 +39,22 @@ configure_release_bot_git
 
 # Ensure patch branch exists at the base tag.
 if git ls-remote --exit-code --heads origin "${patch_branch}" >/dev/null 2>&1; then
-    echo "Patch branch '${patch_branch}' already exists."
+    echo "Patch branch '${patch_branch}' already exists; checking its state."
+    git fetch origin "+refs/heads/${patch_branch}:refs/remotes/origin/${patch_branch}" >/dev/null
+    git switch --detach "origin/${patch_branch}"
+
+    branch_version="$(read_version)"
+    if [ "${branch_version}" != "${base_version}" ] && [ "${branch_version}" != "${next_version}" ]; then
+        echo "Patch branch '${patch_branch}' has VersionPrefix '${branch_version}', expected '${base_version}' (unprepared) or '${next_version}' (already prepared)." >&2
+        echo "Fix the branch before preparing another patch." >&2
+        exit 1
+    fi
+
+    # The base tag must be an ancestor of the patch branch.
+    if ! git merge-base --is-ancestor "${base_tag}" "origin/${patch_branch}"; then
+        echo "Base tag '${base_tag}' is not an ancestor of '${patch_branch}'. Refusing to continue." >&2
+        exit 1
+    fi
 else
     echo "Creating patch branch '${patch_branch}' from '${base_tag}'."
     git branch "${patch_branch}" "${base_tag}"

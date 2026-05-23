@@ -28,7 +28,7 @@ read -r major minor patch <<< "$(semver_parts "$version")"
 tag="v${version}"
 source_sha="$(git rev-parse HEAD)"
 
-git fetch --force --tags origin >/dev/null 2>&1 || true
+git fetch --force --tags origin >/dev/null
 
 # If a tag with this version already exists, it must point at the same commit (idempotent re-runs).
 if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then

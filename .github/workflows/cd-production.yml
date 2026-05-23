@@ -1,8 +1,10 @@
 name: 🚀 CD Production
 
-# Manually dispatched from main (for a standard release) or from patch/vX.Y.Z
-# (for a patch release). The workflow detects which based on the version in
-# Directory.Build.props.
+# Always dispatch this workflow from main (so the latest workflow file and
+# release scripts run). For a standard release, leave `ref` blank or set it to
+# main. For a patch release, set `ref` to `patch/vX.Y.Z`. The workflow detects
+# which kind of release this is from the version in Directory.Build.props on
+# the dispatched ref.
 #
 # On success it:
 #   1. Validates the version vs. the latest GitHub Release
@@ -12,6 +14,12 @@ name: 🚀 CD Production
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Ref to release (branch or commit). Defaults to main."
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -37,13 +45,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Validate
         id: validate
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_REF: ${{ github.ref }}
+          SOURCE_REF: ${{ inputs.ref }}
         run: ./scripts/validate-release.sh
 
   deploy:
