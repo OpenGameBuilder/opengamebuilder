@@ -1,7 +1,7 @@
 name: Compatibility Issue
 description: Report behavior that differs from MyGameBuilder or affects restored games.
-title: "[Compatibility]: "
-labels: ["compatibility", "needs triage"]
+labels: ["needs triage"]
+type: compatibility
 
 body:
   - type: markdown

@@ -4,12 +4,15 @@ on:
   workflow_call:
     inputs:
       environment-slug:
+        description: "Environment slug, e.g. staging or production"
         required: true
         type: string
       dotnet-environment:
+        description: "Value for ASPNETCORE_ENVIRONMENT, e.g. Staging or Production"
         required: true
         type: string
       git-ref:
+        description: "Git ref to deploy, e.g. a branch or tag. Defaults to the current ref of the calling workflow."
         required: false
         type: string
         default: ""
