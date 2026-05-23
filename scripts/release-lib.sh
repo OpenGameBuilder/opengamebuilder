@@ -78,7 +78,10 @@ write_version() {
 latest_release_tag() {
     local line_filter="${1:-}"  # Optional X.Y filter, e.g. "1.9".
     local json
-    json="$(gh release list --limit 200 --json 'tagName,isDraft,isPrerelease' 2>/dev/null || echo '[]')"
+    if ! json="$(gh release list --limit 200 --json 'tagName,isDraft,isPrerelease')"; then
+        echo "Failed to list GitHub Releases. Is GH_TOKEN set with the right permissions?" >&2
+        exit 1
+    fi
     local jq_filter='.[] | select(.isDraft == false and .isPrerelease == false) | .tagName | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))'
     local tags
     tags="$(echo "$json" | jq -r "$jq_filter")"

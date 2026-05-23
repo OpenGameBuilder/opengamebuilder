@@ -6,7 +6,7 @@ workflows you need to know about:
 | Workflow              | Trigger                                            | What it does                                                                |
 | --------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
 | 🛰️ **CD Staging**    | Every push to `main`                               | Build, test, deploy to staging, smoke test                                  |
-| 🚀 **CD Production** | Manually dispatched from `main` or `patch/vX.Y.Z`  | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
+| 🚀 **CD Production** | Manually dispatched (usually from `main`) with a `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
 | 🩹 **Prepare Patch** | Manually dispatched                                | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag   |
 
 The single source of truth for the version is `<VersionPrefix>` in
@@ -16,7 +16,7 @@ The single source of truth for the version is `<VersionPrefix>` in
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the
    post-release bump PR from the previous release).
-2. Go to **Actions → 🚀 CD Production → Run workflow**, select branch `main`.
+2. Go to **Actions → 🚀 CD Production → Run workflow**. Leave `ref` as `main`.
 3. The `production` environment requires reviewer approval — approve when ready.
 4. On success the workflow tags `vX.Y.0`, creates the GitHub Release, and opens
    `chore: bump version to X.(Y+1).0` against `main`. Merge that PR.
@@ -27,11 +27,17 @@ The single source of truth for the version is `<VersionPrefix>` in
    `patch/vX.Y.(Z+1)` from the latest release tag and opens a PR that bumps the
    `<VersionPrefix>` on that branch. Merge the prepare PR.
 2. Add the fix to `patch/vX.Y.(Z+1)` via normal PRs targeted at that branch.
-3. Go to **Actions → 🚀 CD Production → Run workflow**, select branch
+3. Go to **Actions → 🚀 CD Production → Run workflow**. Leave the branch picker
+   on `main` (so the workflow file runs from main) and set `ref` to
    `patch/vX.Y.(Z+1)`.
 4. Approve the production environment when prompted.
 5. On success the workflow tags `vX.Y.(Z+1)`, creates the GitHub Release, and
    opens `chore: merge vX.Y.(Z+1) into main`. Review and merge that PR.
+
+> **Note:** CD Production runs the workflow file from the branch it is
+> dispatched on (usually `main`), but it checks out the specified `ref` before
+> running validation and release scripts. Ensure patch branches contain
+> compatible release scripts for their release run.
 
 ## What the production workflow validates
 
