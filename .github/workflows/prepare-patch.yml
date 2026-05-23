@@ -34,4 +34,4 @@ jobs:
       - name: Prepare patch PR
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: ./scripts/prepare-patch.sh
+        run: bash ./scripts/prepare-patch.sh

@@ -53,7 +53,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_REF: ${{ inputs.ref }}
-        run: ./scripts/validate-release.sh
+        run: bash ./scripts/validate-release.sh
 
   deploy:
     name: Deploy production
@@ -133,4 +133,4 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
           TAG: ${{ needs.validate.outputs.tag }}
           NEXT_MAIN_VERSION: ${{ needs.validate.outputs.next_main_version }}
-        run: ./scripts/post-release.sh
+        run: bash ./scripts/post-release.sh
