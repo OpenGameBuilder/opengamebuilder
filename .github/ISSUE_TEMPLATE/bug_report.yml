@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report something broken or not working as expected.
-title: "[Bug]: "
-labels: ["bug", "needs triage"]
+labels: ["needs triage"]
+type: bug
 
 body:
   - type: markdown

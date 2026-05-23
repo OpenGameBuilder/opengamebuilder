@@ -21,7 +21,7 @@ The `v` prefix is used only for Git tags and patch branch names.
 The canonical source version is stored in `Directory.Build.props`. The release version is the value of:
 
 ```xml
-<VersionPrefix>0.7.0</VersionPrefix>
+<VersionPrefix>1.9.0</VersionPrefix>
 ```
 
 `Version` is derived from `VersionPrefix`. Do not update `<Version>` directly.

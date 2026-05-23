@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "normal releases come from main; patch releases come from patch/vX.Y.Z"
+        description: "Release kind"
         required: true
         type: choice
         options:
-          - normal
+          - standard
           - patch
       source_ref:
-        description: "main or patch/vX.Y.Z"
+        description: "Branch to release from, e.g. main or patch/v0.7.0"
         required: true
         type: string
         default: main
       expected_version:
-        description: "Optional safety check, e.g. 0.7.0"
+        description: "Expected branch version. Optional safety check, e.g. 1.9.0"
         required: false
         type: string
       next_main_version:
-        description: "Optional override for normal releases; defaults to X.(Y+1).0"
+        description: "Next main version. Optional override for standard releases; defaults to X.(Y+1).0"
         required: false
         type: string
 

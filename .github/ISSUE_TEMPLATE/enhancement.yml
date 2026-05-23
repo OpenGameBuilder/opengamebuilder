@@ -1,7 +1,7 @@
-name: Feature Request
-description: Suggest an improvement or new feature.
+name: Enhancement
+description: Suggest an improvement to something that already exists.
 labels: ["needs triage"]
-type: feature
+type: enhancement
 
 body:
   - type: markdown
@@ -9,7 +9,9 @@ body:
       value: |
         Thanks for suggesting an improvement.
 
-        Use this form for specific feature requests. If the idea is broad or exploratory, the Discord server may be a better fit.
+        Use this form for improvements to existing behavior, UI, UX, developer experience, documentation, tooling, or project workflow.
+
+        For entirely new capabilities, use the Feature Request form instead. If the idea is broad or exploratory, the Discord server may be a better fit.
 
         Please do not include private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
 
@@ -18,24 +20,32 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I have searched existing requests to avoid creating a duplicate.
+        - label: I have searched existing issues to avoid creating a duplicate.
           required: true
         - label: This request does not include private, sensitive, security-related, proprietary, or decompiled-source material.
           required: true
 
   - type: textarea
-    id: summary
+    id: current
     attributes:
-      label: What would you like to see?
-      description: Briefly describe the feature or improvement.
+      label: What should be improved?
+      description: Briefly describe the existing behavior, UI, workflow, documentation, or tooling you want to improve.
     validations:
       required: true
 
   - type: textarea
-    id: problem
+    id: improvement
     attributes:
-      label: Why would this be useful?
-      description: What problem does this solve, or what would it make better?
+      label: Suggested improvement
+      description: What change would make this better?
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Why would this help?
+      description: Who benefits from this, and how?
     validations:
       required: true
 
@@ -46,10 +56,11 @@ body:
       description: Best guess is fine.
       multiple: true
       options:
-        - Web client
-        - API/backend
-        - Development experience
+        - UI/UX
+        - Developer experience
+        - Documentation
         - CI/CD
+        - Project/community process
         - Not sure
         - Other
     validations:
