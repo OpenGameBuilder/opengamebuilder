@@ -1,74 +1,47 @@
 # Versioning
 
-OpenGameBuilder uses plain semantic versions for production releases:
+OpenGameBuilder uses plain semantic versions:
 
 ```text
 MAJOR.MINOR.PATCH
 ```
 
-Examples:
+No prerelease or build metadata is used for release versions. The `v` prefix is
+used only for Git tags and `patch/v*` branch names.
 
-- `0.7.0`
-- `1.9.1`
-- `2.0.3`
+## Source of truth
 
-Production release versions do not use prerelease or build metadata.
-
-The `v` prefix is used only for Git tags and patch branch names.
-
-## Canonical version source
-
-The canonical source version is stored in `Directory.Build.props`. The release version is the value of:
+The version lives in `Directory.Build.props`:
 
 ```xml
 <VersionPrefix>1.9.0</VersionPrefix>
 ```
 
-`Version` is derived from `VersionPrefix`. Do not update `<Version>` directly.
+`Version` is derived from `VersionPrefix`. Do not edit `<Version>` directly.
+
+## Branch policy
+
+- `main` holds the **next** standard release version (patch is always `0`).
+  - After releasing `v1.9.0`, `main` is bumped to `1.10.0`.
+- `patch/vX.Y.Z` branches hold the exact version named in the branch.
+  - `patch/v1.9.1` must have `<VersionPrefix>1.9.1</VersionPrefix>`.
 
 ## Tags
 
-Release tags use the format: `vX.Y.Z`
-
-The tag must match `Directory.Build.props`.
-
-Release tags are created only by the release workflow. Do not create release tags manually.
-
-## Standard releases
-
-Standard releases come from `main`. Standard release versions must have patch `0`. Use the patch release flow for patch versions. After a standard release, `main` is bumped to the next minor version. The tag is the immutable record of the released commit.
-
-## Patch releases
-
-Patch releases come from `patch/vX.Y.Z` branches. A patch branch is named after the exact patch release it is expected to publish. Patch release versions must have patch greater than `0`. Patch releases are published only for the latest stable/deployed release line. That keeps the normal patch flow focused on fixing current production.
-
-## Branch version expectations
-
-`main` should hold the next standard release version.
-
-Examples:
-
-- after `v0.7.0` release: main should be `v0.8.0`
-- after `v1.9.0` release: main should be `v1.10.0`
-- after `v2.7.1` release: main should be `v2.8.0`
-
-A patch branch should hold the exact version in its branch name.
+Release tags have the form `vX.Y.Z`. They are created exclusively by the
+**CD Production** workflow after a successful production deploy. Do not create
+release tags manually.
 
 ## What counts as a successful release
 
-A release is successful only after:
+A release is only successful after, in order:
 
-1. The source version is validated.
-2. The exact source commit builds and tests successfully.
-3. The exact source commit deploys to production.
-4. The production smoke test passes.
-5. The release tag is created.
-6. The GitHub Release is created.
+1. Version validation passes
+2. The release commit builds and tests pass
+3. The release commit deploys to production
+4. The production smoke test passes
+5. The `vX.Y.Z` tag is created
+6. The GitHub Release is created
+7. The follow-up PR (bump or merge-back) is opened
 
-The release tag is not created before production succeeds.
-
-This is intentional.
-
-## Manual redeploys
-
-Manual production redeploys may use an existing release tag. The manual redeploy workflow validates that the tag matches the version in `Directory.Build.props`. Manual redeploys do not create new tags, GitHub Releases, patch branches, version bump PRs, or merge-back PRs.
+Steps 5–7 happen only when steps 1–4 succeed. This is intentional.

@@ -1,12 +1,17 @@
-name: 🚑 CD Production Manual
+name: 🚀 CD Production
+
+# Manually dispatched from main (for a standard release) or from patch/vX.Y.Z
+# (for a patch release). The workflow detects which based on the version in
+# Directory.Build.props.
+#
+# On success it:
+#   1. Validates the version vs. the latest GitHub Release
+#   2. Builds, tests, deploys, and smoke-tests against production
+#   3. Creates the immutable tag and GitHub Release
+#   4. Opens a follow-up PR (version bump for standard, merge-back for patch)
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing release tag to redeploy, e.g. v1.9.0"
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -18,24 +23,28 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate release tag
+    name: Validate release
     runs-on: ubuntu-latest
 
     outputs:
+      kind: ${{ steps.validate.outputs.kind }}
       version: ${{ steps.validate.outputs.version }}
       tag: ${{ steps.validate.outputs.tag }}
+      source_sha: ${{ steps.validate.outputs.source_sha }}
+      previous_tag: ${{ steps.validate.outputs.previous_tag }}
+      next_main_version: ${{ steps.validate.outputs.next_main_version }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.tag }}
+          fetch-depth: 0
 
-      - name: Validate tag matches Directory.Build.props
+      - name: Validate
         id: validate
-        shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: ./scripts/validate-release-tag.ps1
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REF: ${{ github.ref }}
+        run: ./scripts/validate-release.sh
 
   deploy:
     name: Deploy production
@@ -47,5 +56,72 @@ jobs:
     with:
       environment-slug: production
       dotnet-environment: Production
-      git-ref: ${{ needs.validate.outputs.tag }}
+      git-ref: ${{ needs.validate.outputs.source_sha }}
+      smoke-test-url-var: PRODUCTION_SMOKE_TEST_URL
     secrets: inherit
+
+  publish:
+    name: Tag and release
+    needs:
+      - validate
+      - deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate.outputs.source_sha }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Create tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
+          PREVIOUS_TAG: ${{ needs.validate.outputs.previous_tag }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            existing_sha="$(git rev-list -n 1 "${TAG}")"
+            if [ "${existing_sha}" != "${SOURCE_SHA}" ]; then
+              echo "Tag ${TAG} already exists at ${existing_sha}, expected ${SOURCE_SHA}." >&2
+              exit 1
+            fi
+            echo "Tag ${TAG} already exists at the expected SHA."
+          else
+            git config user.name "OpenGameBuilder Release Bot"
+            git config user.email "release-bot@users.noreply.github.com"
+            git tag -a "${TAG}" "${SOURCE_SHA}" -m "Release ${TAG}"
+            git push origin "refs/tags/${TAG}"
+          fi
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "GitHub Release ${TAG} already exists."
+          else
+            args=(release create "${TAG}" --verify-tag --generate-notes --title "${TAG}")
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              args+=(--notes-start-tag "${PREVIOUS_TAG}")
+            fi
+            gh "${args[@]}"
+          fi
+
+      - name: Open follow-up PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          KIND: ${{ needs.validate.outputs.kind }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          NEXT_MAIN_VERSION: ${{ needs.validate.outputs.next_main_version }}
+        run: ./scripts/post-release.sh
