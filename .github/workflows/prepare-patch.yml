@@ -10,9 +10,6 @@ concurrency:
   group: prepare-patch
   cancel-in-progress: false
 
-env:
-  GH_REPO: ${{ github.repository }}
-
 jobs:
   prepare:
     name: Prepare patch PR
@@ -35,7 +32,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Prepare patch PR
-        shell: pwsh
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: ./scripts/prepare-patch.ps1
+        run: ./scripts/prepare-patch.sh

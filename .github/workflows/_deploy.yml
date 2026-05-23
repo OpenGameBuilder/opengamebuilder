@@ -12,7 +12,12 @@ on:
         required: true
         type: string
       git-ref:
-        description: "Git ref to deploy, e.g. a branch or tag. Defaults to the current ref of the calling workflow."
+        description: "Git ref to deploy. Defaults to the calling workflow's ref."
+        required: false
+        type: string
+        default: ""
+      smoke-test-url-var:
+        description: "Name of the repository variable holding the smoke test URL."
         required: false
         type: string
         default: ""
@@ -27,16 +32,12 @@ env:
   API_IMAGE_NAME: ghcr.io/opengamebuilder/opengamebuilder-api
 
 jobs:
-  deploy:
+  build-test:
+    name: Build and test
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment-slug }}
 
     steps:
       - uses: actions/checkout@v6
-        if: ${{ inputs.git-ref == '' }}
-
-      - uses: actions/checkout@v6
-        if: ${{ inputs.git-ref != '' }}
         with:
           ref: ${{ inputs.git-ref }}
 
@@ -56,7 +57,22 @@ jobs:
       - name: Test
         run: dotnet test opengamebuilder.slnx --configuration Release --no-build
 
-      - name: Publish Web
+  deploy:
+    name: Deploy ${{ inputs.environment-slug }}
+    needs: build-test
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment-slug }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.git-ref }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Publish web client
         run: >
           dotnet publish
           src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj
@@ -64,30 +80,24 @@ jobs:
           --output ./artifacts/web
           -p:WasmApplicationEnvironmentName=${{ inputs.dotnet-environment }}
 
-      - name: Locate Web Publish Output
+      - name: Locate web publish output
         run: |
           if [ -f ./artifacts/web/wwwroot/index.html ]; then
             echo "WEB_SOURCE=./artifacts/web/wwwroot" >> "$GITHUB_ENV"
           elif [ -f ./artifacts/web/index.html ]; then
             echo "WEB_SOURCE=./artifacts/web" >> "$GITHUB_ENV"
           else
-            echo "Could not find published index.html"
+            echo "Could not find published index.html" >&2
             find ./artifacts/web -maxdepth 4 -type f | sort
             exit 1
           fi
 
-      - name: Resolve deployment image
-        id: deployment
+      - name: Resolve image tag
+        id: image
         run: |
           set -euo pipefail
-
-          commit_sha="$(git rev-parse HEAD)"
-          api_image="${API_IMAGE_NAME}:${commit_sha}"
-
-          echo "commit-sha=${commit_sha}" >> "$GITHUB_OUTPUT"
-          echo "api-image=${api_image}" >> "$GITHUB_OUTPUT"
-
-          echo "Deploying API image: ${api_image}"
+          sha="$(git rev-parse HEAD)"
+          echo "api-image=${API_IMAGE_NAME}:${sha}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
@@ -98,7 +108,7 @@ jobs:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
           push: true
-          tags: ${{ steps.deployment.outputs.api-image }}
+          tags: ${{ steps.image.outputs.api-image }}
 
       - name: Set up SSH
         run: |
@@ -109,16 +119,13 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
       - name: Sync deployment files
+        env:
+          API_IMAGE: ${{ steps.image.outputs.api-image }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << EOF
-            set -e
-
-            mkdir -p "${EDGE_DIR}"
-            mkdir -p "${APP_DIR}"
-            mkdir -p "${WEB_DIR}"
-
-            printf '%s\n' "API_IMAGE=${{ steps.deployment.outputs.api-image }}" > "${APP_DIR}/.env"
-
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
+            set -euo pipefail
+            mkdir -p "${EDGE_DIR}" "${APP_DIR}" "${WEB_DIR}"
+            printf '%s\n' "API_IMAGE=${API_IMAGE}" > "${APP_DIR}/.env"
             docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
           EOF
 
@@ -137,9 +144,8 @@ jobs:
 
       - name: Restart services
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << EOF
-            set -e
-
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
+            set -euo pipefail
             cd "${APP_DIR}"
             docker compose pull
             docker compose up -d
@@ -152,3 +158,23 @@ jobs:
 
             docker image prune -f
           EOF
+
+  smoke-test:
+    name: Smoke test ${{ inputs.environment-slug }}
+    needs: deploy
+    if: ${{ inputs.smoke-test-url-var != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Curl smoke test URL
+        env:
+          SMOKE_TEST_URL: ${{ vars[inputs.smoke-test-url-var] }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMOKE_TEST_URL}" ]; then
+            echo "Repository variable '${{ inputs.smoke-test-url-var }}' is not set." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent --location \
+            --retry 5 --retry-delay 5 --retry-all-errors \
+            "${SMOKE_TEST_URL}" >/dev/null
