@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Ref to release (branch or commit). Defaults to main."
+        description: "Branch to release. Use `main` for standard releases or `patch/vX.Y.Z` for patch releases. Defaults to `main`."
         required: false
         type: string
         default: main
