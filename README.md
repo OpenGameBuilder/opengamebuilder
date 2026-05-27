@@ -1,6 +1,6 @@
 # OpenGameBuilder
 
-An open-source community reimplementation of the original 2007-2011 Flash site mygamebuilder.com!
+Open-source community reimplementation of the original 2007-2017 Flash site mygamebuilder.com!
 
 > Status: **under construction**.
 
