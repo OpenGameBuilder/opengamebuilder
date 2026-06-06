@@ -1,4 +1,5 @@
 using OpenGameBuilder.Api.Options;
+using OpenGameBuilder.ServiceDefaults;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);

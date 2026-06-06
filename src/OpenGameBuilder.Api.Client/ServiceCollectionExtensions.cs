@@ -8,26 +8,29 @@ namespace OpenGameBuilder.Api.Client;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddOpenGameBuilderApiClient(this IServiceCollection services, IConfiguration configuration)
+    extension(IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        services.AddOptions<OpenGameBuilderApiClientOptions>()
-            .Bind(configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName))
-            .Validate(options => IsValidBaseUrl(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl must be a valid absolute URL with HTTP or HTTPS scheme.");
-
-        services.AddHttpClient<IAboutApiClient, AboutApiClient>((serviceProvider, httpClient) =>
+        public IServiceCollection AddOpenGameBuilderApiClient(IConfiguration configuration)
         {
-            var options = serviceProvider.GetRequiredService<IOptions<OpenGameBuilderApiClientOptions>>().Value;
-            httpClient.BaseAddress = new Uri(options.BaseUrl);
-        });
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(configuration);
 
-        return services;
+            services.AddOptions<OpenGameBuilderApiClientOptions>()
+                .Bind(configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName))
+                .Validate(options => IsValidBaseUrl(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl must be a valid absolute URL with HTTP or HTTPS scheme.");
+
+            services.AddHttpClient<IAboutApiClient, AboutApiClient>((serviceProvider, httpClient) =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OpenGameBuilderApiClientOptions>>().Value;
+                httpClient.BaseAddress = new Uri(options.BaseUrl);
+            });
+
+            return services;
+        }
+
+        private static bool IsValidBaseUrl(string baseUrl) =>
+            !string.IsNullOrWhiteSpace(baseUrl) &&
+            Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
     }
-
-    public static bool IsValidBaseUrl(string baseUrl) =>
-        !string.IsNullOrWhiteSpace(baseUrl) &&
-        Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) &&
-        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 }

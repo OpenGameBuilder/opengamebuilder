@@ -5,5 +5,4 @@ namespace OpenGameBuilder.Api.Client.Serialization;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(AboutResponse))]
-internal sealed partial class OpenGameBuilderApiJsonContext : JsonSerializerContext
-{ }
+internal sealed partial class OpenGameBuilderApiJsonContext : JsonSerializerContext;
