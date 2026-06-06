@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Hosting;
 using OpenGameBuilder.Api.Client.About;
-using OpenGameBuilder.Web.Client.Diagnostics;
 
 namespace OpenGameBuilder.Web.Client.Pages;
 
@@ -11,12 +10,6 @@ public partial class Home
 
     [Inject]
     private IAboutApiClient Client { get; init; } = default!;
-
-    [Inject]
-    private ClientLogForwarder LogForwarder { get; init; } = default!;
-
-    [Inject]
-    private NavigationManager Navigation { get; init; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -29,10 +22,9 @@ public partial class Home
                 _title += $" ({about.ApiEnvironmentName})";
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             _title = "Failed to load application information.";
-            await LogForwarder.ReportExceptionAsync(ex, Navigation.Uri);
             throw;
         }
     }
