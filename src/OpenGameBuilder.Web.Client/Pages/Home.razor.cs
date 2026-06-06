@@ -13,11 +13,18 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        var about = await Client.GetAboutAsync();
-        _title = $"{about.ApplicationName} {about.Version}";
-        if (about.ApiEnvironmentName != Environments.Production)
+        try
         {
-            _title += $" ({about.ApiEnvironmentName})";
+            var about = await Client.GetAboutAsync();
+            _title = $"{about.ApplicationName} {about.Version}";
+            if (about.ApiEnvironmentName != Environments.Production)
+            {
+                _title += $" ({about.ApiEnvironmentName})";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _title = "Failed to load application information.";
         }
     }
 }

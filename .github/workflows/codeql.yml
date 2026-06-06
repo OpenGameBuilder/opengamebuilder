@@ -19,6 +19,12 @@ on:
   schedule:
     - cron: '38 8 * * 2'
 
+# Cancel superseded in-progress runs so the PR diff check compares against the
+# latest commit's analysis instead of a stale or incomplete run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
