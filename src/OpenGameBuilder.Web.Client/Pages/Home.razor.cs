@@ -22,10 +22,9 @@ public partial class Home
                 _title += $" ({about.ApiEnvironmentName})";
             }
         }
-        catch (Exception)
+        catch (HttpRequestException)
         {
             _title = "Failed to load application information.";
-            throw;
         }
     }
 }

@@ -15,8 +15,7 @@ public static class ServiceCollectionExtensions
 
         services.AddOptions<OpenGameBuilderApiClientOptions>()
             .Bind(configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName))
-            .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl is required.")
-            .Validate(Options => IsValidBaseUrl(Options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl must be a valid absolute URL with HTTP or HTTPS scheme.");
+            .Validate(options => IsValidBaseUrl(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl must be a valid absolute URL with HTTP or HTTPS scheme.");
 
         services.AddHttpClient<IAboutApiClient, AboutApiClient>((serviceProvider, httpClient) =>
         {
