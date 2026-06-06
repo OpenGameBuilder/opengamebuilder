@@ -13,7 +13,7 @@
     <Project Path="src/OpenGameBuilder.Api.Contracts/OpenGameBuilder.Api.Contracts.csproj" Id="e4e1c6f7-cfbf-4d8b-829e-6ce14a951cd6" />
     <Project Path="src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj" Id="2a78f2b9-9f57-45ab-8314-885b03c4daf3" />
     <Project Path="src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj">
-      <Build Solution="Debug|*" Project="false" />
+      <Build Project="false" />
     </Project>
     <Project Path="src/OpenGameBuilder.ServiceDefaults/OpenGameBuilder.ServiceDefaults.csproj">
       <Build Solution="Debug|*" Project="false" />

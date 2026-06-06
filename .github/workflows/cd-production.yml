@@ -66,6 +66,9 @@ jobs:
       environment-slug: production
       dotnet-environment: Production
       git-ref: ${{ needs.validate.outputs.source_sha }}
+      # Repo variable PRODUCTION_SMOKE_TEST_URL holds the base URL only
+      # (e.g. https://opengamebuilder.com); the API liveness path
+      # /api/alive is appended automatically by the smoke-test job.
       smoke-test-url-var: PRODUCTION_SMOKE_TEST_URL
     secrets: inherit
 

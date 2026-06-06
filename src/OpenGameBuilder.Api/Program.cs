@@ -27,7 +27,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Map default Aspire endpoints (health checks at /health and /alive in development).
+// Map default Aspire endpoints: a public liveness probe at /api/alive in every environment
+// (reachable through the Caddy edge "/api/*" proxy), plus the verbose /health and /alive
+// endpoints in development only.
 app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +18,11 @@ public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
+
+    // Public liveness endpoint exposed in all environments. It is intentionally mounted under the
+    // API's "/api" prefix so the Caddy edge proxy (which forwards "/api/*" to the API) can reach it
+    // without an extra route, and so it never collides with the SPA's "try_files" fallback.
+    private const string PublicAlivenessEndpointPath = "/api/alive";
 
     extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -108,8 +114,25 @@ public static class Extensions
     {
         public WebApplication MapDefaultEndpoints()
         {
-            // Adding health checks endpoints to applications in non-development environments has security implications.
-            // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.
+            // A minimal liveness endpoint is safe to expose in every environment: it runs only the
+            // "live"-tagged checks and returns a plain text status with no exception details or
+            // dependency names, so it cannot leak internal topology. This is the endpoint the
+            // deployment smoke test and the edge proxy should probe to confirm the API process is up.
+            app.MapHealthChecks(PublicAlivenessEndpointPath, new HealthCheckOptions
+            {
+                Predicate = static r => r.Tags.Contains("live"),
+                ResponseWriter = static (context, report) =>
+                {
+                    context.Response.ContentType = "text/plain";
+                    return context.Response.WriteAsync(report.Status.ToString());
+                }
+            });
+
+            // The full readiness endpoint (all checks, including future dependencies such as a
+            // database) and the verbose root liveness endpoint can leak internal detail, so they
+            // remain Development-only.
+            // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these
+            // endpoints in non-development environments.
             if (app.Environment.IsDevelopment())
             {
                 // All health checks must pass for app to be considered ready to accept traffic after starting

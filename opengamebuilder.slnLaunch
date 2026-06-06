@@ -1,13 +1,9 @@
 [
   {
-    "Name": "Full-stack",
+    "Name": "Aspire",
     "Projects": [
       {
-        "Path": "src\\OpenGameBuilder.Api\\OpenGameBuilder.Api.csproj",
-        "Action": "Start"
-      },
-      {
-        "Path": "src\\OpenGameBuilder.Web.Client\\OpenGameBuilder.Web.Client.csproj",
+        "Path": "src\\OpenGameBuilder.AppHost\\OpenGameBuilder.AppHost.csproj",
         "Action": "Start"
       }
     ]
