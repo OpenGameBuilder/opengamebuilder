@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.2" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>89227420-16d3-4bd8-adee-b8fb8ff68c4c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenGameBuilder.Api\OpenGameBuilder.Api.csproj" />
+    <ProjectReference Include="..\OpenGameBuilder.Web.Client\OpenGameBuilder.Web.Client.csproj" />
+  </ItemGroup>
+
+</Project>

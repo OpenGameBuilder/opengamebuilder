@@ -9,6 +9,22 @@
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
   </PropertyGroup>
 
+  <!--
+    Standalone Blazor WebAssembly environment selection (.NET 10+).
+    In .NET 10 the environment for a standalone WASM app is fixed at build/publish time via
+    WasmApplicationEnvironmentName; it decides which wwwroot/appsettings.{Environment}.json is
+    loaded (and therefore the API BaseUrl), so each environment can point at a different backend.
+    The conditions below only apply a default when no value is supplied, so CI can still override
+    with an explicit value, e.g. `dotnet publish -p:WasmApplicationEnvironmentName=Staging`.
+  -->
+  <PropertyGroup Condition="'$(WasmApplicationEnvironmentName)' == '' AND '$(Configuration)' == 'Debug'">
+    <WasmApplicationEnvironmentName>Development</WasmApplicationEnvironmentName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(WasmApplicationEnvironmentName)' == '' AND '$(Configuration)' == 'Release'">
+    <WasmApplicationEnvironmentName>Production</WasmApplicationEnvironmentName>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />

@@ -12,6 +12,12 @@
     <Project Path="src/OpenGameBuilder.Api.Client/OpenGameBuilder.Api.Client.csproj" Id="2cf0a4e2-b929-48b9-859c-14ec2d08d350" />
     <Project Path="src/OpenGameBuilder.Api.Contracts/OpenGameBuilder.Api.Contracts.csproj" Id="e4e1c6f7-cfbf-4d8b-829e-6ce14a951cd6" />
     <Project Path="src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj" Id="2a78f2b9-9f57-45ab-8314-885b03c4daf3" />
+    <Project Path="src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="src/OpenGameBuilder.ServiceDefaults/OpenGameBuilder.ServiceDefaults.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
     <Project Path="src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj" Id="df43ac45-a2d2-48b9-b243-6dfaf3b9a717" />
   </Folder>
   <Folder Name="/tests/">

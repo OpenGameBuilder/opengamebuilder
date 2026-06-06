@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OpenGameBuilder.Api.Contracts\OpenGameBuilder.Api.Contracts.csproj" />
+    <ProjectReference Include="..\OpenGameBuilder.ServiceDefaults\OpenGameBuilder.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
