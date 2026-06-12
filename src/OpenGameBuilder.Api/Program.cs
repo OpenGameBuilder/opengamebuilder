@@ -25,6 +25,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+var path = Path.Combine(args[0], args[1]);
+Console.WriteLine(path); // Debug! Remove before merging to main
+
 var app = builder.Build();
 
 // Map default Aspire endpoints: a public liveness probe at /api/alive in every environment
