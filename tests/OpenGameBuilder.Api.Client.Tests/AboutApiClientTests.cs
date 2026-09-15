@@ -63,7 +63,8 @@ public sealed class AboutApiClientTests
     [Fact]
     public async Task GetAbout_RejectsNoContent()
     {
-        using var host = new ApiClientTestHost((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+        using var response = new HttpResponseMessage(HttpStatusCode.NoContent);
+        using var host = new ApiClientTestHost((_, _) => Task.FromResult(response));
 
         await Assert.ThrowsAsync<JsonException>(() => host.Client.GetAboutAsync(TestContext.Current.CancellationToken));
     }
