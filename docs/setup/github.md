@@ -105,12 +105,12 @@ a verification exercise pass.
 
 The installed `opengamebuilder-release-bot` App has ID **`3815756`**, verified
 against the public App record, organization installation, and
-`RELEASE_BOT_CLIENT_ID`. Its installation permissions are repository contents
-write, pull requests write, and metadata read.
+`RELEASE_BOT_CLIENT_ID`. Its approved installation permissions are repository
+contents write, pull requests write, workflows write, and metadata read.
 
 The release scripts create a patch branch from a released tag, push unprotected
 `chore/*` branches, and open preparation, version-bump, and merge-back PRs. The
-creation-only rules permit this, subject to the App permission requirement below,
+creation-only rules permit this with the approved App permissions,
 without granting permission to bypass checks, review its own PRs, directly update
 protected branches, or overwrite release tags.
 Do not add the bot to the merge-gate, review, or tag-immutability bypass lists.
@@ -122,40 +122,29 @@ If emergency recovery needs a temporary rule change, record the reason, actor,
 exact ref, and restoration in a public issue without credentials. Environment
 approvals and release-token scope remain foundation section 11 work.
 
-### Remaining owner action: approve workflow-file permission
+### Workflow-file permission
 
-Actual bot verification found a permission gap, not merely a ruleset mismatch:
+Workflows write is needed even to create a branch containing an existing release's
+workflow-file history. The native Git preparation
+[run 34997049849](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34997049849)
+and [reference-only API probe](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34997318737)
+both failed without it. Owner `ostomachion` approved the permission on 2026-09-15,
+and authenticated installation read-back and the successful preparation below
+confirmed it is active. No key rotation or token sharing was needed.
 
-- [Prepare Patch run 34997049849](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34997049849)
-  was rejected while creating `patch/v0.9.1` from `v0.9.0`: the App lacks
-  `workflows` permission for the existing release's workflow-file history.
-  The inherited-merge-commit restriction was separately fixed by applying linear
-  history only to `main`.
-- [Reference-only probe 34997318737](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34997318737)
-  also failed with HTTP 403 using the App's Git refs API. Neither attempt created
-  `patch/v0.9.1` or a preparation PR. A reference-only API is not a workaround
-  for the missing permission.
+Both token-creation steps explicitly request `permission-workflows: write`, so
+insufficient installation permissions fail at token creation rather than halfway
+through a release. The action's default token scope is this repository; PR CI
+never receives these permissions. Do not restore a broad ruleset bypass to try
+to fix an App permission failure.
 
-Owner **`ostomachion`** must complete these browser steps:
-
-1. Open the [release App permissions](https://github.com/organizations/OpenGameBuilder/settings/apps/opengamebuilder-release-bot/permissions).
-   Under repository permissions, set **Workflows** to **Read and write** and save.
-2. Open the [App installation](https://github.com/organizations/OpenGameBuilder/settings/installations/134728813)
-   and approve the updated permissions. Review repository selection at the same
-   time: this release bot needs `opengamebuilder`, not blanket access to unrelated
-   repositories.
-
-No token/private key needs to be shared or regenerated. Both token-creation
-steps now explicitly request `permission-workflows: write`, so insufficient
-installation permissions fail at token creation rather than halfway through a
-release. This is scoped to release App tokens; pull-request CI remains read-only.
-Do not restore a broad ruleset bypass to try to fix an App permission failure.
-
-After approval, run **Prepare Patch** using the updated workflow (PR #82's branch
-before merge, or `main` afterward), verify the bot creates the protected patch
-branch and preparation PR, and confirm that PR still requires CI and human
-review. Do not publish or deploy a release as part of that check.
-Until this succeeds, section 7's release-bot acceptance remains open.
+For future installation changes, update the
+[App permissions](https://github.com/organizations/OpenGameBuilder/settings/apps/opengamebuilder-release-bot/permissions)
+and approve them in the
+[installation settings](https://github.com/organizations/OpenGameBuilder/settings/installations/134728813).
+The installation currently selects all repositories; review that broader
+installation scope during foundation section 11, separately from the
+repository-scoped workflow tokens.
 
 ## Acceptance evidence
 
@@ -216,6 +205,34 @@ Cleanup temporarily excluded only the disposable patch ref from ruleset
 list was restored to empty, with no bypass actors. The separate disposable bot
 probe branch was also deleted. `main` and all existing release tags were unchanged;
 no PR was merged and no deployment or release was performed.
+
+### Successful release-bot acceptance
+
+[Prepare Patch run 35002126742](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742)
+used the approved App token and completed successfully. It created:
+
+- `patch/v0.9.1` at the existing `v0.9.0` commit
+  `4fc9f816443eb6011958d6c6d43d64c82d9bfad3`, preserving its historical merges.
+- `chore/prepare-v0.9.1` at `6167c2bc2a801b525ff8bf502d52121c80cd04a9`.
+- Bot-authored [PR #84](https://github.com/OpenGameBuilder/opengamebuilder/pull/84),
+  changing only `VersionPrefix` from `0.9.0` to `0.9.1`.
+
+The PR reported `REVIEW_REQUIRED` and `BLOCKED`, with `build-test` still required.
+[Its CI run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002166207)
+failed restore with NU1903 for the old release's `Microsoft.OpenApi` 2.0.0
+([advisory](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)).
+That is the gate correctly rejecting an old dependency baseline, not a bot
+permission failure. The current dependency/test baseline's green main and patch
+runs are recorded above. Real patch preparation from older tags must receive the
+current dependency and validation baseline before merging; do not disable Audit
+or required checks to make an old release green.
+
+PR #84 was closed without merging and both refs created by this run were deleted.
+Only the exact verification patch ref was temporarily excluded for deletion;
+read-back confirmed the exclusion was removed and the gate has no bypass actors.
+The successful creation/PR operation, enforced review/check requirements, and
+unchanged tag-immutability rules complete section 7's bot acceptance. No human
+approval was fabricated and no deployment, tag change, or release was performed.
 
 ## Administrator verification
 

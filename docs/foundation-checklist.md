@@ -59,14 +59,14 @@ start, even when the API's liveness endpoint is healthy.
   stable build/test job, not only CodeQL, code-quality checks, or review.
 - [x] Align protected branches with `main` and `patch/v*`. Ensure the intended
   CodeQL checks run for patch PRs too.
-- [ ] Verify human approval, stale-review dismissal, and release-tag protection.
+- [x] Verify human approval, stale-review dismissal, and release-tag protection.
   Document any deliberate maintainer or release-bot bypasses.
 
 **Acceptance:** a failing test blocks merging a representative PR. A patch branch
 receives the intended protections and runnable checks without blocking the
 release bot's narrowly authorized work.
 
-**Progress (2026-09-15):** shared validation, failure artifacts, workflow timeouts,
+**Verified (2026-09-15):** shared validation, failure artifacts, workflow timeouts,
 and patch CodeQL triggers are implemented. Authenticated inspection confirmed
 there are no legacy protection rules. Live rules now require `build-test` from
 GitHub Actions on `main` and `patch/v*`, with no CI bypass. Release-App bypasses
@@ -83,14 +83,15 @@ trusted action loading address that boundary. Both main and patch validation
 then passed all 62 tests, the Docker build, code-quality analysis, and aggregate
 CodeQL with zero open alerts. Temporary verification refs were cleaned up.
 
-**Remaining owner action:** the real release App cannot create the historical
-patch ref without GitHub's Workflows write permission. Both the existing
-preparation workflow and a reference-only API probe failed without creating a
-branch or PR. The workflows now request the needed permission explicitly, but
-`ostomachion` must enable and approve it in the App/installation settings, then
-rerun preparation. See [GitHub setup](setup/github.md) for the exact links,
-live rule IDs, bypass inventory, and acceptance evidence. Section 7 is not fully
-complete until the bot operation succeeds.
+After the owner approved Workflows write permission,
+[Prepare Patch run 35002126742](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742)
+successfully created the protected patch branch and bot-authored PR #84. The PR
+still required human review and CI; its inherited old-release dependency failed
+NuGet Audit, correctly blocking merging rather than bypassing the gate.
+The verification PR and both new refs were cleaned up without merging, deploying,
+or creating a release. Section 7 is complete; [GitHub setup](setup/github.md)
+records the live rules, deliberate exceptions, current-baseline passing checks,
+and bot acceptance evidence.
 
 ### 8. Write useful repository-specific AI instructions
 
