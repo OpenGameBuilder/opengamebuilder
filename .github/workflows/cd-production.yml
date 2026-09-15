@@ -33,6 +33,7 @@ jobs:
   validate:
     name: Validate release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     outputs:
       kind: ${{ steps.validate.outputs.kind }}
@@ -78,6 +79,7 @@ jobs:
       - validate
       - deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Create release bot token

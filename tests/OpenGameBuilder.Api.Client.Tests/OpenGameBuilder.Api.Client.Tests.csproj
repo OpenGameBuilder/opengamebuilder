@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenGameBuilder.Api.Client\OpenGameBuilder.Api.Client.csproj" />
+  </ItemGroup>
+</Project>

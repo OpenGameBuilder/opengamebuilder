@@ -23,6 +23,7 @@ on:
         default: ""
 
 env:
+  HUSKY: "0"
   REGISTRY: ghcr.io
   DEPLOY_ROOT: /srv/opengamebuilder
   EDGE_DIR: /srv/opengamebuilder/edge
@@ -35,32 +36,26 @@ jobs:
   build-test:
     name: Build and test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.git-ref }}
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v6
+      - name: Validate solution
+        uses: ./.github/actions/validate
         with:
-          global-json-file: global.json
-
-      - name: Restore tools
-        run: dotnet tool restore
-
-      - name: Restore
-        run: dotnet restore opengamebuilder.slnx
-
-      - name: Build
-        run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
+          artifact-name: ${{ inputs.environment-slug }}-validation
 
   deploy:
     name: Deploy ${{ inputs.environment-slug }}
     needs: build-test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: ${{ inputs.environment-slug }}
 
     steps:
@@ -164,6 +159,7 @@ jobs:
     needs: deploy
     if: ${{ inputs.smoke-test-url-var != '' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Curl API liveness endpoint
@@ -180,5 +176,6 @@ jobs:
           SMOKE_TEST_URL="${SMOKE_TEST_BASE_URL%/}/api/alive"
           echo "Smoke testing ${SMOKE_TEST_URL}"
           curl --fail --show-error --silent --location \
+            --connect-timeout 10 --max-time 30 --retry-max-time 180 \
             --retry 5 --retry-delay 5 --retry-all-errors \
             "${SMOKE_TEST_URL}" >/dev/null

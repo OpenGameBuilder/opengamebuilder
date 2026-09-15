@@ -14,6 +14,7 @@ jobs:
   prepare:
     name: Prepare patch PR
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Create release bot token
