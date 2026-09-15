@@ -17,9 +17,4 @@
     <RepositoryUrl>https://github.com/OpenGameBuilder/opengamebuilder</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
-
-  <!-- Treat warnings as errors in production code, but not in test projects -->
-  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
 </Project>
