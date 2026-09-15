@@ -14,7 +14,7 @@ RUN dotnet publish src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj \
     --configuration Release \
     --output /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.9 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.10 AS final
 WORKDIR /app
 
 COPY --from=build /app/publish .
