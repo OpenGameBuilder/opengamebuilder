@@ -2,8 +2,10 @@
 
 - **[Visual Studio 2026+](https://visualstudio.microsoft.com/vs/)** (Community is fine) with the **ASP.NET and web development** workload (the repo ships a [`.vsconfig`](.vsconfig) so Visual Studio will offer to install missing components automatically when you open the solution.
 - Alternatively, you can use **[Visual Studio Code](https://code.visualstudio.com/)** with the C# extension.
-- [.NET SDK 10.0.300+](https://dotnet.microsoft.com/download) (see [global.json](global.json)). Visual Studio 2026 already includes a compatible SDK.
+- [.NET SDK 10.0.400+](https://dotnet.microsoft.com/download) (see [global.json](global.json)). Update Visual Studio 2026 if its bundled SDK is older.
 - [Git for Windows](https://git-scm.com/download/win) (ships the `sh` interpreter the pre-commit hook needs).
+
+When updating the SDK requirement in `global.json`, keep the API Dockerfile's SDK image compatible. CI builds the API image without pushing it to catch SDK mismatches before deployment.
 
 One-time setup: trust the local HTTPS dev certificate:
 

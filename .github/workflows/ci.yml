@@ -36,3 +36,10 @@ jobs:
 
       - name: Test
         run: dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
+
+      - name: Build API image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: src/OpenGameBuilder.Api/Dockerfile
+          push: false
