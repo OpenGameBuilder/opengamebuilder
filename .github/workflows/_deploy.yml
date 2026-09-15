@@ -61,15 +61,10 @@ jobs:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.resolve-source.outputs.sha }}
-          path: deployment-source
-          persist-credentials: false
-
       - name: Validate solution
         uses: ./.github/actions/validate
         with:
+          checkout-ref: ${{ needs.resolve-source.outputs.sha }}
           working-directory: deployment-source
           artifact-name: ${{ inputs.environment-slug }}-validation
 

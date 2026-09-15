@@ -2,6 +2,10 @@ name: Validate solution
 description: Shared restore, formatting, Release build, and test gate for CI and deployment.
 
 inputs:
+  checkout-ref:
+    description: Optional immutable protected-source commit to check out after loading this action.
+    required: false
+    default: ""
   working-directory:
     description: Checked-out solution directory, separate from the trusted action definition.
     required: false
@@ -13,6 +17,14 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Check out the resolved source
+      if: ${{ inputs.checkout-ref != '' }}
+      uses: actions/checkout@v7.0.1
+      with:
+        ref: ${{ inputs.checkout-ref }}
+        path: ${{ inputs.working-directory }}
+        persist-credentials: false
+
     - uses: actions/setup-dotnet@v6
       with:
         global-json-file: ${{ inputs.working-directory }}/global.json
