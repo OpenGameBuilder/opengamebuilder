@@ -32,6 +32,16 @@ The first build also bootstraps local tools (Husky.NET) and installs the git pre
    - **Launch API** - starts the API on `https://localhost:7000`, opens Scalar at `/scalar`.
    - **Launch Web (Blazor WASM)** - starts the Blazor WebAssembly app on `https://localhost:7001`.
 
+## Running tests
+
+The solution uses Microsoft.Testing.Platform, selected in `global.json`. Run all tests from the repository root:
+
+```pwsh
+dotnet test --solution opengamebuilder.slnx --configuration Release
+```
+
+Use `--project` instead of `--solution` to select a single test project. CI and deployment workflows use the same runner.
+
 ## Debugging
 
 Launching the projects automatically attaches the debuggers. Note that Blazor WASM debugging is only supported in Chromium-based browsers.
