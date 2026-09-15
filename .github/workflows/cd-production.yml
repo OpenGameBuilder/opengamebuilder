@@ -30,8 +30,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve-source:
+    uses: ./.github/workflows/_resolve-source.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.ref }}
+
   validate:
     name: Validate release
+    needs: resolve-source
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -46,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ needs.resolve-source.outputs.sha }}
           fetch-depth: 0
 
       - name: Validate
@@ -66,6 +74,7 @@ jobs:
     with:
       environment-slug: production
       dotnet-environment: Production
+      source-ref: ${{ inputs.ref }}
       git-ref: ${{ needs.validate.outputs.source_sha }}
       # Repo variable PRODUCTION_SMOKE_TEST_URL holds the base URL only
       # (e.g. https://opengamebuilder.com); the API liveness path
