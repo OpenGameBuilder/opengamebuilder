@@ -120,26 +120,18 @@ Copilot instruction files exist.
 
 ### 9. Record the engine boundary and first milestone
 
-- [x] Write a short architecture/repository map: API, contracts, API client,
+- [ ] Write a short architecture/repository map: API, contracts, API client,
   frontend, AppHost, service defaults, and the separate archive repository.
-- [x] Choose the first compatibility goal and its non-goals: playback, import,
+- [ ] Choose the first compatibility goal and its non-goals: playback, import,
   editor behavior, or one narrowly defined combination.
-- [x] Define a small, independently created fixture and observable acceptance
+- [ ] Define a small, independently created fixture and observable acceptance
   criteria for the first engine milestone.
-- [x] Keep game logic testable without Blazor, HTTP, or a database. Introduce
+- [ ] Keep game logic testable without Blazor, HTTP, or a database. Introduce
   boundaries for rendering, input, time, and randomness with actual engine work,
   not as empty projects or generic infrastructure.
 
 **Acceptance:** the next engine task is small enough to implement and test without
 first adding a new architectural framework.
-
-**Verified (2026-09-19):** [the first engine milestone](architecture/first-engine-milestone.md)
-selects deterministic, headless playback of a single independently authored scene
-timeline. Its canonical [v1 fixture](../test-data/engine/first-playback-scene.v1.json)
-has a five-row observable trace, terminal behavior, and invalid-input criteria.
-The selected next task introduces an engine project only alongside the player and
-its direct tests; it explicitly excludes the framework and host concerns that do
-not yet have a behavior to serve.
 
 ### Gate: return to engine implementation
 
