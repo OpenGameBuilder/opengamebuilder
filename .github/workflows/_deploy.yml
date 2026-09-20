@@ -75,6 +75,9 @@ jobs:
       web-sha256: ${{ steps.web-identity.outputs.web-sha256 }}
 
     steps:
+      # CodeQL cache-poisoning note: _resolve-source pins a SHA from a GitHub-protected
+      # main/patch branch, never a PR head. Keep required human review on those
+      # branches: this job executes scripts from the selected source.
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.resolve-source.outputs.sha }}
