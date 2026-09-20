@@ -96,9 +96,9 @@ The Compose service is replaced before the root web redirect switches. During
 that short interval, an already loaded page can call the new API, so API changes
 must remain compatible with the retained frontend until its clients have aged
 out. This mechanism provides an atomic web switch and a recoverable pair; it is
-not a zero-downtime atomic swap of the API and web processes. The staging failure
-and rollback rehearsal required by foundation checklist section 14 remains the
-live acceptance check.
+not a zero-downtime atomic swap of the API and web processes. The section 14
+staging failure and rollback rehearsal passed on 2026-09-20; see the
+[checklist evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
 
 To recover an edge change, fix the candidate on `main` and dispatch **CD Shared
 Edge** again. For an urgent host-side recovery, use the last known-good edge
