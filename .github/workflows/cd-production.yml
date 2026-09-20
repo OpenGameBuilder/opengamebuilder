@@ -21,6 +21,9 @@ on:
         type: string
         default: main
 
+# Validation can execute a selected protected patch branch in main's run context.
+cache-mode: none
+
 permissions:
   contents: read
 
@@ -68,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.resolve-source.outputs.sha }}
+          ref: ${{ needs.resolve-source.outputs.protected-revision }}
           fetch-depth: 0
 
       - name: Validate
@@ -87,7 +90,6 @@ jobs:
       packages: write
     with:
       environment-slug: production
-      dotnet-environment: Production
       source-ref: ${{ inputs.ref }}
       git-ref: ${{ needs.validate.outputs.source_sha }}
       # Repo variable PRODUCTION_SMOKE_TEST_URL holds the base URL only

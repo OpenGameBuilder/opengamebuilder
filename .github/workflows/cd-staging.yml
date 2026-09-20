@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+# Keep source builds and the called deployment workflow out of the shared cache.
+cache-mode: none
+
 concurrency:
   group: cd-staging
   cancel-in-progress: false
@@ -36,7 +39,6 @@ jobs:
       packages: write
     with:
       environment-slug: staging
-      dotnet-environment: Staging
       # Repo variable STAGING_SMOKE_TEST_URL holds the base URL only
       # (e.g. https://staging.opengamebuilder.com); the API liveness path
       # /api/alive is appended automatically by the smoke-test job.

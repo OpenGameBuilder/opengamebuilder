@@ -6,6 +6,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddOpenGameBuilderApiClient(builder.Configuration);
+// Published clients use their hosting origin; Development can override this in appsettings.Development.json.
+builder.Services.AddOpenGameBuilderApiClient(builder.Configuration, new Uri(builder.HostEnvironment.BaseAddress));
 
 await builder.Build().RunAsync();

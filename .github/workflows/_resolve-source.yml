@@ -13,8 +13,8 @@ on:
         type: string
         default: ""
     outputs:
-      sha:
-        description: Immutable commit resolved from the protected branch.
+      protected-revision:
+        description: Immutable commit verified to belong to the protected branch.
         value: ${{ jobs.resolve.outputs.sha }}
 
 permissions:
