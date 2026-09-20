@@ -71,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.resolve-source.outputs.sha }}
+          ref: ${{ needs.resolve-source.outputs.protected-revision }}
           fetch-depth: 0
 
       - name: Validate
