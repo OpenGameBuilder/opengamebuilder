@@ -64,6 +64,13 @@ the returned application name and version. A failed activation or browser check
 invokes `rollback` and restarts the recorded previous API image without rebuilding
 it. A successful browser check clears the pending marker with `finalize`.
 
+For a controlled staging rehearsal after a successful normal rollout, dispatch
+**CD Staging** from `main` with **rehearse-rollback** enabled. It first passes
+the browser check, then deliberately fails before `finalize`; the recovery step
+must restore `previous`. This run is expected to be red, so inspect the recovery
+step and independently verify the public page and `/api/about` afterward. Leave
+the input off for normal staging updates.
+
 Inspect `current`, `previous`, `pending`, and the manifests before manual
 recovery. From a deployment checkout with SSH access, the same
 rollback command is:

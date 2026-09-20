@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: ""
+      rehearse-rollback:
+        description: "After a successful staging browser smoke test, fail the job to exercise recovery."
+        required: false
+        type: boolean
+        default: false
 
 # A selected protected source is executed in jobs launched from the default branch.
 # Disable shared Actions cache access so it cannot poison that cache scope.
@@ -313,6 +318,12 @@ jobs:
             exit 1
           fi
           node tests/deploy-smoke/smoke.mjs
+
+      - name: Rehearse staging rollback after a successful browser check
+        if: ${{ inputs.environment-slug == 'staging' && inputs.rehearse-rollback }}
+        run: |
+          echo 'Intentional staging failure: the recovery step must restore the previous release.' >&2
+          exit 1
 
       - name: Check production after staging update
         if: ${{ inputs.environment-slug == 'staging' }}
