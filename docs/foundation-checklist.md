@@ -184,22 +184,30 @@ and all 62 solution tests passed (the documented ASPIRE010 build warning remains
 dispatch paths are rejected, and normal pull-request validation receives no
 production credentials.
 
-**Progress (2026-09-19):** authenticated read-back found production approval by
+**Progress (2026-09-20):** authenticated read-back found production approval by
 `ostomachion`, self-review and administrator bypass enabled, environment-scoped
 deployment secrets, repository-scoped release-bot tokens, and creation-only bot
 tag permission. The stale production `release/**/*` tag selector and staging
 `release/**/*` branch selector were removed; both environments now allow only
-the `main` dispatch branch. Both local CD workflows now reject non-`main`
-dispatches before source selection, and their deployment calls no longer inherit
-the repository's release-bot secret. [GitHub setup](setup/github.md#deployment-authority-and-recovery)
-records the dispatch/source distinction, actual operator and recovery limits,
-and the read-only permission audit. No deployment was run. **Keep this section
-open:** remote `main` still has the older deployment workflow and lacks this
-checkout's protected-source resolver, so its input-ref rejection has not yet
-reached the live workflow. A signed-in organization Actions settings read-back
-on 2026-09-20 found no organization secrets; the audit CLI token still received
-403 for the same API inventory. Publish the local workflow baseline, verify the
-live source gate, and check these items off only then.
+the `main` dispatch branch. Both CD workflows on merged `main` reject non-`main`
+dispatches before source selection. A [live invalid-source run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
+rejected a tag input at the protected-source resolver; validation, production
+deployment, and publication were skipped. A second
+[non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
+failed at the first workflow guard, with all downstream jobs skipped. The
+merge-triggered
+[staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
+passed source resolution and build/test but failed before syncing files or
+restarting services: its environment secrets were empty in the reusable workflow
+after `secrets: inherit` was removed. A focused fix restores the caller handoff
+and checks that deployment credentials are available before image publication.
+[GitHub setup](setup/github.md#deployment-authority-and-recovery) records the
+dispatch/source distinction, actual operator and recovery limits, and the
+read-only permission audit. The signed-in organization Actions settings page
+reported no organization secrets; the audit CLI token still receives 403 for
+that API inventory. **Keep this section open** until the credential-handoff fix
+is merged and the staging path is verified live. Positive production release and
+patch deployment remain reserved for an authorized release, not this audit.
 Administrator bypass is retained for sole-operator emergency recovery, not
 routine releases; while enabled, the `main`-only selector is not an absolute
 barrier to an administrator forcing a waiting job.
