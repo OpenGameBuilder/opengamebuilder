@@ -61,6 +61,13 @@ runs:
         dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
         2>&1 | tee artifacts/validation/test.log
 
+    - name: Test release scripts without external writes
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        bash tests/release-scripts/run.sh 2>&1 | tee artifacts/validation/release-scripts.log
+
     - name: Upload validation failure diagnostics
       if: ${{ failure() && !cancelled() }}
       uses: actions/upload-artifact@v4

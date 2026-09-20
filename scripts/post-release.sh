@@ -34,7 +34,7 @@ case "${KIND}" in
 
         bump_branch="chore/bump-version-to-${NEXT_MAIN_VERSION}"
 
-        if git ls-remote --exit-code --heads origin "${bump_branch}" >/dev/null 2>&1; then
+        if remote_ref_exists "refs/heads/${bump_branch}"; then
             echo "Bump branch '${bump_branch}' already exists."
         else
             git switch --detach origin/main
@@ -51,7 +51,7 @@ case "${KIND}" in
             git push origin "HEAD:refs/heads/${bump_branch}"
         fi
 
-        existing_pr="$(gh pr list --base main --head "${bump_branch}" --state open --json number --jq '.[0].number' 2>/dev/null || true)"
+        existing_pr="$(gh pr list --base main --head "${bump_branch}" --state open --json number --jq '.[0].number // empty')"
         if [ -z "${existing_pr}" ]; then
             body=$(cat <<EOF
 Post-release version bump after ${TAG}.
@@ -76,7 +76,7 @@ EOF
 
         git fetch origin "+refs/heads/${patch_branch}:refs/remotes/origin/${patch_branch}" >/dev/null
 
-        if git ls-remote --exit-code --heads origin "${merge_branch}" >/dev/null 2>&1; then
+        if remote_ref_exists "refs/heads/${merge_branch}"; then
             echo "Merge-back branch '${merge_branch}' already exists."
         else
             git switch --detach origin/main
@@ -95,19 +95,12 @@ EOF
 
             git switch -c "${merge_branch}"
 
-            # Try to merge the patch branch. Resolve conflicts in Directory.Build.props automatically.
+            # A props conflict can include non-version changes; leave it for manual resolution.
             if ! git merge --no-ff --no-commit "origin/${patch_branch}"; then
                 conflicts="$(git diff --name-only --diff-filter=U)"
-                non_version_conflicts="$(echo "${conflicts}" | grep -v '^Directory.Build.props$' || true)"
-                if [ -n "${non_version_conflicts}" ]; then
-                    git status --short
-                    echo "Merge-back has conflicts outside Directory.Build.props. Resolve manually." >&2
-                    exit 1
-                fi
-                if echo "${conflicts}" | grep -qx 'Directory.Build.props'; then
-                    git checkout --ours Directory.Build.props
-                    git add Directory.Build.props
-                fi
+                git status --short
+                echo "Merge-back has unresolved conflicts (${conflicts}). Resolve manually; no branch was pushed." >&2
+                exit 1
             fi
 
             write_version "${target_main_version}"
@@ -123,7 +116,7 @@ EOF
             git push origin "HEAD:refs/heads/${merge_branch}"
         fi
 
-        existing_pr="$(gh pr list --base main --head "${merge_branch}" --state open --json number --jq '.[0].number' 2>/dev/null || true)"
+        existing_pr="$(gh pr list --base main --head "${merge_branch}" --state open --json number --jq '.[0].number // empty')"
         if [ -z "${existing_pr}" ]; then
             body=$(cat <<EOF
 Merges patch release ${TAG} back into main.
