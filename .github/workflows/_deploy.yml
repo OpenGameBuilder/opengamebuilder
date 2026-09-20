@@ -31,7 +31,6 @@ env:
   HUSKY: "0"
   REGISTRY: ghcr.io
   DEPLOY_ROOT: /srv/opengamebuilder
-  EDGE_DIR: /srv/opengamebuilder/edge
   APP_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}
   WEB_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}/web
   COMPOSE_FILE: ./deploy/${{ inputs.environment-slug }}/compose.yml
@@ -146,15 +145,32 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Check production before staging update
+        if: ${{ inputs.environment-slug == 'staging' }}
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_SMOKE_TEST_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PRODUCTION_URL" ]; then
+            echo "PRODUCTION_SMOKE_TEST_URL is not configured." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent --location \
+            --connect-timeout 10 --max-time 30 \
+            "${PRODUCTION_URL%/}/api/alive" >/dev/null
+
       - name: Sync deployment files
         env:
           API_IMAGE: ${{ steps.image.outputs.api-image }}
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
             set -euo pipefail
-            mkdir -p "${EDGE_DIR}" "${APP_DIR}" "${WEB_DIR}"
+            mkdir -p "${APP_DIR}" "${WEB_DIR}"
             printf '%s\n' "API_IMAGE=${API_IMAGE}" > "${APP_DIR}/.env"
-            docker network inspect ogb-edge >/dev/null 2>&1 || docker network create ogb-edge
+            docker network inspect ogb-edge >/dev/null 2>&1 || {
+              echo "Shared edge network is missing; apply the edge configuration first." >&2
+              exit 1
+            }
           EOF
 
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
@@ -165,12 +181,7 @@ jobs:
             "${COMPOSE_FILE}" \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/compose.yml"
 
-          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
-            ./deploy/edge/compose.yml \
-            ./deploy/edge/Caddyfile \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${EDGE_DIR}/"
-
-      - name: Restart services
+      - name: Update application service
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
             set -euo pipefail
@@ -178,13 +189,6 @@ jobs:
             docker compose pull
             docker compose up -d
 
-            cd "${EDGE_DIR}"
-            docker compose pull
-            docker compose up -d --force-recreate
-            docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
-            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile || docker compose restart caddy
-
-            docker image prune -f
           EOF
 
   smoke-test:
@@ -213,3 +217,18 @@ jobs:
             --connect-timeout 10 --max-time 30 --retry-max-time 180 \
             --retry 5 --retry-delay 5 --retry-all-errors \
             "${SMOKE_TEST_URL}" >/dev/null
+
+      - name: Check production after staging update
+        if: ${{ inputs.environment-slug == 'staging' }}
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_SMOKE_TEST_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PRODUCTION_URL" ]; then
+            echo "PRODUCTION_SMOKE_TEST_URL is not configured." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent --location \
+            --connect-timeout 10 --max-time 30 --retry-max-time 180 \
+            --retry 5 --retry-delay 5 --retry-all-errors \
+            "${PRODUCTION_URL%/}/api/alive" >/dev/null
