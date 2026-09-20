@@ -49,6 +49,18 @@ repositories, mocks GitHub CLI calls and Git pushes, and never publishes a
 branch, tag, or release. CI and deployment validation run it after the solution
 tests and upload its log on failure.
 
+The shared-edge apply script also has an isolated Bash test:
+
+```pwsh
+& 'C:\Program Files\Git\bin\bash.exe' tests/deploy-edge/run.sh
+```
+
+It mocks Docker and verifies invalid-candidate rejection, Caddyfile-only reload,
+failed-reload restoration, intentional Compose updates, and first-time setup.
+CI runs it without SSH, Docker, deployment credentials, or service changes.
+Live staging and production availability must still be checked by the deployment
+smoke tests after the workflow change reaches `main`.
+
 The stable required PR check is `build-test`. Workflow success alone does not
 make it a merge gate: GitHub must require that check and enforce human review.
 See [GitHub setup](../setup/github.md) for the inspected settings, administrator

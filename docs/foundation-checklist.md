@@ -219,15 +219,26 @@ barrier to an administrator forcing a waiting job.
 
 ### 12. Isolate shared-edge changes from application deployments
 
-- [ ] Stop routine staging/application deployments from recreating the shared
+- [x] Stop routine staging/application deployments from recreating the shared
   production Caddy service.
-- [ ] Validate a candidate Caddy configuration before activating it; use a
+- [x] Validate a candidate Caddy configuration before activating it; use a
   graceful reload when configuration changes.
-- [ ] Coordinate operations that modify shared edge files or services across
+- [x] Coordinate operations that modify shared edge files or services across
   staging and production. Avoid cancelling an in-flight mutation midway through.
 
 **Acceptance:** deploy staging while checking production availability. An invalid
 candidate edge configuration is rejected without replacing the working configuration.
+
+**Implemented locally (2026-09-20):** application deployments no longer sync or
+recreate shared Caddy. The `main`-only, production-approved shared-edge workflow
+serializes edge updates without cancellation. Its apply script validates a staged
+candidate before touching active files, reloads Caddy for Caddyfile-only changes,
+and restores prior files after a failed reload. The isolated Docker-mock suite
+passed invalid-candidate, reload, rollback, Compose-update, and first-setup cases.
+Staging now probes production API liveness before and after its deployment.
+Live staging deployment and production availability read-back remain to be
+verified after the protected workflow change is merged; no edge or application
+deployment was run for this local implementation.
 
 ### 13. Make builds portable and promote identifiable artifacts
 
