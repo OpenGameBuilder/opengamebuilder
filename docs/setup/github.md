@@ -217,9 +217,10 @@ explicitly and defaults to this repository, despite the broader installation.
 Normal PR CI has a read-only `GITHUB_TOKEN`, references no deployment environment
 and no release-bot secret, and therefore receives no deployment credentials.
 GitHub makes environment secrets available only after that environment's rules
-pass. The organization-wide Actions secret inventory was not accessible with
-the audit account's scopes (403); an organization administrator should check it
-separately before asserting there are no additional organization secrets.
+pass. On 2026-09-20, the signed-in organization Actions secrets settings page
+explicitly reported that OpenGameBuilder has no organization secrets. This was
+a read-only UI metadata check; no secret values were viewed. The audit CLI
+token still receives 403 for the organization secret API inventory.
 
 Read back these settings without revealing secret values:
 

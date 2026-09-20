@@ -204,9 +204,10 @@ records the dispatch/source distinction, actual operator and recovery limits,
 and the read-only permission audit. No deployment was run. **Keep this section
 open:** remote `main` still has the older deployment workflow and lacks this
 checkout's protected-source resolver, so its input-ref rejection has not yet
-reached the live workflow. Organization-wide secret inventory also needs an org
-administrator's check (the audit token received 403). Publish the local workflow
-baseline, verify the live source gate, and check these items off only then.
+reached the live workflow. A signed-in organization Actions settings read-back
+on 2026-09-20 found no organization secrets; the audit CLI token still received
+403 for the same API inventory. Publish the local workflow baseline, verify the
+live source gate, and check these items off only then.
 Administrator bypass is retained for sole-operator emergency recovery, not
 routine releases; while enabled, the `main`-only selector is not an absolute
 barrier to an administrator forcing a waiting job.
