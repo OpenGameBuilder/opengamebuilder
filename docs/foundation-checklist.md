@@ -95,18 +95,28 @@ and bot acceptance evidence.
 
 ### 8. Write useful repository-specific AI instructions
 
-- [ ] Document a short project map and dependency boundaries in `AGENTS.md`, with
+- [x] Document a short project map and dependency boundaries in `AGENTS.md`, with
   prerequisites, exact validation commands, and links to authoritative policies.
-- [ ] Explain that Aspire is the local launcher while production currently uses
+- [x] Explain that Aspire is the local launcher while production currently uses
   Compose. Require explicit authorization for deployments, releases, credentials,
   and destructive operations; documentation-only work should not start services.
-- [ ] Add thin Copilot-specific guidance only where needed for tool support, or
+- [x] Add thin Copilot-specific guidance only where needed for tool support, or
   correct documentation claiming those files already exist. Avoid duplicated rules.
-- [ ] Document the Aspire executable required by `.mcp.json` and how contributors
+- [x] Document the Aspire executable required by `.mcp.json` and how contributors
   install and verify it without making AI tools mandatory.
 
 **Acceptance:** a fresh local agent can perform a small code/test change using the
 instructions, without guessing commands or accessing deployment credentials.
+
+**Verified (2026-09-19):** `AGENTS.md` now maps the solution's dependency
+boundaries, names the local validation gate, and points to the authoritative setup,
+testing, policy, hosting, and CI documentation. It documents `aspire` as the
+executable used by `.mcp.json`, with the matching 13.4.2 install and verification
+commands. The installed executable reported 13.4.2. Aspire is explicitly scoped
+to local orchestration; production Compose, releases, credentials, deployments,
+and destructive operations require authorization. `CONTRIBUTING.md` now identifies
+`AGENTS.md` as the existing repository guidance instead of implying uncommitted
+Copilot instruction files exist.
 
 ### 9. Record the engine boundary and first milestone
 
