@@ -192,7 +192,10 @@ tag permission. The stale production `release/**/*` tag selector and staging
 the `main` dispatch branch. Both CD workflows on merged `main` reject non-`main`
 dispatches before source selection. A [live invalid-source run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
 rejected a tag input at the protected-source resolver; validation, production
-deployment, and publication were skipped. The merge-triggered
+deployment, and publication were skipped. A second
+[non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
+failed at the first workflow guard, with all downstream jobs skipped. The
+merge-triggered
 [staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
 passed source resolution and build/test but failed before syncing files or
 restarting services: its environment secrets were empty in the reusable workflow

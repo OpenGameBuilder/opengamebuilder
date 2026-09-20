@@ -183,8 +183,10 @@ dispatch refs are denied by its environment policy in the normal path. On
 contained the guards and source resolver. A
 [deliberately invalid production dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
 from `main` with a tag as the source input failed in the resolver; validation,
-deployment, and release jobs were skipped. It did not test a non-`main` dispatch
-or an approved production release.
+deployment, and release jobs were skipped. A
+[non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
+from the fix branch failed at the first guard, with all downstream jobs skipped.
+Neither run tested an approved production release.
 
 The production environment has one required reviewer, `ostomachion`.
 Self-approval is allowed because there is no second eligible release reviewer;
