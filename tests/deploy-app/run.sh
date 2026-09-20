@@ -37,6 +37,8 @@ printf 'SOURCE_SHA=%s\nAPI_IMAGE=ghcr.io/example/api@sha256:%s\nWEB_SHA256=%s\n'
 printf 'API_IMAGE=ghcr.io/example/api@sha256:%s\n' "$(printf 'b%.0s' {1..64})" > "$app_dir/.env"
 printf 'name: ogb-staging\nservices:\n  api:\n    image: ${API_IMAGE}\n' > "$app_dir/compose.yml"
 printf '<html>legacy page</html>\n' > "$app_dir/web/index.html"
+printf 'old compressed index\n' > "$app_dir/web/index.html.br"
+printf 'old compressed index\n' > "$app_dir/web/index.html.gz"
 printf 'legacy asset\n' > "$app_dir/web/old-asset.txt"
 
 sha_a="$(printf '2%.0s' {1..40})"
@@ -45,6 +47,8 @@ run_app activate 101-1-222222222222 >/dev/null
 [[ "$(cat "$app_dir/current")" == releases/101-1-222222222222 ]] || fail 'new release was not activated'
 [[ "$(cat "$app_dir/previous")" == releases/legacy-111111111111 ]] || fail 'legacy release was not retained'
 grep -Fq '/releases/101-1-222222222222/' "$app_dir/web/index.html" || fail 'root redirect was not activated'
+grep -Fq '/releases/101-1-222222222222/index.html' "$app_dir/web/index.html" || fail 'root redirect must target an existing file'
+[[ ! -e "$app_dir/web/index.html.br" && ! -e "$app_dir/web/index.html.gz" ]] || fail 'old compressed index could shadow root redirect'
 [[ -f "$app_dir/web/old-asset.txt" && -f "$app_dir/web/releases/101-1-222222222222/asset-101-1-222222222222.txt" ]] || fail 'older browser assets were lost'
 run_app finalize 101-1-222222222222 >/dev/null
 echo 'PASS activation retains legacy content and records the API digest'

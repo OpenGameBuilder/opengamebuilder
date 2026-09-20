@@ -50,7 +50,9 @@ The host keeps immutable application metadata in
 `/srv/opengamebuilder/<environment>/releases/<release-id>/` and its web files in
 `web/releases/<release-id>/`. The `current` and `previous` files contain paths to
 those metadata directories. The root `web/index.html` is atomically replaced with
-a redirect to the active versioned web path. Loaded pages continue to request
+a redirect to the active `/releases/<release-id>/index.html` file. The deploy
+script removes old root `index.html` compression sidecars before that switch so
+Caddy cannot serve a stale compressed page. Loaded pages continue to request
 their own release's assets, and the prior web directory remains available. The
 first deployment with this layout copies the old in-place web files into a
 `legacy-*` release and retains its original root assets.
