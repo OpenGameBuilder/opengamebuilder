@@ -158,19 +158,26 @@ known release risks.
 
 ### 10. Test and repair release-script behavior
 
-- [ ] Fix `scripts\validate-release.sh` returning failure after successful patch
+- [x] Fix `scripts\validate-release.sh` returning failure after successful patch
   validation because its final optional-output condition is false.
-- [ ] Support documented reruns when a patch tag/release already exists at the
+- [x] Support documented reruns when a patch tag/release already exists at the
   expected commit. Continue rejecting mismatched tags and invalid version progressions.
-- [ ] Avoid resolving all of `Directory.Build.props` with `--ours` in
+- [x] Avoid resolving all of `Directory.Build.props` with `--ours` in
   `scripts\post-release.sh`; preserve non-version changes or require manual resolution.
-- [ ] Add isolated tests for standard and patch releases, tag conflicts, reruns,
+- [x] Add isolated tests for standard and patch releases, tag conflicts, reruns,
   failed GitHub calls, follow-up PR handling, and merge-back conflicts.
 
 **Acceptance:** the valid-next-patch and already-published-patch cases both pass.
 Tests mock external operations and never push branches, tags, or releases.
 If simplifying the release workflow instead, remove superseded paths and update
 `docs\release` so there is only one supported process.
+
+**Verified locally (2026-09-19):** 20 isolated Bash cases passed with GitHub
+operations and pushes mocked, including valid-next and already-published patch
+releases. A conflicting props merge-back now stops for manual resolution without
+pushing. The test suite is part of shared CI/deployment validation; no actual
+release or deployment was run. Restore, formatting verification, Release build,
+and all 62 solution tests passed (the documented ASPIRE010 build warning remains).
 
 ### 11. Align deployment permissions with the release process
 

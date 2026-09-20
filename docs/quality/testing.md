@@ -38,6 +38,17 @@ are uploaded on failure and retained for seven days; assertion details are in
 `test.log`. The test command uses the repository's Microsoft.Testing.Platform
 runner without adding a separate test-reporting dependency.
 
+Release-script behavior has an additional Bash test gate:
+
+```pwsh
+bash tests/release-scripts/run.sh
+```
+
+Run this with Git Bash on Windows. The suite creates temporary local Git
+repositories, mocks GitHub CLI calls and Git pushes, and never publishes a
+branch, tag, or release. CI and deployment validation run it after the solution
+tests and upload its log on failure.
+
 The stable required PR check is `build-test`. Workflow success alone does not
 make it a merge gate: GitHub must require that check and enforce human review.
 See [GitHub setup](../setup/github.md) for the inspected settings, administrator

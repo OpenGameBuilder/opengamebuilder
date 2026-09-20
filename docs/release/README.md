@@ -57,8 +57,17 @@ successful production deploy and smoke test. If anything fails earlier, none of
 the post-deploy artifacts are produced and you can fix and rerun safely.
 
 If the post-deploy steps fail after the tag exists (e.g. release creation
-hiccup), simply rerun the workflow — it is idempotent for tags that already
-point at the expected commit.
+hiccup), rerun the workflow from the same source branch and commit. Validation
+accepts an already-published standard or patch release only when its tag still
+points at that commit and it remains the latest stable release. A different tag
+target, a skipped patch number, or an older release line is rejected.
+
+If the patch merge-back encounters a conflict in `Directory.Build.props` or any
+other file, the follow-up step stops without pushing a merge branch. Resolve the
+merge locally and open the merge-back PR manually; preserve both sides' non-version
+changes and keep main's current `VersionPrefix` if it is already at least
+`X.(Y+1).0`. Do not choose the entire props file from one side. The production
+release may already be published even though this follow-up PR is still missing.
 
 ## Don't do these
 
