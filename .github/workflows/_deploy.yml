@@ -18,7 +18,7 @@ on:
         type: string
         default: ""
       smoke-test-url-var:
-        description: "Name of the repository variable holding the base URL to smoke test (e.g. https://staging.opengamebuilder.com). The API liveness path is appended automatically."
+        description: "Name of the repository variable holding the base URL for the browser smoke test."
         required: false
         type: string
         default: ""
@@ -32,7 +32,6 @@ env:
   REGISTRY: ghcr.io
   DEPLOY_ROOT: /srv/opengamebuilder
   APP_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}
-  WEB_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}/web
   COMPOSE_FILE: ./deploy/${{ inputs.environment-slug }}/compose.yml
 
 jobs:
@@ -77,6 +76,7 @@ jobs:
       contents: read
     outputs:
       web-sha256: ${{ steps.web-identity.outputs.web-sha256 }}
+      release-id: ${{ steps.web-identity.outputs.release-id }}
 
     steps:
       - uses: actions/checkout@v7.0.1
@@ -111,6 +111,16 @@ jobs:
       - name: Verify portable web configuration
         run: bash scripts/verify-web-publish.sh "$WEB_SOURCE"
 
+      - name: Give browser assets a stable release URL
+        env:
+          SOURCE_SHA: ${{ needs.resolve-source.outputs.protected-revision }}
+        run: |
+          set -euo pipefail
+          release_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SOURCE_SHA:0:12}"
+          sed -i "s|<base href=\"/\" />|<base href=\"/releases/${release_id}/\" />|" "$WEB_SOURCE/index.html"
+          grep -Fq "<base href=\"/releases/${release_id}/\" />" "$WEB_SOURCE/index.html"
+          echo "RELEASE_ID=$release_id" >> "$GITHUB_ENV"
+
       - name: Bundle published web files
         run: tar -czf ./artifacts/web-release.tar.gz -C "$WEB_SOURCE" .
 
@@ -120,6 +130,7 @@ jobs:
           set -euo pipefail
           web_sha="$(sha256sum ./artifacts/web-release.tar.gz | cut -d ' ' -f 1)"
           echo "web-sha256=$web_sha" >> "$GITHUB_OUTPUT"
+          echo "release-id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -134,7 +145,7 @@ jobs:
       - resolve-source
       - package
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     environment: ${{ inputs.environment-slug }}
     permissions:
       contents: read
@@ -207,8 +218,8 @@ jobs:
           image_ref="${IMAGE_NAME}@${IMAGE_DIGEST}"
           # Fail closed if the build output is not an actual pullable registry digest.
           docker buildx imagetools inspect "$image_ref" >/dev/null
-          printf 'SOURCE_SHA=%s\nAPI_IMAGE=%s\nWEB_SHA256=%s\n' \
-            "$SOURCE_SHA" "$image_ref" "$WEB_SHA256" > ./artifacts/release/release-manifest.txt
+          printf 'RELEASE_ID=%s\nSOURCE_SHA=%s\nAPI_IMAGE=%s\nWEB_SHA256=%s\n' \
+            '${{ needs.package.outputs.release-id }}' "$SOURCE_SHA" "$image_ref" "$WEB_SHA256" > ./artifacts/release/release-manifest.txt
           echo "api-image=$image_ref" >> "$GITHUB_OUTPUT"
 
       - name: Check packaged API image locally
@@ -252,68 +263,56 @@ jobs:
             --connect-timeout 10 --max-time 30 \
             "${PRODUCTION_URL%/}/api/alive" >/dev/null
 
-      - name: Sync deployment files
-        env:
-          API_IMAGE: ${{ steps.identity.outputs.api-image }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install browser smoke dependencies
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
+          npm ci --prefix tests/deploy-smoke
+          cd tests/deploy-smoke
+          npx playwright install --with-deps chromium
+
+      - name: Transfer candidate release
+        env:
+          RELEASE_ID: ${{ needs.package.outputs.release-id }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- "$APP_DIR" "$RELEASE_ID" <<'EOF'
             set -euo pipefail
-            mkdir -p "${APP_DIR}" "${WEB_DIR}"
-            printf '%s\n' "API_IMAGE=${API_IMAGE}" > "${APP_DIR}/.env"
+            app_dir="$1"
+            release_id="$2"
+            mkdir -p "$app_dir/incoming/$release_id"
             docker network inspect ogb-edge >/dev/null 2>&1 || {
               echo "Shared edge network is missing; apply the edge configuration first." >&2
               exit 1
             }
           EOF
-
-          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
-            "artifacts/web-deploy/" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${WEB_DIR}/"
-
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            artifacts/release/web-release.tar.gz \
+            artifacts/release/release-manifest.txt \
             "${COMPOSE_FILE}" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/compose.yml"
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/incoming/${RELEASE_ID}/"
 
-          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
-            "artifacts/release/release-manifest.txt" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/release-manifest.txt"
-
-      - name: Update application service
+      - name: Activate candidate release
+        id: activate
+        env:
+          RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
-            set -euo pipefail
-            cd "${APP_DIR}"
-            docker compose pull
-            docker compose up -d
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            bash -s -- activate "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh
 
-          EOF
-
-  smoke-test:
-    name: Smoke test ${{ inputs.environment-slug }}
-    needs: deploy
-    if: ${{ inputs.smoke-test-url-var != '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions: {}
-
-    steps:
-      - name: Curl API liveness endpoint
+      - name: Check live frontend and API revision
         env:
           SMOKE_TEST_BASE_URL: ${{ vars[inputs.smoke-test-url-var] }}
+          EXPECTED_SOURCE_SHA: ${{ needs.resolve-source.outputs.protected-revision }}
+          EXPECTED_RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
           set -euo pipefail
           if [ -z "${SMOKE_TEST_BASE_URL}" ]; then
             echo "Repository variable '${{ inputs.smoke-test-url-var }}' is not set." >&2
             exit 1
           fi
-          # Probe the API-backed liveness endpoint (proxied by the edge via /api/*) so the
-          # smoke test verifies the API process is actually up, not just the static edge response.
-          SMOKE_TEST_URL="${SMOKE_TEST_BASE_URL%/}/api/alive"
-          echo "Smoke testing ${SMOKE_TEST_URL}"
-          curl --fail --show-error --silent --location \
-            --connect-timeout 10 --max-time 30 --retry-max-time 180 \
-            --retry 5 --retry-delay 5 --retry-all-errors \
-            "${SMOKE_TEST_URL}" >/dev/null
+          node tests/deploy-smoke/smoke.mjs
 
       - name: Check production after staging update
         if: ${{ inputs.environment-slug == 'staging' }}
@@ -329,3 +328,18 @@ jobs:
             --connect-timeout 10 --max-time 30 --retry-max-time 180 \
             --retry 5 --retry-delay 5 --retry-all-errors \
             "${PRODUCTION_URL%/}/api/alive" >/dev/null
+
+      - name: Finalize smoke-tested release
+        env:
+          RELEASE_ID: ${{ needs.package.outputs.release-id }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            bash -s -- finalize "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh
+
+      - name: Recover the previous release after failure
+        if: ${{ failure() && steps.activate.outcome != 'skipped' }}
+        env:
+          RELEASE_ID: ${{ needs.package.outputs.release-id }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            bash -s -- rollback "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh

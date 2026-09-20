@@ -61,6 +61,18 @@ CI runs it without SSH, Docker, deployment credentials, or service changes.
 Live staging and production availability must still be checked by the deployment
 smoke tests after the workflow change reaches `main`.
 
+Application activation and rollback have an isolated host-script test:
+
+```pwsh
+& 'C:\Program Files\Git\bin\bash.exe' tests/deploy-app/run.sh
+```
+
+It uses temporary releases and a mocked Docker command to check legacy
+migration, asset retention, rollback, API startup failure, and archive rejection.
+Deployment additionally runs a Chromium smoke test from `tests/deploy-smoke` that
+loads the published frontend, observes its API request, and checks the expected
+source revision. That live test requires a deployed staging or production URL.
+
 The stable required PR check is `build-test`. Workflow success alone does not
 make it a merge gate: GitHub must require that check and enforce human review.
 See [GitHub setup](../setup/github.md) for the inspected settings, administrator

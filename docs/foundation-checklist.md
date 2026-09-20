@@ -282,6 +282,13 @@ runs still package separately; each run's manifest identifies its actual pair.
 **Acceptance:** rehearse deployment failure and rollback in staging. Recover the
 previous working release without rebuilding it or guessing which image it used.
 
+**Implemented locally (2026-09-20):** versioned web paths retain assets for
+loaded clients; host activation records the prior image digest and can restore
+the prior web/API pair. Isolated failure and rollback cases pass. The deployment
+job now checks the rendered frontend and its API revision in Chromium. Keep the
+items open until the workflow reaches `main` and a controlled staging failure
+and rollback rehearsal passes.
+
 ### 15. Harden the existing hosting and supply chain
 
 - [ ] Pin Actions to reviewed commit SHAs and deployed container images to digests.

@@ -25,5 +25,6 @@ public sealed class AboutEndpointTests
         var buildVersion = typeof(AboutEndpointTests).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.Equal(buildVersion, about.GetProperty("version").GetString());
         Assert.Equal(environment, about.GetProperty("apiEnvironmentName").GetString());
+        Assert.Equal(Environment.GetEnvironmentVariable("SOURCE_SHA"), about.GetProperty("sourceRevision").GetString());
     }
 }
