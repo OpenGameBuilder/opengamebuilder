@@ -12,7 +12,12 @@ on:
         required: true
         type: string
       git-ref:
-        description: "Git ref to deploy. Defaults to the calling workflow's ref."
+        description: "Expected protected-branch commit. Defaults to the calling workflow's commit."
+        required: false
+        type: string
+        default: ""
+      source-ref:
+        description: "Protected source branch. Defaults to the calling workflow's branch."
         required: false
         type: string
         default: ""
@@ -23,6 +28,7 @@ on:
         default: ""
 
 env:
+  HUSKY: "0"
   REGISTRY: ghcr.io
   DEPLOY_ROOT: /srv/opengamebuilder
   EDGE_DIR: /srv/opengamebuilder/edge
@@ -32,41 +38,50 @@ env:
   API_IMAGE_NAME: ghcr.io/opengamebuilder/opengamebuilder-api
 
 jobs:
+  resolve-source:
+    uses: ./.github/workflows/_resolve-source.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.source-ref || github.ref_name }}
+      expected-sha: ${{ inputs.git-ref || github.sha }}
+
   build-test:
     name: Build and test
+    needs: resolve-source
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Check out the trusted validation definition
+        uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.git-ref }}
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v6
+      - name: Validate solution
+        uses: ./.github/actions/validate
         with:
-          global-json-file: global.json
-
-      - name: Restore tools
-        run: dotnet tool restore
-
-      - name: Restore
-        run: dotnet restore opengamebuilder.slnx
-
-      - name: Build
-        run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
+          checkout-ref: ${{ needs.resolve-source.outputs.sha }}
+          working-directory: deployment-source
+          artifact-name: ${{ inputs.environment-slug }}-validation
 
   deploy:
     name: Deploy ${{ inputs.environment-slug }}
-    needs: build-test
+    needs:
+      - resolve-source
+      - build-test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: ${{ inputs.environment-slug }}
 
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.git-ref }}
+          ref: ${{ needs.resolve-source.outputs.sha }}
+          persist-credentials: false
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -164,6 +179,7 @@ jobs:
     needs: deploy
     if: ${{ inputs.smoke-test-url-var != '' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Curl API liveness endpoint
@@ -180,5 +196,6 @@ jobs:
           SMOKE_TEST_URL="${SMOKE_TEST_BASE_URL%/}/api/alive"
           echo "Smoke testing ${SMOKE_TEST_URL}"
           curl --fail --show-error --silent --location \
+            --connect-timeout 10 --max-time 30 --retry-max-time 180 \
             --retry 5 --retry-delay 5 --retry-all-errors \
             "${SMOKE_TEST_URL}" >/dev/null

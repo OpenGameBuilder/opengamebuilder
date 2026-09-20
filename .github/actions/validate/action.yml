@@ -1,0 +1,71 @@
+name: Validate solution
+description: Shared restore, formatting, Release build, and test gate for CI and deployment.
+
+inputs:
+  checkout-ref:
+    description: Optional immutable protected-source commit to check out after loading this action.
+    required: false
+    default: ""
+  working-directory:
+    description: Checked-out solution directory, separate from the trusted action definition.
+    required: false
+    default: "."
+  artifact-name:
+    description: Unique name for this job's failure diagnostics.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out the resolved source
+      if: ${{ inputs.checkout-ref != '' }}
+      uses: actions/checkout@v7.0.1
+      with:
+        ref: ${{ inputs.checkout-ref }}
+        path: ${{ inputs.working-directory }}
+        persist-credentials: false
+
+    - uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: ${{ inputs.working-directory }}/global.json
+
+    - name: Prepare validation diagnostics
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: mkdir -p artifacts/validation
+
+    - name: Restore
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: dotnet restore opengamebuilder.slnx 2>&1 | tee artifacts/validation/restore.log
+
+    - name: Verify formatting
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: >
+        dotnet format opengamebuilder.slnx --verify-no-changes --no-restore
+        --report artifacts/validation/format.json
+        2>&1 | tee artifacts/validation/format.log
+
+    - name: Build
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: >
+        dotnet build opengamebuilder.slnx --configuration Release --no-restore
+        2>&1 | tee artifacts/validation/build.log
+
+    - name: Test
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: >
+        dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
+        2>&1 | tee artifacts/validation/test.log
+
+    - name: Upload validation failure diagnostics
+      if: ${{ failure() && !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}-${{ github.run_attempt }}
+        path: ${{ inputs.working-directory }}/artifacts/validation/
+        if-no-files-found: warn
+        retention-days: 7

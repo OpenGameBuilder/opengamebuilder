@@ -1,0 +1,39 @@
+{
+  "fixtureFormat": "opengamebuilder.engine-playback/1",
+  "provenance": "Independently authored for OpenGameBuilder's first engine milestone.",
+  "scene": {
+    "id": "sunlit-yard",
+    "width": 4,
+    "height": 3
+  },
+  "actor": {
+    "id": "builder",
+    "position": {
+      "x": 1,
+      "y": 1
+    }
+  },
+  "timeline": [
+    {
+      "tick": 1,
+      "command": "move",
+      "delta": {
+        "x": 1,
+        "y": 0
+      }
+    },
+    {
+      "tick": 2,
+      "command": "move",
+      "delta": {
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "tick": 3,
+      "command": "message",
+      "text": "Hello, builder!"
+    }
+  ]
+}

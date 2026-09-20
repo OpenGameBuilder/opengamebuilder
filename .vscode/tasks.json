@@ -20,7 +20,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj",
+        "${workspaceFolder}/src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -60,8 +60,10 @@
       "type": "process",
       "args": [
         "test",
+        "--solution",
         "${workspaceFolder}/opengamebuilder.slnx",
-        "--nologo"
+        "--configuration",
+        "Release"
       ],
       "problemMatcher": "$msCompile",
       "group": {
@@ -96,7 +98,7 @@
       "args": [
         "watch",
         "--project",
-        "${workspaceFolder}/src/OpenGameBuilder.Web/OpenGameBuilder.Web.csproj",
+        "${workspaceFolder}/src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj",
         "run"
       ],
       "isBackground": true,
