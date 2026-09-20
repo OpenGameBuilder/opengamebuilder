@@ -36,7 +36,6 @@ jobs:
       packages: write
     with:
       environment-slug: staging
-      dotnet-environment: Staging
       # Repo variable STAGING_SMOKE_TEST_URL holds the base URL only
       # (e.g. https://staging.opengamebuilder.com); the API liveness path
       # /api/alive is appended automatically by the smoke-test job.

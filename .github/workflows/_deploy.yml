@@ -7,10 +7,6 @@ on:
         description: "Environment slug, e.g. staging or production"
         required: true
         type: string
-      dotnet-environment:
-        description: "Value for ASPNETCORE_ENVIRONMENT, e.g. Staging or Production"
-        required: true
-        type: string
       git-ref:
         description: "Expected protected-branch commit. Defaults to the calling workflow's commit."
         required: false
@@ -34,7 +30,6 @@ env:
   APP_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}
   WEB_DIR: /srv/opengamebuilder/${{ inputs.environment-slug }}/web
   COMPOSE_FILE: ./deploy/${{ inputs.environment-slug }}/compose.yml
-  API_IMAGE_NAME: ghcr.io/opengamebuilder/opengamebuilder-api
 
 jobs:
   resolve-source:
@@ -67,14 +62,78 @@ jobs:
           working-directory: deployment-source
           artifact-name: ${{ inputs.environment-slug }}-validation
 
-  deploy:
-    name: Deploy ${{ inputs.environment-slug }}
+  package:
+    name: Package portable web client
     needs:
       - resolve-source
       - build-test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      web-sha256: ${{ steps.web-identity.outputs.web-sha256 }}
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve-source.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish web client
+        run: >
+          dotnet publish
+          src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj
+          --configuration Release
+          --output ./artifacts/web
+
+      - name: Locate web publish output
+        run: |
+          if [ -f ./artifacts/web/wwwroot/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web/wwwroot" >> "$GITHUB_ENV"
+          elif [ -f ./artifacts/web/index.html ]; then
+            echo "WEB_SOURCE=./artifacts/web" >> "$GITHUB_ENV"
+          else
+            echo "Could not find published index.html" >&2
+            find ./artifacts/web -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+      - name: Verify portable web configuration
+        run: bash scripts/verify-web-publish.sh "$WEB_SOURCE"
+
+      - name: Bundle published web files
+        run: tar -czf ./artifacts/web-release.tar.gz -C "$WEB_SOURCE" .
+
+      - name: Record web archive checksum
+        id: web-identity
+        run: |
+          set -euo pipefail
+          web_sha="$(sha256sum ./artifacts/web-release.tar.gz | cut -d ' ' -f 1)"
+          echo "web-sha256=$web_sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ inputs.environment-slug }}
+          path: artifacts/web-release.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    name: Deploy ${{ inputs.environment-slug }}
+    needs:
+      - resolve-source
+      - package
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ inputs.environment-slug }}
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Check deployment credentials
@@ -95,47 +154,76 @@ jobs:
           ref: ${{ needs.resolve-source.outputs.sha }}
           persist-credentials: false
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/download-artifact@v4
         with:
-          global-json-file: global.json
+          name: release-${{ inputs.environment-slug }}
+          path: artifacts/release
 
-      - name: Publish web client
-        run: >
-          dotnet publish
-          src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj
-          --configuration Release
-          --output ./artifacts/web
-          -p:WasmApplicationEnvironmentName=${{ inputs.dotnet-environment }}
-
-      - name: Locate web publish output
+      - name: Verify and unpack the packaged frontend
+        env:
+          WEB_SHA256: ${{ needs.package.outputs.web-sha256 }}
         run: |
-          if [ -f ./artifacts/web/wwwroot/index.html ]; then
-            echo "WEB_SOURCE=./artifacts/web/wwwroot" >> "$GITHUB_ENV"
-          elif [ -f ./artifacts/web/index.html ]; then
-            echo "WEB_SOURCE=./artifacts/web" >> "$GITHUB_ENV"
-          else
-            echo "Could not find published index.html" >&2
-            find ./artifacts/web -maxdepth 4 -type f | sort
-            exit 1
-          fi
+          set -euo pipefail
+          echo "${WEB_SHA256}  artifacts/release/web-release.tar.gz" | sha256sum --check
+          mkdir -p artifacts/web-deploy
+          tar -xzf artifacts/release/web-release.tar.gz -C artifacts/web-deploy
+          bash scripts/verify-web-publish.sh artifacts/web-deploy
 
       - name: Resolve image tag
         id: image
         run: |
           set -euo pipefail
-          sha="$(git rev-parse HEAD)"
-          echo "api-image=${API_IMAGE_NAME}:${sha}" >> "$GITHUB_OUTPUT"
+          image_name="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/opengamebuilder-api"
+          echo "tag=${image_name}:${{ needs.resolve-source.outputs.sha }}" >> "$GITHUB_OUTPUT"
+          echo "name=${image_name}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-      - name: Build and push API image
+      - name: Build and push API image once
+        id: build-image
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
           push: true
-          tags: ${{ steps.image.outputs.api-image }}
+          tags: ${{ steps.image.outputs.tag }}
+
+      - name: Record release identities
+        id: identity
+        env:
+          IMAGE_DIGEST: ${{ steps.build-image.outputs.digest }}
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
+          WEB_SHA256: ${{ needs.package.outputs.web-sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          image_ref="${IMAGE_NAME}@${IMAGE_DIGEST}"
+          # Fail closed if the build output is not an actual pullable registry digest.
+          docker buildx imagetools inspect "$image_ref" >/dev/null
+          printf 'SOURCE_SHA=%s\nAPI_IMAGE=%s\nWEB_SHA256=%s\n' \
+            "$SOURCE_SHA" "$image_ref" "$WEB_SHA256" > ./artifacts/release/release-manifest.txt
+          echo "api-image=$image_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Check packaged API image locally
+        env:
+          API_IMAGE: ${{ steps.identity.outputs.api-image }}
+        run: |
+          set -euo pipefail
+          container_id="$(docker run --rm -d --publish 127.0.0.1::8080 "$API_IMAGE")"
+          trap 'docker stop "$container_id" >/dev/null' EXIT
+          port="$(docker port "$container_id" 8080/tcp | sed -n '1s/.*://p')"
+          test -n "$port"
+          for attempt in {1..30}; do
+            if curl --fail --silent "http://127.0.0.1:${port}/api/alive" >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$container_id" >&2
+          echo 'Packaged API image did not pass its local liveness check.' >&2
+          exit 1
 
       - name: Set up SSH
         run: |
@@ -161,7 +249,7 @@ jobs:
 
       - name: Sync deployment files
         env:
-          API_IMAGE: ${{ steps.image.outputs.api-image }}
+          API_IMAGE: ${{ steps.identity.outputs.api-image }}
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s <<EOF
             set -euo pipefail
@@ -174,12 +262,16 @@ jobs:
           EOF
 
           rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
-            "$WEB_SOURCE/" \
+            "artifacts/web-deploy/" \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${WEB_DIR}/"
 
           rsync -az -e "ssh -i ~/.ssh/deploy_key" \
             "${COMPOSE_FILE}" \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/compose.yml"
+
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            "artifacts/release/release-manifest.txt" \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/release-manifest.txt"
 
       - name: Update application service
         run: |

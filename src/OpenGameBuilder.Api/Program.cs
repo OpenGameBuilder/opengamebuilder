@@ -41,11 +41,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS must run before authorization and endpoint execution so the configured
-// Access-Control-* headers are written for both the browser's preflight (OPTIONS)
-// request and the actual response. The standalone Blazor WebAssembly client calls
-// this API from a different origin (https://localhost:7001) in every environment,
-// so the default policy is applied unconditionally rather than only in Development.
+// CORS must run before authorization and endpoint execution for local Development's
+// separate web/API origins. Deployed clients use their own origin through /api.
 app.UseCors();
 
 app.UseAuthorization();

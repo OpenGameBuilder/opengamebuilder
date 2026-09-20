@@ -34,6 +34,21 @@ jobs probe production `/api/alive` before and after a staging update; a failed
 preflight stops the update. These checks establish API availability at probe
 time, not continuous uptime or complete browser behavior.
 
+After source validation, the package job produces one Release web archive.
+After environment approval, deployment verifies that archive and builds and
+pushes the API image once to the triggering repository owner's package namespace.
+It pins `API_IMAGE` to the pushed image digest (not its mutable commit tag),
+checks that exact image's API liveness locally, and stores
+`release-manifest.txt` beside Compose with the source SHA, image digest
+reference, and web archive SHA-256. The same web archive can be served at any
+hostname with an `/api/*` reverse proxy; the browser uses the page's origin.
+The only cross-origin URL is the explicit local Development override. There is
+no hostname-specific rebuild, but separate staging and production workflow runs
+currently package independently; compare their manifests rather than assuming
+identical bytes for the same commit. The existing
+in-place web sync is still non-atomic; see foundation checklist section 14 for
+activation and rollback work.
+
 To recover an edge change, fix the candidate on `main` and dispatch **CD Shared
 Edge** again. For an urgent host-side recovery, use the last known-good edge
 files retained in the host's `.rollback.*` directory after a failed activation,

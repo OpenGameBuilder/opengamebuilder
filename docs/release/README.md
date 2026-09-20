@@ -12,6 +12,16 @@ workflows you need to know about:
 The single source of truth for the version is `<VersionPrefix>` in
 `Directory.Build.props`. See [versioning.md](./versioning.md).
 
+Each deployment records `release-manifest.txt` with the resolved source commit,
+the immutable API image digest reference, and the SHA-256 of the published web
+archive. After validation the package job publishes the portable frontend once;
+after environment approval, deployment verifies it and builds the API image once
+without environment-specific frontend publishing. These identities are more
+precise than the version or mutable commit-named convenience tag. Inspect the
+manifest and workflow artifact when identifying an installed release. Source
+tests and package integrity checks do not establish live browser or rollback
+behavior.
+
 ## Standard release (X.Y.0)
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the

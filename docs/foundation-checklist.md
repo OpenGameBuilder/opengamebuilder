@@ -242,20 +242,31 @@ deployment was run for this local implementation.
 
 ### 13. Make builds portable and promote identifiable artifacts
 
-- [ ] Prefer deployed frontend requests to the current origin's `/api` rather than
+- [x] Prefer deployed frontend requests to the current origin's `/api` rather than
   hardcoded official hosts. Keep an explicit local development override.
-- [ ] Verify forks and self-hosted Release builds cannot accidentally call the
+- [x] Verify forks and self-hosted Release builds cannot accidentally call the
   official API. Do not introduce API subdomains without a concrete requirement.
-- [ ] Reduce duplicated endpoint/port configuration. Support parallel worktrees
+- [x] Reduce duplicated endpoint/port configuration. Support parallel worktrees
   when practical; otherwise document the fixed-port limitation.
-- [ ] Build frontend and API artifacts once where practical and promote the
+- [x] Build frontend and API artifacts once where practical and promote the
   tested pair. Address environment-specific frontend publishing before claiming
   that the same artifact is promoted unchanged.
-- [ ] Record image digests, frontend artifact identity, and source revision.
+- [x] Record image digests, frontend artifact identity, and source revision.
   Do not rely on a mutable commit-named image tag or version string alone.
 
 **Acceptance:** the same tested release can be identified unambiguously and hosted
 on an alternate hostname without rebuilding just to change its API hostname.
+
+**Implemented locally (2026-09-20):** Release web builds use the hosting origin
+and retain only a Development localhost override; staging and production no longer
+publish different API URLs. The packaging job follows source validation and builds
+the frontend archive once; after environment approval, deployment verifies that
+archive, builds the API image once, and records its digest reference, the archive
+checksum, and source revision on the host. Fixed development ports are documented
+as a single-stack limitation. Local build/publish and workflow structure checks
+validate the package contract; live deployment and alternate-host browser behavior
+remain unverified until a controlled deployment. Staging and production workflow
+runs still package separately; each run's manifest identifies its actual pair.
 
 ### 14. Make rollout atomic and rollback explicit
 

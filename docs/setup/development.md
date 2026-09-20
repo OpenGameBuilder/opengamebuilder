@@ -115,15 +115,16 @@ In browser developer tools, reload the home page and verify that
 application information. A healthy liveness endpoint alone does not prove the
 frontend works.
 
-The development API URL is set in the web client's
+The development-only API override is set in the web client's
 [`appsettings.Development.json`](../../src/OpenGameBuilder.Web.Client/wwwroot/appsettings.Development.json),
 and the API permits the web origins in its
 [`appsettings.Development.json`](../../src/OpenGameBuilder.Api/appsettings.Development.json).
 No local secrets or configuration edits should be needed.
 
 **Run only one local stack at a time**, including across worktrees. The fixed
-ports, browser API URL, and CORS origins are coupled; Aspire's isolated mode is
-not a supported workaround for parallel stacks with this configuration.
+7000/7001 HTTPS ports are shared by the AppHost endpoints, launch profiles,
+development override, and development CORS origins. Parallel local stacks are
+not supported; Aspire's isolated mode does not change the browser override.
 
 ## Visual Studio
 
