@@ -184,6 +184,26 @@ and all 62 solution tests passed (the documented ASPIRE010 build warning remains
 dispatch paths are rejected, and normal pull-request validation receives no
 production credentials.
 
+**Progress (2026-09-19):** authenticated read-back found production approval by
+`ostomachion`, self-review and administrator bypass enabled, environment-scoped
+deployment secrets, repository-scoped release-bot tokens, and creation-only bot
+tag permission. The stale production `release/**/*` tag selector and staging
+`release/**/*` branch selector were removed; both environments now allow only
+the `main` dispatch branch. Both local CD workflows now reject non-`main`
+dispatches before source selection, and their deployment calls no longer inherit
+the repository's release-bot secret. [GitHub setup](setup/github.md#deployment-authority-and-recovery)
+records the dispatch/source distinction, actual operator and recovery limits,
+and the read-only permission audit. No deployment was run. **Keep this section
+open:** remote `main` still has the older deployment workflow and lacks this
+checkout's protected-source resolver, so its input-ref rejection has not yet
+reached the live workflow. A signed-in organization Actions settings read-back
+on 2026-09-20 found no organization secrets; the audit CLI token still received
+403 for the same API inventory. Publish the local workflow baseline, verify the
+live source gate, and check these items off only then.
+Administrator bypass is retained for sole-operator emergency recovery, not
+routine releases; while enabled, the `main`-only selector is not an absolute
+barrier to an administrator forcing a waiting job.
+
 ### 12. Isolate shared-edge changes from application deployments
 
 - [ ] Stop routine staging/application deployments from recreating the shared

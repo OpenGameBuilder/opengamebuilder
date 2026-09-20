@@ -180,6 +180,7 @@ jobs:
     if: ${{ inputs.smoke-test-url-var != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions: {}
 
     steps:
       - name: Curl API liveness endpoint
