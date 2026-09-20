@@ -35,7 +35,7 @@ jobs:
           artifact-name: ci-validation
 
       - name: Build API image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
