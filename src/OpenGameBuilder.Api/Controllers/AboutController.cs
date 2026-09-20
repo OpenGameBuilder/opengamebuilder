@@ -19,7 +19,8 @@ public sealed class AboutController(IWebHostEnvironment webHostEnvironment) : Co
     {
         ApplicationName = "OpenGameBuilder",
         Version = GetInformationalVersion(),
-        ApiEnvironmentName = _webHostEnvironment.EnvironmentName
+        ApiEnvironmentName = _webHostEnvironment.EnvironmentName,
+        SourceRevision = Environment.GetEnvironmentVariable("SOURCE_SHA")
     };
 
     private static string GetInformationalVersion()
