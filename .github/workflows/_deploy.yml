@@ -121,7 +121,7 @@ jobs:
           web_sha="$(sha256sum ./artifacts/web-release.tar.gz | cut -d ' ' -f 1)"
           echo "web-sha256=$web_sha" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ inputs.environment-slug }}
           path: artifacts/web-release.tar.gz
@@ -159,7 +159,7 @@ jobs:
           ref: ${{ needs.resolve-source.outputs.protected-revision }}
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-${{ inputs.environment-slug }}
           path: artifacts/release
@@ -187,7 +187,7 @@ jobs:
 
       - name: Build and push API image once
         id: build-image
-        uses: docker/build-push-action@v7.3.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
