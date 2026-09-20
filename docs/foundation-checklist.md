@@ -270,24 +270,30 @@ runs still package separately; each run's manifest identifies its actual pair.
 
 ### 14. Make rollout atomic and rollback explicit
 
-- [ ] Replace in-place frontend `rsync --delete` with versioned release directories
+- [x] Replace in-place frontend `rsync --delete` with versioned release directories
   and an atomic activation step.
-- [ ] Retain the previous compatible frontend/API pair and document rollback.
+- [x] Retain the previous compatible frontend/API pair and document rollback.
   Account for clients still requesting assets from an older loaded page.
-- [ ] Extend smoke tests to verify the expected revision and a frontend-to-API
+- [x] Extend smoke tests to verify the expected revision and a frontend-to-API
   interaction, not only `/api/alive` or Caddy's static `/health`.
-- [ ] Document failure recovery in `docs\setup\hosting.md` and `docs\release`,
+- [x] Document failure recovery in `docs\setup\hosting.md` and `docs\release`,
   including a deploy succeeding before tag or follow-up PR creation fails.
 
 **Acceptance:** rehearse deployment failure and rollback in staging. Recover the
 previous working release without rebuilding it or guessing which image it used.
 
-**Implemented locally (2026-09-20):** versioned web paths retain assets for
-loaded clients; host activation records the prior image digest and can restore
-the prior web/API pair. Isolated failure and rollback cases pass. The deployment
-job now checks the rendered frontend and its API revision in Chromium. Keep the
-items open until the workflow reaches `main` and a controlled staging failure
-and rollback rehearsal passes.
+**Accepted in staging (2026-09-20):** [normal run 35542650898](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542650898)
+passed build/test, activation, and Chromium smoke against source revision
+`14e7582d01059f0408be501504a5689e53a74f36`. The controlled
+[rollback rehearsal 35542855238](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542855238)
+activated a new release, passed the same browser check, then failed on purpose.
+Its recovery step restored release `35542650898-1-14e7582d0105` using the
+recorded prior image digest without rebuilding. The rehearsal run is red by
+design. Independent HTTPS checks afterward found the root page pointing to the
+restored release, `/api/about` returning the expected revision, both versioned
+web directories serving, and production `/api/alive` healthy. See the
+[hosting recovery procedure](setup/hosting.md#application-activation-and-rollback)
+and [release failure guidance](release/README.md#what-happens-on-failure).
 
 ### 15. Harden the existing hosting and supply chain
 
