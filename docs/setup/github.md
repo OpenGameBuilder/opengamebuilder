@@ -1,5 +1,11 @@
 # GitHub Setup
 
+This guide describes the intended workflow code in this checkout and separately
+records live GitHub settings. At the 2026-09-19 audit, remote `main` was still
+`f40de883662f2fbe35859879f772b5a9f329256d`; this checkout's newer
+protected-source workflow and validation action had not been published. Do not
+assume a local workflow change is active on GitHub until it is merged.
+
 ## CI merge gate
 
 The required pull-request check is **`build-test`**, produced by GitHub Actions
@@ -120,7 +126,7 @@ A bypass applies to its **entire ruleset**, which is why creation and immutabili
 are separate. Administrator ability to edit rules is not a standing bypass.
 If emergency recovery needs a temporary rule change, record the reason, actor,
 exact ref, and restoration in a public issue without credentials. Environment
-approvals and release-token scope remain foundation section 11 work.
+approvals and release-token scope are audited below.
 
 ### Workflow-file permission
 
@@ -142,9 +148,102 @@ For future installation changes, update the
 [App permissions](https://github.com/organizations/OpenGameBuilder/settings/apps/opengamebuilder-release-bot/permissions)
 and approve them in the
 [installation settings](https://github.com/organizations/OpenGameBuilder/settings/installations/134728813).
-The installation currently selects all repositories; review that broader
-installation scope during foundation section 11, separately from the
-repository-scoped workflow tokens.
+The installation currently selects all repositories, but the workflow does not
+set the action's `owner` or `repositories` inputs, so each short-lived token is
+scoped to this repository. Restrict the installation itself to selected
+repositories if organization-wide installation is no longer needed; that is a
+separate administrator setting, not a reason to broaden workflow tokens.
+
+## Deployment authority and recovery
+
+Authenticated read-back on **2026-09-19** found that both `production` and
+`staging` select only the **`main` branch** for deployment. The obsolete
+`release/**/*` tag rule on production and `release/**/*` branch rule on staging
+were removed; neither belongs to the current process. GitHub matches an
+environment's deployment rule against the workflow run's `GITHUB_REF`, not the
+commit checked out inside a job. For both release kinds, dispatch **CD
+Production** with the branch picker on `main`: the `ref` input chooses `main`
+or a protected `patch/vX.Y.Z` source commit. Do not add `patch/*` to the
+environment merely because a patch commit is deployed. Both local CD workflows
+also fail immediately when the dispatch ref is not `main`, before resolving a
+source or entering a deployment environment. [GitHub's environment
+rule reference](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)
+explains this distinction.
+
+| Workflow run ref | Source input | Environment result without admin bypass | Source check in this checkout |
+| --- | --- | --- | --- |
+| `main` | `main` | Production allowed, then reviewer approval | Protected `main` SHA |
+| `main` | `patch/vX.Y.Z` | Production allowed, then reviewer approval | Protected matching patch SHA |
+| `patch/vX.Y.Z` or a tag | Any | Workflow guard fails; production also denies | Not run |
+| `main` | Tag, arbitrary SHA, or unprotected branch | Environment permits the dispatch ref | Source resolver rejects the input |
+
+Staging runs on a push to `main` or a manual dispatch from `main`; other
+dispatch refs are denied by its environment policy in the normal path. No
+production or staging deployment was launched for this audit. The source-check
+column describes the **local candidate workflow**, not the currently published
+workflow: at read-back, remote `main` was
+`f40de883662f2fbe35859879f772b5a9f329256d`, while this
+checkout's protected-source resolver was still unpublished. Until that baseline
+is merged, do not rely on the live production workflow to reject an arbitrary
+`ref` input merely because the environment allows only `main` dispatches.
+
+The production environment has one required reviewer, `ostomachion`.
+Self-approval is allowed because there is no second eligible release reviewer;
+administrator bypass is also enabled. **Decision (2026-09-19): retain bypass
+for emergency recovery while there is only one release operator.** It is not
+the routine approval path and does not count as independent review. The only
+human collaborator with write access at read-back was `ostomachion`;
+`justinhufford` had read access only.
+Someone with repository write access can dispatch a manual workflow, but the
+deployment job waits for the configured reviewer (or an administrator's explicit
+bypass). [GitHub's deployment review guide](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)
+describes approval and bypass. Do not use bypass for a routine release; record
+any emergency bypass, its reason, and the affected run. Because bypass can force
+waiting jobs, `main`-only is not an absolute restriction against an administrator.
+Revisit self-review and bypass when a second trusted release operator exists.
+
+Each environment holds only its own `DEPLOY_HOST`, `DEPLOY_USER`, and
+`DEPLOY_SSH_KEY` secrets. The `RELEASE_BOT_PRIVATE_KEY` is a repository secret
+because **Prepare Patch** needs the App before any deployment environment is
+entered; the client ID and smoke-test URLs are repository variables. Deployment
+callers do not use `secrets: inherit`: the called workflow's deployment job
+reads its environment secrets after approval, without receiving the repository
+release-bot key. Only the deployment call receives `packages: write`; validation
+has `contents: read`, and the smoke test has no token permissions. The App
+installation has contents, pull requests, and workflows write plus metadata
+read; its creation-only branch/tag bypasses and the no-bypass tag-immutability
+rule are recorded above. The token-creation action requests these permissions
+explicitly and defaults to this repository, despite the broader installation.
+Normal PR CI has a read-only `GITHUB_TOKEN`, references no deployment environment
+and no release-bot secret, and therefore receives no deployment credentials.
+GitHub makes environment secrets available only after that environment's rules
+pass. The organization-wide Actions secret inventory was not accessible with
+the audit account's scopes (403); an organization administrator should check it
+separately before asserting there are no additional organization secrets.
+
+Read back these settings without revealing secret values:
+
+```pwsh
+gh api repos/OpenGameBuilder/opengamebuilder/environments/production
+gh api repos/OpenGameBuilder/opengamebuilder/environments/production/deployment-branch-policies
+gh api repos/OpenGameBuilder/opengamebuilder/environments/staging/deployment-branch-policies
+gh api repos/OpenGameBuilder/opengamebuilder/environments/production/secrets --jq '.secrets[].name'
+gh api repos/OpenGameBuilder/opengamebuilder/environments/staging/secrets --jq '.secrets[].name'
+gh api repos/OpenGameBuilder/opengamebuilder/actions/secrets --jq '.secrets[].name'
+gh api orgs/OpenGameBuilder/installations --jq '.installations[] | select(.app_id == 3815756) | {repository_selection, permissions}'
+```
+
+Today `ostomachion` is the only human who can both initiate and approve a
+production release and handle recovery. If deployment fails before publishing,
+fix the cause and rerun from `main` with the intended protected source branch.
+If deployment succeeded but tagging, GitHub Release creation, or the follow-up
+PR failed, keep that source branch at the same commit and follow the
+[release rerun guidance](../release/README.md#what-happens-on-failure).
+The bot may create the tag, Release, and follow-up PR after deployment; it
+cannot approve its own PR, bypass CI, move a release tag, or recover the server.
+There is no agreed backup operator or rehearsed artifact rollback yet; those
+remain foundation sections 21 and 14 respectively. Do not equate an authorized
+GitHub rerun with a tested rollback.
 
 ## Acceptance evidence
 

@@ -12,11 +12,28 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
+  require-main-dispatch:
+    name: Require main dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject non-main workflow ref
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != 'refs/heads/main' ]; then
+            echo "CD Staging must run from main, not $DISPATCH_REF." >&2
+            exit 1
+          fi
+
   deploy:
+    needs: require-main-dispatch
     uses: ./.github/workflows/_deploy.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       environment-slug: staging
       dotnet-environment: Staging
@@ -24,4 +41,3 @@ jobs:
       # (e.g. https://staging.opengamebuilder.com); the API liveness path
       # /api/alive is appended automatically by the smoke-test job.
       smoke-test-url-var: STAGING_SMOKE_TEST_URL
-    secrets: inherit

@@ -23,14 +23,28 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: cd-production
   cancel-in-progress: false
 
 jobs:
+  require-main-dispatch:
+    name: Require main dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject non-main workflow ref
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != 'refs/heads/main' ]; then
+            echo "CD Production must be dispatched from main, not $DISPATCH_REF." >&2
+            exit 1
+          fi
+
   resolve-source:
+    needs: require-main-dispatch
     uses: ./.github/workflows/_resolve-source.yml
     permissions:
       contents: read
@@ -80,7 +94,6 @@ jobs:
       # (e.g. https://opengamebuilder.com); the API liveness path
       # /api/alive is appended automatically by the smoke-test job.
       smoke-test-url-var: PRODUCTION_SMOKE_TEST_URL
-    secrets: inherit
 
   publish:
     name: Tag and release
