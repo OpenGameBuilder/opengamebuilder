@@ -21,6 +21,9 @@ on:
         type: string
         default: main
 
+# Validation can execute a selected protected patch branch in main's run context.
+cache-mode: none
+
 permissions:
   contents: read
 

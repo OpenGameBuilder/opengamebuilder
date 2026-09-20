@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+# Keep source builds and the called deployment workflow out of the shared cache.
+cache-mode: none
+
 concurrency:
   group: cd-staging
   cancel-in-progress: false
