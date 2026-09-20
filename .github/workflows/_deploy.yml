@@ -78,6 +78,19 @@ jobs:
     environment: ${{ inputs.environment-slug }}
 
     steps:
+      - name: Check deployment credentials
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::${name} is unavailable to the deployment job."
+              exit 1
+            fi
+          done
+
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.resolve-source.outputs.sha }}

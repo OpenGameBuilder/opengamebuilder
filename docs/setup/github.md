@@ -170,7 +170,7 @@ source or entering a deployment environment. [GitHub's environment
 rule reference](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)
 explains this distinction.
 
-| Workflow run ref | Source input | Environment result without admin bypass | Source check in this checkout |
+| Workflow run ref | Source input | Environment result without admin bypass | Source check on merged `main` |
 | --- | --- | --- | --- |
 | `main` | `main` | Production allowed, then reviewer approval | Protected `main` SHA |
 | `main` | `patch/vX.Y.Z` | Production allowed, then reviewer approval | Protected matching patch SHA |
@@ -178,14 +178,13 @@ explains this distinction.
 | `main` | Tag, arbitrary SHA, or unprotected branch | Environment permits the dispatch ref | Source resolver rejects the input |
 
 Staging runs on a push to `main` or a manual dispatch from `main`; other
-dispatch refs are denied by its environment policy in the normal path. No
-production or staging deployment was launched for this audit. The source-check
-column describes the **local candidate workflow**, not the currently published
-workflow: at read-back, remote `main` was
-`f40de883662f2fbe35859879f772b5a9f329256d`, while this
-checkout's protected-source resolver was still unpublished. Until that baseline
-is merged, do not rely on the live production workflow to reject an arbitrary
-`ref` input merely because the environment allows only `main` dispatches.
+dispatch refs are denied by its environment policy in the normal path. On
+2026-09-20, `main` at `93666e325c8c3bf02e9a5fbdbdffa4b7097198c9`
+contained the guards and source resolver. A
+[deliberately invalid production dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
+from `main` with a tag as the source input failed in the resolver; validation,
+deployment, and release jobs were skipped. It did not test a non-`main` dispatch
+or an approved production release.
 
 The production environment has one required reviewer, `ostomachion`.
 Self-approval is allowed because there is no second eligible release reviewer;
@@ -206,10 +205,20 @@ Each environment holds only its own `DEPLOY_HOST`, `DEPLOY_USER`, and
 `DEPLOY_SSH_KEY` secrets. The `RELEASE_BOT_PRIVATE_KEY` is a repository secret
 because **Prepare Patch** needs the App before any deployment environment is
 entered; the client ID and smoke-test URLs are repository variables. Deployment
-callers do not use `secrets: inherit`: the called workflow's deployment job
-reads its environment secrets after approval, without receiving the repository
-release-bot key. Only the deployment call receives `packages: write`; validation
-has `contents: read`, and the smoke test has no token permissions. The App
+callers use `secrets: inherit`: the
+[merged staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
+showed that omitting this handoff left the selected environment's `DEPLOY_HOST`
+and `DEPLOY_SSH_KEY` empty inside the reusable deployment workflow, despite their
+configured names. It failed at SSH setup after publishing an image, before
+syncing files or restarting services. The follow-up workflow checks the three
+deployment secrets for presence in the environment job before publishing an
+image; it never logs values. Inheritance also makes the repository-scoped
+`RELEASE_BOT_PRIVATE_KEY` available to the trusted reusable workflow's secret
+context, although no deployment step references it. Keep the reusable workflow
+definition trusted and the bot key out of scripts/checkout; revisit isolation if
+the release credentials are moved to a separate approval boundary. Only the
+deployment call receives `packages: write`; validation has `contents: read`,
+and the smoke test has no token permissions. The App
 installation has contents, pull requests, and workflows write plus metadata
 read; its creation-only branch/tag bypasses and the no-bypass tag-immutability
 rule are recorded above. The token-creation action requests these permissions

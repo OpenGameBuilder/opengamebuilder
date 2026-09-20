@@ -41,3 +41,5 @@ jobs:
       # (e.g. https://staging.opengamebuilder.com); the API liveness path
       # /api/alive is appended automatically by the smoke-test job.
       smoke-test-url-var: STAGING_SMOKE_TEST_URL
+    # Required for the called job to receive its selected environment's secrets.
+    secrets: inherit
