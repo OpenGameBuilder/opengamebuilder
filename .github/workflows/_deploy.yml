@@ -306,6 +306,24 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             bash -s -- activate "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh
 
+      - name: Verify edge can read the activated web release
+        env:
+          RELEASE_ID: ${{ needs.package.outputs.release-id }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            bash -s -- "$APP_DIR" "$RELEASE_ID" <<'EOF'
+            set -euo pipefail
+            app_dir="$1"
+            release_id="$2"
+            release_index="$app_dir/web/releases/$release_id/index.html"
+            test -f "$release_index"
+            edge_index="/srv/opengamebuilder/$(basename "$app_dir")/web/releases/$release_id/index.html"
+            docker compose -f /srv/opengamebuilder/edge/compose.yml \
+              --project-directory /srv/opengamebuilder/edge \
+              exec -T caddy test -f "$edge_index"
+            echo "Caddy can read $edge_index"
+          EOF
+
       - name: Check live frontend and API revision
         env:
           SMOKE_TEST_BASE_URL: ${{ vars[inputs.smoke-test-url-var] }}

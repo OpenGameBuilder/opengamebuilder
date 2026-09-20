@@ -50,13 +50,17 @@ write_index() {
   else
     cat > "$temp" <<EOF
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=/releases/$id/">
+<meta http-equiv="refresh" content="0; url=/releases/$id/index.html">
 <title>OpenGameBuilder</title></head><body>
-<script>location.replace('/releases/$id/')</script>
-<a href="/releases/$id/">Open OpenGameBuilder</a>
+<script>location.replace('/releases/$id/index.html')</script>
+<a href="/releases/$id/index.html">Open OpenGameBuilder</a>
 </body></html>
 EOF
   fi
+  # The old in-place Blazor publish has precompressed index sidecars. Caddy
+  # prefers them over a newly replaced index.html, so clear them before the
+  # atomic index replacement (also when restoring the legacy page).
+  rm -f "$web_dir/index.html.br" "$web_dir/index.html.gz" "$web_dir/index.html.zst"
   mv -f "$temp" "$web_dir/index.html"
 }
 

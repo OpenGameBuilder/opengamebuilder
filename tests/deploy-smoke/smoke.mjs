@@ -10,7 +10,7 @@ assert.match(expectedRevision ?? '', /^[0-9a-f]{40}$/, 'Expected source revision
 assert.match(expectedReleaseId ?? '', /^[a-zA-Z0-9][a-zA-Z0-9.-]{0,100}$/, 'Expected release ID is required');
 
 const origin = new URL(baseUrl).origin;
-const expectedPage = `${origin}/releases/${expectedReleaseId}/`;
+const expectedPage = `${origin}/releases/${expectedReleaseId}/index.html`;
 const browser = await chromium.launch();
 try {
   let lastError;
