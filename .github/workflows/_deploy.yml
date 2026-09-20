@@ -124,6 +124,9 @@ jobs:
           release_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SOURCE_SHA:0:12}"
           sed -i "s|<base href=\"/\" />|<base href=\"/releases/${release_id}/\" />|" "$WEB_SOURCE/index.html"
           grep -Fq "<base href=\"/releases/${release_id}/\" />" "$WEB_SOURCE/index.html"
+          # Publish generated precompressed index files still contain the old
+          # base path; Caddy would serve them in place of the rewritten HTML.
+          rm -f "$WEB_SOURCE/index.html.br" "$WEB_SOURCE/index.html.gz" "$WEB_SOURCE/index.html.zst"
           echo "RELEASE_ID=$release_id" >> "$GITHUB_ENV"
 
       - name: Bundle published web files
