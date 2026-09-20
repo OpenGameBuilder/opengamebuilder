@@ -173,18 +173,18 @@ and all 62 solution tests passed (the documented ASPIRE010 build warning remains
 
 ### 11. Align deployment permissions with the release process
 
-- [ ] Audit environment branch/tag restrictions against the actual workflow.
+- [x] Audit environment branch/tag restrictions against the actual workflow.
   Distinguish the branch dispatching the workflow from the source SHA it checks out;
   do not blindly replace every environment selector with `patch/*`.
-- [ ] Verify production approval, release-bot permissions, protected-tag creation,
+- [x] Verify production approval, release-bot permissions, protected-tag creation,
   and narrowly scoped environment secrets.
-- [ ] Record who can deploy and recover a release in `docs\setup\github.md`.
+- [x] Record who can deploy and recover a release in `docs\setup\github.md`.
 
 **Acceptance:** approved standard and patch workflows are allowed, unintended
 dispatch paths are rejected, and normal pull-request validation receives no
 production credentials.
 
-**Progress (2026-09-20):** authenticated read-back found production approval by
+**Verified (2026-09-20):** authenticated read-back found production approval by
 `ostomachion`, self-review and administrator bypass enabled, environment-scoped
 deployment secrets, repository-scoped release-bot tokens, and creation-only bot
 tag permission. The stale production `release/**/*` tag selector and staging
@@ -195,19 +195,24 @@ rejected a tag input at the protected-source resolver; validation, production
 deployment, and publication were skipped. A second
 [non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
 failed at the first workflow guard, with all downstream jobs skipped. The
-merge-triggered
+first merge-triggered
 [staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
 passed source resolution and build/test but failed before syncing files or
 restarting services: its environment secrets were empty in the reusable workflow
-after `secrets: inherit` was removed. A focused fix restores the caller handoff
-and checks that deployment credentials are available before image publication.
+after `secrets: inherit` was removed. The merged fix restored the caller handoff
+and added a credential-presence check before image publication. Its
+[staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531733842)
+passed source resolution, build/test, credential check, image publication, SSH,
+file sync, service restart, and the API liveness smoke test at commit
+`65cf767afd587ce5ea72368df8d888c69bd0a7e7`.
 [GitHub setup](setup/github.md#deployment-authority-and-recovery) records the
 dispatch/source distinction, actual operator and recovery limits, and the
 read-only permission audit. The signed-in organization Actions settings page
 reported no organization secrets; the audit CLI token still receives 403 for
-that API inventory. **Keep this section open** until the credential-handoff fix
-is merged and the staging path is verified live. Positive production release and
-patch deployment remain reserved for an authorized release, not this audit.
+that API inventory. Normal PR CI references no deployment environment or
+production credentials. The protected `main`/patch source paths are configured
+for standard and patch releases, but no positive production release, patch
+deployment, tag, or GitHub Release was performed for this permission audit.
 Administrator bypass is retained for sole-operator emergency recovery, not
 routine releases; while enabled, the `main`-only selector is not an absolute
 barrier to an administrator forcing a waiting job.
