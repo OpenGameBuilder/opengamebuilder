@@ -164,7 +164,7 @@ environment's deployment rule against the workflow run's `GITHUB_REF`, not the
 commit checked out inside a job. For both release kinds, dispatch **CD
 Production** with the branch picker on `main`: the `ref` input chooses `main`
 or a protected `patch/vX.Y.Z` source commit. Do not add `patch/*` to the
-environment merely because a patch commit is deployed. Both local CD workflows
+environment merely because a patch commit is deployed. Both published CD workflows
 also fail immediately when the dispatch ref is not `main`, before resolving a
 source or entering a deployment environment. [GitHub's environment
 rule reference](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)
@@ -180,13 +180,18 @@ explains this distinction.
 Staging runs on a push to `main` or a manual dispatch from `main`; other
 dispatch refs are denied by its environment policy in the normal path. On
 2026-09-20, `main` at `93666e325c8c3bf02e9a5fbdbdffa4b7097198c9`
-contained the guards and source resolver. A
+contained the guards and source resolver; they remained in the merged fix at
+`65cf767afd587ce5ea72368df8d888c69bd0a7e7`. A
 [deliberately invalid production dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
 from `main` with a tag as the source input failed in the resolver; validation,
 deployment, and release jobs were skipped. A
 [non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
 from the fix branch failed at the first guard, with all downstream jobs skipped.
 Neither run tested an approved production release.
+The [merge-triggered staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531733842)
+at that commit passed protected-source resolution, validation, deployment, and
+the API liveness smoke test. It verifies the corrected secret handoff and the
+staging path, not production approval or a standard/patch release.
 
 The production environment has one required reviewer, `ostomachion`.
 Self-approval is allowed because there is no second eligible release reviewer;
@@ -212,16 +217,17 @@ callers use `secrets: inherit`: the
 showed that omitting this handoff left the selected environment's `DEPLOY_HOST`
 and `DEPLOY_SSH_KEY` empty inside the reusable deployment workflow, despite their
 configured names. It failed at SSH setup after publishing an image, before
-syncing files or restarting services. The follow-up workflow checks the three
+syncing files or restarting services. The merged workflow checks the three
 deployment secrets for presence in the environment job before publishing an
-image; it never logs values. Inheritance also makes the repository-scoped
-`RELEASE_BOT_PRIVATE_KEY` available to the trusted reusable workflow's secret
-context, although no deployment step references it. Keep the reusable workflow
-definition trusted and the bot key out of scripts/checkout; revisit isolation if
-the release credentials are moved to a separate approval boundary. Only the
-deployment call receives `packages: write`; validation has `contents: read`,
-and the smoke test has no token permissions. The App
-installation has contents, pull requests, and workflows write plus metadata
+image; it never logs values. The successful staging run above passed that check,
+SSH setup, file sync, service restart, and the smoke test. Inheritance also makes
+the repository-scoped `RELEASE_BOT_PRIVATE_KEY` available to the trusted
+reusable workflow's secret context, although no deployment step references it.
+Keep the reusable workflow definition trusted and the bot key out of
+scripts/checkout. Revisit isolation if release credentials move to a separate
+approval boundary. Only the deployment call receives `packages: write`;
+validation has `contents: read`, and the smoke test has no token permissions.
+The App installation has contents, pull requests, and workflows write plus metadata
 read; its creation-only branch/tag bypasses and the no-bypass tag-immutability
 rule are recorded above. The token-creation action requests these permissions
 explicitly and defaults to this repository, despite the broader installation.
