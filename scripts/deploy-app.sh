@@ -132,6 +132,8 @@ printf 'API_IMAGE=%s\nSOURCE_SHA=%s\n' "$api_image" "$source_sha" > "$temp_relea
 tar -xzf "$incoming/web-release.tar.gz" -C "$temp_web"
 [[ -f "$temp_web/index.html" ]] || die 'web archive lacks index.html'
 grep -Fq "<base href=\"/releases/$release_id/\"" "$temp_web/index.html" || die 'web base path does not match release id'
+# Reject stale compressed HTML even if a separately produced archive included it.
+rm -f "$temp_web/index.html.br" "$temp_web/index.html.gz" "$temp_web/index.html.zst"
 mv "$temp_release" "$candidate"
 mv "$temp_web" "$candidate_web"
 

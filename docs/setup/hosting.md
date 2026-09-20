@@ -52,10 +52,12 @@ The host keeps immutable application metadata in
 those metadata directories. The root `web/index.html` is atomically replaced with
 a redirect to the active `/releases/<release-id>/index.html` file. The deploy
 script removes old root `index.html` compression sidecars before that switch so
-Caddy cannot serve a stale compressed page. Loaded pages continue to request
-their own release's assets, and the prior web directory remains available. The
-first deployment with this layout copies the old in-place web files into a
-`legacy-*` release and retains its original root assets.
+Caddy cannot serve a stale compressed page. It also removes the packaged
+release's index sidecars because they retain the original `/` base path. Loaded
+pages continue to request their own release's assets, and the prior web
+directory remains available. The first deployment with this layout copies the
+old in-place web files into a `legacy-*` release and retains its original root
+assets.
 
 `scripts/deploy-app.sh` checks the archive checksum, stages the new files,
 records the previous release, pulls and starts the API by its digest reference,

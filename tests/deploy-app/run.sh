@@ -23,6 +23,8 @@ make_release() {
   incoming="$app_dir/incoming/$id"
   mkdir -p "$source" "$incoming"
   printf '<html><head><base href="/releases/%s/" /></head></html>\n' "$id" > "$source/index.html"
+  printf 'stale compressed index\n' > "$source/index.html.br"
+  printf 'stale compressed index\n' > "$source/index.html.gz"
   printf 'asset %s\n' "$id" > "$source/asset-$id.txt"
   tar -czf "$incoming/web-release.tar.gz" -C "$source" .
   web_sha="$(sha256sum "$incoming/web-release.tar.gz" | cut -d ' ' -f 1)"
@@ -49,6 +51,7 @@ run_app activate 101-1-222222222222 >/dev/null
 grep -Fq '/releases/101-1-222222222222/' "$app_dir/web/index.html" || fail 'root redirect was not activated'
 grep -Fq '/releases/101-1-222222222222/index.html' "$app_dir/web/index.html" || fail 'root redirect must target an existing file'
 [[ ! -e "$app_dir/web/index.html.br" && ! -e "$app_dir/web/index.html.gz" ]] || fail 'old compressed index could shadow root redirect'
+[[ ! -e "$app_dir/web/releases/101-1-222222222222/index.html.br" && ! -e "$app_dir/web/releases/101-1-222222222222/index.html.gz" ]] || fail 'compressed release index could shadow the rewritten base path'
 [[ -f "$app_dir/web/old-asset.txt" && -f "$app_dir/web/releases/101-1-222222222222/asset-101-1-222222222222.txt" ]] || fail 'older browser assets were lost'
 run_app finalize 101-1-222222222222 >/dev/null
 echo 'PASS activation retains legacy content and records the API digest'
