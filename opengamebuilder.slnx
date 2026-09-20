@@ -12,16 +12,13 @@
     <Project Path="src/OpenGameBuilder.Api.Client/OpenGameBuilder.Api.Client.csproj" Id="2cf0a4e2-b929-48b9-859c-14ec2d08d350" />
     <Project Path="src/OpenGameBuilder.Api.Contracts/OpenGameBuilder.Api.Contracts.csproj" Id="e4e1c6f7-cfbf-4d8b-829e-6ce14a951cd6" />
     <Project Path="src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj" Id="2a78f2b9-9f57-45ab-8314-885b03c4daf3" />
-    <Project Path="src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="src/OpenGameBuilder.ServiceDefaults/OpenGameBuilder.ServiceDefaults.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
+    <Project Path="src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj" />
+    <Project Path="src/OpenGameBuilder.ServiceDefaults/OpenGameBuilder.ServiceDefaults.csproj" />
     <Project Path="src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj" Id="df43ac45-a2d2-48b9-b243-6dfaf3b9a717" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
     <Project Path="tests/OpenGameBuilder.Api.Tests/OpenGameBuilder.Api.Tests.csproj" Id="049421a4-49af-4d6f-91ee-e0beea9b153e" />
-    <Project Path="tests/OpenGameBuilder.Web.Tests/OpenGameBuilder.Web.Tests.csproj" Id="a6e3c574-88bb-4520-81a0-f3f71a727c46" />
+    <Project Path="tests/OpenGameBuilder.Api.Client.Tests/OpenGameBuilder.Api.Client.Tests.csproj" Id="a6e3c574-88bb-4520-81a0-f3f71a727c46" />
   </Folder>
 </Solution>
