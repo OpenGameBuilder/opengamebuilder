@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 WORKDIR /repo
 
 COPY global.json .
