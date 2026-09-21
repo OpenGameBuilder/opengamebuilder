@@ -11,19 +11,22 @@
 
   <!--
     Standalone Blazor WebAssembly environment selection (.NET 10+).
-    In .NET 10 the environment for a standalone WASM app is fixed at build/publish time via
-    WasmApplicationEnvironmentName; it decides which wwwroot/appsettings.{Environment}.json is
-    loaded (and therefore the API BaseUrl), so each environment can point at a different backend.
-    The conditions below only apply a default when no value is supplied, so CI can still override
-    with an explicit value, e.g. `dotnet publish -p:WasmApplicationEnvironmentName=Staging`.
+    Keep Development local to Debug. Release always uses Production so a single published
+    artifact works in staging, production, forks, and alternate hostnames. The browser uses
+    its current origin for API requests; no deployment hostname is compiled into the client.
   -->
   <PropertyGroup Condition="'$(WasmApplicationEnvironmentName)' == '' AND '$(Configuration)' == 'Debug'">
     <WasmApplicationEnvironmentName>Development</WasmApplicationEnvironmentName>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(WasmApplicationEnvironmentName)' == '' AND '$(Configuration)' == 'Release'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <WasmApplicationEnvironmentName>Production</WasmApplicationEnvironmentName>
   </PropertyGroup>
+
+  <!-- Do not package the local API override (or list it in the WASM boot manifest). -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Content Remove="wwwroot/appsettings.Development.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />

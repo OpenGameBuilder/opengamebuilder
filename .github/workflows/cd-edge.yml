@@ -1,0 +1,91 @@
+name: 🌐 CD Shared Edge
+
+# Run from main when the shared Caddyfile or edge Compose definition changes.
+# This is the only workflow that writes shared edge files or updates Caddy.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cd-shared-edge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  require-main-dispatch:
+    name: Require main dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject non-main workflow ref
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != 'refs/heads/main' ]; then
+            echo "Shared edge updates must be dispatched from main, not $DISPATCH_REF." >&2
+            exit 1
+          fi
+
+  apply:
+    name: Validate and apply shared edge
+    needs: require-main-dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Check deployment credentials
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::${name} is unavailable to the edge job."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transfer candidate and apply it
+        env:
+          CANDIDATE_DIR: /srv/opengamebuilder/edge-candidates/${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            mkdir -p "$CANDIDATE_DIR"
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+            ./deploy/edge/compose.yml ./deploy/edge/Caddyfile \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"$CANDIDATE_DIR/"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            bash -s -- "$CANDIDATE_DIR" < ./scripts/apply-edge.sh
+
+      - name: Check both sites after edge update
+        env:
+          STAGING_URL: ${{ vars.STAGING_SMOKE_TEST_URL }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_SMOKE_TEST_URL }}
+        run: |
+          set -euo pipefail
+          for name in STAGING_URL PRODUCTION_URL; do
+            url="${!name}"
+            if [ -z "$url" ]; then
+              echo "::error::${name} is not configured."
+              exit 1
+            fi
+            curl --fail --show-error --silent --location \
+              --connect-timeout 10 --max-time 30 --retry-max-time 180 \
+              --retry 5 --retry-delay 5 --retry-all-errors \
+              "${url%/}/api/alive" >/dev/null
+          done

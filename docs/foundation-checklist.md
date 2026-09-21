@@ -219,46 +219,81 @@ barrier to an administrator forcing a waiting job.
 
 ### 12. Isolate shared-edge changes from application deployments
 
-- [ ] Stop routine staging/application deployments from recreating the shared
+- [x] Stop routine staging/application deployments from recreating the shared
   production Caddy service.
-- [ ] Validate a candidate Caddy configuration before activating it; use a
+- [x] Validate a candidate Caddy configuration before activating it; use a
   graceful reload when configuration changes.
-- [ ] Coordinate operations that modify shared edge files or services across
+- [x] Coordinate operations that modify shared edge files or services across
   staging and production. Avoid cancelling an in-flight mutation midway through.
 
 **Acceptance:** deploy staging while checking production availability. An invalid
 candidate edge configuration is rejected without replacing the working configuration.
 
+**Implemented locally (2026-09-20):** application deployments no longer sync or
+recreate shared Caddy. The `main`-only, production-approved shared-edge workflow
+serializes edge updates without cancellation. Its apply script validates a staged
+candidate before touching active files, reloads Caddy for Caddyfile-only changes,
+and restores prior files after a failed reload. The isolated Docker-mock suite
+passed invalid-candidate, reload, rollback, Compose-update, and first-setup cases.
+Staging now probes production API liveness before and after its deployment.
+Live staging deployment and production availability read-back remain to be
+verified after the protected workflow change is merged; no edge or application
+deployment was run for this local implementation.
+
 ### 13. Make builds portable and promote identifiable artifacts
 
-- [ ] Prefer deployed frontend requests to the current origin's `/api` rather than
+- [x] Prefer deployed frontend requests to the current origin's `/api` rather than
   hardcoded official hosts. Keep an explicit local development override.
-- [ ] Verify forks and self-hosted Release builds cannot accidentally call the
+- [x] Verify forks and self-hosted Release builds cannot accidentally call the
   official API. Do not introduce API subdomains without a concrete requirement.
-- [ ] Reduce duplicated endpoint/port configuration. Support parallel worktrees
+- [x] Reduce duplicated endpoint/port configuration. Support parallel worktrees
   when practical; otherwise document the fixed-port limitation.
-- [ ] Build frontend and API artifacts once where practical and promote the
+- [x] Build frontend and API artifacts once where practical and promote the
   tested pair. Address environment-specific frontend publishing before claiming
   that the same artifact is promoted unchanged.
-- [ ] Record image digests, frontend artifact identity, and source revision.
+- [x] Record image digests, frontend artifact identity, and source revision.
   Do not rely on a mutable commit-named image tag or version string alone.
 
 **Acceptance:** the same tested release can be identified unambiguously and hosted
 on an alternate hostname without rebuilding just to change its API hostname.
 
+**Implemented locally (2026-09-20):** Release web builds use the hosting origin
+and retain only a Development localhost override; staging and production no longer
+publish different API URLs. The packaging job follows source validation and builds
+the frontend archive once; after environment approval, deployment verifies that
+archive, builds the API image once, and records its digest reference, the archive
+checksum, and source revision on the host. Fixed development ports are documented
+as a single-stack limitation. Local build/publish and workflow structure checks
+validate the package contract; live deployment and alternate-host browser behavior
+remain unverified until a controlled deployment. Staging and production workflow
+runs still package separately; each run's manifest identifies its actual pair.
+
 ### 14. Make rollout atomic and rollback explicit
 
-- [ ] Replace in-place frontend `rsync --delete` with versioned release directories
+- [x] Replace in-place frontend `rsync --delete` with versioned release directories
   and an atomic activation step.
-- [ ] Retain the previous compatible frontend/API pair and document rollback.
+- [x] Retain the previous compatible frontend/API pair and document rollback.
   Account for clients still requesting assets from an older loaded page.
-- [ ] Extend smoke tests to verify the expected revision and a frontend-to-API
+- [x] Extend smoke tests to verify the expected revision and a frontend-to-API
   interaction, not only `/api/alive` or Caddy's static `/health`.
-- [ ] Document failure recovery in `docs\setup\hosting.md` and `docs\release`,
+- [x] Document failure recovery in `docs\setup\hosting.md` and `docs\release`,
   including a deploy succeeding before tag or follow-up PR creation fails.
 
 **Acceptance:** rehearse deployment failure and rollback in staging. Recover the
 previous working release without rebuilding it or guessing which image it used.
+
+**Accepted in staging (2026-09-20):** [normal run 35542650898](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542650898)
+passed build/test, activation, and Chromium smoke against source revision
+`14e7582d01059f0408be501504a5689e53a74f36`. The controlled
+[rollback rehearsal 35542855238](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542855238)
+activated a new release, passed the same browser check, then failed on purpose.
+Its recovery step restored release `35542650898-1-14e7582d0105` using the
+recorded prior image digest without rebuilding. The rehearsal run is red by
+design. Independent HTTPS checks afterward found the root page pointing to the
+restored release, `/api/about` returning the expected revision, both versioned
+web directories serving, and production `/api/alive` healthy. See the
+[hosting recovery procedure](setup/hosting.md#application-activation-and-rollback)
+and [release failure guidance](release/README.md#what-happens-on-failure).
 
 ### 15. Harden the existing hosting and supply chain
 

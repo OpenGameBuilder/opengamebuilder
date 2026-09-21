@@ -14,7 +14,8 @@ internal sealed class ApiClientTestHost : IDisposable
 
     public ApiClientTestHost(
         Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send,
-        string? baseUrl = "https://api.example.test/")
+        string? baseUrl = "https://api.example.test/",
+        Uri? applicationBaseAddress = null)
     {
         _configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -22,7 +23,7 @@ internal sealed class ApiClientTestHost : IDisposable
         });
         _handler = new StubHandler(send);
         var services = new ServiceCollection();
-        services.AddOpenGameBuilderApiClient(_configuration);
+        services.AddOpenGameBuilderApiClient(_configuration, applicationBaseAddress);
         services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(() => _handler));
         _services = services.BuildServiceProvider(new ServiceProviderOptions
         {
