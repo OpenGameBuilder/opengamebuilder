@@ -4,11 +4,14 @@ on:
   pull_request:
   push:
     branches:
-      - "patch/**"
+      - "patch/v*"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  HUSKY: "0"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -16,26 +19,20 @@ concurrency:
 
 jobs:
   build-test:
+    # This check name is the branch-protection contract; keep it stable.
+    name: build-test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7.0.1
-
-      - uses: actions/setup-dotnet@v6
         with:
-          global-json-file: global.json
+          persist-credentials: false
 
-      - name: Restore tools
-        run: dotnet tool restore
-
-      - name: Restore
-        run: dotnet restore opengamebuilder.slnx
-
-      - name: Build
-        run: dotnet build opengamebuilder.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
+      - name: Validate solution
+        uses: ./.github/actions/validate
+        with:
+          artifact-name: ci-validation
 
       - name: Build API image
         uses: docker/build-push-action@v7.3.0

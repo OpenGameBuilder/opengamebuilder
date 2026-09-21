@@ -30,7 +30,7 @@ next_tag="v${next_version}"
 patch_branch="patch/${next_tag}"
 prepare_branch="chore/prepare-${next_tag}"
 
-if git ls-remote --exit-code --tags origin "refs/tags/${next_tag}" >/dev/null 2>&1; then
+if remote_ref_exists "refs/tags/${next_tag}"; then
     echo "Tag '${next_tag}' already exists." >&2
     exit 1
 fi
@@ -38,7 +38,7 @@ fi
 configure_release_bot_git
 
 # Ensure patch branch exists at the base tag.
-if git ls-remote --exit-code --heads origin "${patch_branch}" >/dev/null 2>&1; then
+if remote_ref_exists "refs/heads/${patch_branch}"; then
     echo "Patch branch '${patch_branch}' already exists; checking its state."
     git fetch origin "+refs/heads/${patch_branch}:refs/remotes/origin/${patch_branch}" >/dev/null
     git switch --detach "origin/${patch_branch}"
@@ -62,7 +62,7 @@ else
 fi
 
 # Ensure prepare branch exists with version bump.
-if git ls-remote --exit-code --heads origin "${prepare_branch}" >/dev/null 2>&1; then
+if remote_ref_exists "refs/heads/${prepare_branch}"; then
     echo "Prepare branch '${prepare_branch}' already exists."
 else
     git fetch origin "+refs/heads/${patch_branch}:refs/remotes/origin/${patch_branch}" >/dev/null
@@ -82,7 +82,7 @@ else
 fi
 
 # Ensure PR exists.
-existing_pr="$(gh pr list --base "${patch_branch}" --head "${prepare_branch}" --state open --json number --jq '.[0].number' 2>/dev/null || true)"
+existing_pr="$(gh pr list --base "${patch_branch}" --head "${prepare_branch}" --state open --json number --jq '.[0].number // empty')"
 
 if [ -z "${existing_pr}" ]; then
     body=$(cat <<EOF

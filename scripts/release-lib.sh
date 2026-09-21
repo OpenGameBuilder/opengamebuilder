@@ -77,14 +77,13 @@ write_version() {
 # Requires GH_TOKEN to be set for `gh`.
 latest_release_tag() {
     local line_filter="${1:-}"  # Optional X.Y filter, e.g. "1.9".
-    local json
-    if ! json="$(gh release list --limit 200 --json 'tagName,isDraft,isPrerelease')"; then
+    local excluded_tag="${2:-}" # Optional tag to omit when finding a rerun's predecessor.
+    local tags
+    if ! tags="$(gh release list --limit 200 --json 'tagName,isDraft,isPrerelease' \
+        --jq '.[] | select(.isDraft == false and .isPrerelease == false) | .tagName | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))')"; then
         echo "Failed to list GitHub Releases. Is GH_TOKEN set with the right permissions?" >&2
         exit 1
     fi
-    local jq_filter='.[] | select(.isDraft == false and .isPrerelease == false) | .tagName | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))'
-    local tags
-    tags="$(echo "$json" | jq -r "$jq_filter")"
     if [ -n "$line_filter" ]; then
         if [[ ! "$line_filter" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Line filter must look like X.Y. Received: '$line_filter'." >&2
@@ -92,8 +91,27 @@ latest_release_tag() {
         fi
         tags="$(echo "$tags" | grep -E "^v${line_filter//./\\.}\\.[0-9]+$" || true)"
     fi
+    if [ -n "$excluded_tag" ]; then
+        tags="$(echo "$tags" | grep -Fxv "$excluded_tag" || true)"
+    fi
     # Sort tags by version and take the highest.
     echo "$tags" | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1 | sed 's/^/v/' | sed 's/^v$//'
+}
+
+# Return success only when a remote ref exists. Do not treat a failed lookup as absence.
+remote_ref_exists() {
+    local ref="$1"
+    local status
+    if git ls-remote --exit-code origin "$ref" >/dev/null; then
+        return 0
+    else
+        status=$?
+    fi
+    if [ "$status" = "2" ]; then
+        return 1
+    fi
+    echo "Failed to inspect remote ref '${ref}' (git exit ${status})." >&2
+    exit "$status"
 }
 
 # Write a key=value pair to GITHUB_OUTPUT (or stdout when not in CI).
