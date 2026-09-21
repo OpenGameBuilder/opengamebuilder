@@ -23,7 +23,8 @@ manifest and workflow artifact when identifying an installed release. The host's
 [hosting setup](../setup/hosting.md#application-activation-and-rollback). The
 browser smoke check follows the activated page, observes its `/api/about` call,
 and compares the running API's source revision with the selected protected
-commit. Live staging rollback is still the section 14 acceptance check.
+commit. The section 14 staging rollback rehearsal passed on 2026-09-20; the
+[checklist records the live evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
 
 ## Standard release (X.Y.0)
 

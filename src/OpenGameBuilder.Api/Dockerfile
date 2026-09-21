@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 WORKDIR /repo
 
 COPY global.json .
@@ -14,7 +14,7 @@ RUN dotnet publish src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj \
     --configuration Release \
     --output /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.10 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.12 AS final
 WORKDIR /app
 
 COPY --from=build /app/publish .
