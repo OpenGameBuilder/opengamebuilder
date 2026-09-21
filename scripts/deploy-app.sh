@@ -115,6 +115,15 @@ web_sha="$(manifest_value "$manifest" WEB_SHA256)"
 [[ "$web_sha" =~ ^[0-9a-f]{64}$ ]] || die 'invalid web checksum'
 echo "$web_sha  $incoming/web-release.tar.gz" | sha256sum --check --status || die 'web archive checksum mismatch'
 
+docker network inspect ogb-edge >/dev/null || die 'shared edge network is missing'
+mapfile -t proxy_networks < <(
+  docker network inspect ogb-edge \
+    --format '{{range .IPAM.Config}}{{if .Subnet}}{{println .Subnet}}{{end}}{{end}}'
+)
+[[ "${#proxy_networks[@]}" -gt 0 ]] || die 'shared edge network has no configured subnet'
+printf -v trusted_proxy_networks '%s;' "${proxy_networks[@]}"
+trusted_proxy_networks="${trusted_proxy_networks%;}"
+
 # Reject paths that could escape the release directory before extracting.
 while IFS= read -r entry; do
   [[ "$entry" != /* && "$entry" != ../* && "$entry" != */../* && "$entry" != */.. ]] || die 'unsafe archive path'
@@ -128,7 +137,8 @@ temp_web="$web_dir/releases/.${release_id}.$$"
 mkdir "$temp_release" "$temp_web"
 cp "$manifest" "$temp_release/release-manifest.txt"
 cp "$incoming/compose.yml" "$temp_release/compose.yml"
-printf 'API_IMAGE=%s\nSOURCE_SHA=%s\n' "$api_image" "$source_sha" > "$temp_release/.env"
+printf 'API_IMAGE=%s\nSOURCE_SHA=%s\nTRUSTED_PROXY_NETWORKS=%s\n' \
+  "$api_image" "$source_sha" "$trusted_proxy_networks" > "$temp_release/.env"
 tar -xzf "$incoming/web-release.tar.gz" -C "$temp_web"
 [[ -f "$temp_web/index.html" ]] || die 'web archive lacks index.html'
 grep -Fq "<base href=\"/releases/$release_id/\"" "$temp_web/index.html" || die 'web base path does not match release id'
@@ -155,7 +165,6 @@ old=""
 if [[ -f "$app_dir/current" ]]; then
   old="$(release_path "$app_dir/current")"
 fi
-docker network inspect ogb-edge >/dev/null || die 'shared edge network is missing'
 [[ ! -e "$app_dir/pending" ]] || die 'another activation requires recovery'
 if [[ -n "$old" ]]; then point_to previous "$(basename "$old")"; fi
 printf '%s\n' "$release_id" > "$app_dir/pending"

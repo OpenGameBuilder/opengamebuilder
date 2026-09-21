@@ -11,6 +11,9 @@ export PATH="$test_root/bin:$PATH" DOCKER_CALLS="$test_root/docker-calls"
 cat > "$test_root/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$DOCKER_CALLS"
+if [[ "$*" == *'network inspect ogb-edge --format'* ]]; then
+  printf '%s\n' '172.30.0.0/24'
+fi
 if [[ -n "${FAIL_RELEASE:-}" && "$*" == *'up -d'* && "$*" == *"$FAIL_RELEASE"* ]]; then exit 1; fi
 EOF
 chmod +x "$test_root/bin/docker"
@@ -53,8 +56,9 @@ grep -Fq '/releases/101-1-222222222222/index.html' "$app_dir/web/index.html" || 
 [[ ! -e "$app_dir/web/index.html.br" && ! -e "$app_dir/web/index.html.gz" ]] || fail 'old compressed index could shadow root redirect'
 [[ ! -e "$app_dir/web/releases/101-1-222222222222/index.html.br" && ! -e "$app_dir/web/releases/101-1-222222222222/index.html.gz" ]] || fail 'compressed release index could shadow the rewritten base path'
 [[ -f "$app_dir/web/old-asset.txt" && -f "$app_dir/web/releases/101-1-222222222222/asset-101-1-222222222222.txt" ]] || fail 'older browser assets were lost'
+grep -Fxq 'TRUSTED_PROXY_NETWORKS=172.30.0.0/24' "$app_dir/releases/101-1-222222222222/.env" || fail 'release did not record the isolated proxy network'
 run_app finalize 101-1-222222222222 >/dev/null
-echo 'PASS activation retains legacy content and records the API digest'
+echo 'PASS activation retains legacy content and records the API digest and proxy network'
 
 run_app rollback >/dev/null
 [[ "$(cat "$app_dir/current")" == releases/legacy-111111111111 ]] || fail 'rollback did not restore legacy release'

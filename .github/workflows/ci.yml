@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -35,8 +35,13 @@ jobs:
           artifact-name: ci-validation
 
       - name: Build API image
-        uses: docker/build-push-action@v7.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
           push: false
+          load: true
+          tags: opengamebuilder-api:ci
+
+      - name: Verify API image runtime
+        run: bash scripts/verify-api-image.sh opengamebuilder-api:ci

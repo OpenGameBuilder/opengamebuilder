@@ -35,6 +35,10 @@ The validation action definition is loaded from `github.workflow_sha` before
 source checkout. That trusted action checks out the resolved deployment source
 into a separate directory and runs the shared checks there. This keeps executable
 pipeline definitions separate from the selected application's files.
+Third-party Actions in workflows and in the local composite validation action
+are pinned to reviewed commit SHAs with adjacent release comments. Separate
+Dependabot entries cover `.github/workflows` and `.github/actions/validate`, so
+both sets continue to receive reviewable version-update PRs.
 
 Validation commands use explicit Bash shells, whose `-e -o pipefail` behavior
 keeps a failing command from being hidden by `tee`. Failures upload the available
@@ -209,7 +213,18 @@ waiting jobs, `main`-only is not an absolute restriction against an administrato
 Revisit self-review and bypass when a second trusted release operator exists.
 
 Each environment holds only its own `DEPLOY_HOST`, `DEPLOY_USER`, and
-`DEPLOY_SSH_KEY` secrets. The `RELEASE_BOT_PRIVATE_KEY` is a repository secret
+`DEPLOY_SSH_KEY` secrets, plus a `DEPLOY_KNOWN_HOSTS` environment variable.
+The variable contains the complete OpenSSH `known_hosts` entry for that
+environment's `DEPLOY_HOST`; the public host key is configuration, not a secret.
+Obtain the public key and SHA-256 fingerprint from the hosting provider's console
+or another authenticated out-of-band channel, compare them there with
+`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, and only then set the variable.
+Do not populate it from an unverified `ssh-keyscan` result. During rotation,
+verify the replacement the same way before changing the variable. The workflow
+requires an exact host match, enables strict host-key checking, and prints the
+pinned fingerprint to the job log without printing private credentials.
+
+The `RELEASE_BOT_PRIVATE_KEY` is a repository secret
 because **Prepare Patch** needs the App before any deployment environment is
 entered; the client ID and smoke-test URLs are repository variables. Deployment
 callers use `secrets: inherit`: the
@@ -217,9 +232,10 @@ callers use `secrets: inherit`: the
 showed that omitting this handoff left the selected environment's `DEPLOY_HOST`
 and `DEPLOY_SSH_KEY` empty inside the reusable deployment workflow, despite their
 configured names. It failed at SSH setup after publishing an image, before
-syncing files or restarting services. The merged workflow checks the three
-deployment secrets for presence in the environment job before publishing an
-image; it never logs values. The successful staging run above passed that check,
+syncing files or restarting services. The workflow checks the three deployment
+secrets and the pinned host-key variable for presence in the environment job
+before publishing an image; it never logs secret values. The successful staging
+run above passed the earlier three-secret check,
 SSH setup, file sync, service restart, and the smoke test. Inheritance also makes
 the repository-scoped `RELEASE_BOT_PRIVATE_KEY` available to the trusted
 reusable workflow's secret context, although no deployment step references it.

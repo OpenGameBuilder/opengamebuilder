@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Check out the trusted validation definition
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
@@ -84,12 +84,12 @@ jobs:
       release-id: ${{ steps.web-identity.outputs.release-id }}
 
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.resolve-source.outputs.protected-revision }}
           persist-credentials: false
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
           cache: false
@@ -140,7 +140,7 @@ jobs:
           echo "web-sha256=$web_sha" >> "$GITHUB_OUTPUT"
           echo "release-id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-${{ inputs.environment-slug }}
           path: artifacts/web-release.tar.gz
@@ -160,25 +160,29 @@ jobs:
       packages: write
 
     steps:
-      - name: Check deployment credentials
+      - name: Check deployment configuration
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY; do
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_KNOWN_HOSTS DEPLOY_USER DEPLOY_SSH_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::${name} is unavailable to the deployment job."
               exit 1
             fi
           done
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]] || { echo '::error::DEPLOY_HOST is invalid.'; exit 1; }
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]] || { echo '::error::DEPLOY_USER is invalid.'; exit 1; }
 
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.resolve-source.outputs.protected-revision }}
           persist-credentials: false
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-${{ inputs.environment-slug }}
           path: artifacts/release
@@ -206,7 +210,7 @@ jobs:
 
       - name: Build and push API image once
         id: build-image
-        uses: docker/build-push-action@v7.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: src/OpenGameBuilder.Api/Dockerfile
@@ -233,29 +237,35 @@ jobs:
       - name: Check packaged API image locally
         env:
           API_IMAGE: ${{ steps.identity.outputs.api-image }}
-        run: |
-          set -euo pipefail
-          container_id="$(docker run --rm -d --publish 127.0.0.1::8080 "$API_IMAGE")"
-          trap 'docker stop "$container_id" >/dev/null' EXIT
-          port="$(docker port "$container_id" 8080/tcp | sed -n '1s/.*://p')"
-          test -n "$port"
-          for attempt in {1..30}; do
-            if curl --fail --silent "http://127.0.0.1:${port}/api/alive" >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          docker logs "$container_id" >&2
-          echo 'Packaged API image did not pass its local liveness check.' >&2
-          exit 1
+        run: bash scripts/verify-api-image.sh "$API_IMAGE"
 
       - name: Set up SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null || {
+            echo '::error::DEPLOY_KNOWN_HOSTS has no key for DEPLOY_HOST.'
+            exit 1
+          }
+          printf 'Host deployment\n  HostName %s\n  User %s\n' "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+          cat >> ~/.ssh/config <<'EOF'
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            BatchMode yes
+          EOF
+          chmod 600 ~/.ssh/config ~/.ssh/deploy_key
           chmod 644 ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/known_hosts
 
       - name: Check production before staging update
         if: ${{ inputs.environment-slug == 'staging' }}
@@ -271,7 +281,7 @@ jobs:
             --connect-timeout 10 --max-time 30 \
             "${PRODUCTION_URL%/}/api/alive" >/dev/null
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
 
@@ -285,7 +295,7 @@ jobs:
         env:
           RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- "$APP_DIR" "$RELEASE_ID" <<'EOF'
+          ssh deployment bash -s -- "$APP_DIR" "$RELEASE_ID" <<'EOF'
             set -euo pipefail
             app_dir="$1"
             release_id="$2"
@@ -295,25 +305,25 @@ jobs:
               exit 1
             }
           EOF
-          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+          rsync -az \
             artifacts/release/web-release.tar.gz \
             artifacts/release/release-manifest.txt \
             "${COMPOSE_FILE}" \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"${APP_DIR}/incoming/${RELEASE_ID}/"
+            deployment:"${APP_DIR}/incoming/${RELEASE_ID}/"
 
       - name: Activate candidate release
         id: activate
         env:
           RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh deployment \
             bash -s -- activate "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh
 
       - name: Verify edge can read the activated web release
         env:
           RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh deployment \
             bash -s -- "$APP_DIR" "$RELEASE_ID" <<'EOF'
             set -euo pipefail
             app_dir="$1"
@@ -365,7 +375,7 @@ jobs:
         env:
           RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh deployment \
             bash -s -- finalize "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh
 
       - name: Recover the previous release after failure
@@ -373,5 +383,5 @@ jobs:
         env:
           RELEASE_ID: ${{ needs.package.outputs.release-id }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh deployment \
             bash -s -- rollback "$APP_DIR" "$RELEASE_ID" < scripts/deploy-app.sh

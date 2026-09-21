@@ -5,6 +5,33 @@ staging uses `deploy/staging` and the same edge. The shared Caddy service routes
 both sites and reads their published web files. The `ogb-edge` Docker network
 connects Caddy to both API services. Aspire is only the local launcher.
 
+## Runtime trust boundaries
+
+The reviewed SDK, ASP.NET runtime, and Caddy tags are paired with immutable image
+digests. Dependabot continues to propose tag/digest updates, but a registry
+retag cannot change an unreviewed build or edge deployment. Each built API image
+is also deployed by its generated GHCR digest.
+
+The API image declares the .NET image's non-root application user. CI and the
+deployment job verify the effective UID is nonzero, the application assembly is
+readable, `/app` is not writable by that user, and liveness succeeds before the
+image can be deployed. The API Compose services publish no host port; Caddy
+reaches them only through the external `ogb-edge` network.
+
+Caddy terminates HTTPS and replaces client-supplied `X-Forwarded-For`,
+`X-Forwarded-Proto`, and `X-Forwarded-Host` values before proxying. During
+activation, `scripts/deploy-app.sh` reads the actual `ogb-edge` IPAM subnets and
+passes only those CIDRs to the API. Forwarded-header middleware accepts one hop
+from those networks and runs before HTTPS redirection. It does not trust every
+private address or an arbitrary direct client. If the shared network has no IPAM
+subnet, activation fails before the candidate starts.
+
+The host deployment account is separate from the API process identity. It needs
+write access only below `/srv/opengamebuilder`, SSH access with the configured
+key, and the Docker operations used by the reviewed deployment scripts. Docker
+daemon access is host-privileged; do not reuse this account or key for application
+traffic, interactive contributor access, or unrelated automation.
+
 ## Shared edge changes
 
 The shared edge is owned by **🌐 CD Shared Edge** (`.github/workflows/cd-edge.yml`).
@@ -62,7 +89,8 @@ assets.
 
 `scripts/deploy-app.sh` checks the archive checksum, stages the new files,
 records the previous release, pulls and starts the API by its digest reference,
-then switches the root page. The deploy job uses a browser to follow that page,
+records the edge network as its forwarded-header trust boundary, then switches
+the root page. The deploy job uses a browser to follow that page,
 observe the frontend's `/api/about` request, and compare the API's source revision
 with the protected commit being deployed. It also checks that the page renders
 the returned application name and version. A failed activation or browser check

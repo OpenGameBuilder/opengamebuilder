@@ -9,7 +9,7 @@ browser-certificate support on those platforms.
 
 - [Git for Windows](https://git-scm.com/download/win).
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), version
-  **10.0.400 or a compatible later 10.0 feature band**, as selected by
+  **10.0.401 or a compatible later 10.0 feature band**, as selected by
   [`global.json`](../../global.json). Run `dotnet --version` from the repository
   root to check the selected SDK. Update Visual Studio if its bundled SDK is older.
 - **Aspire CLI 13.4.2**, the version used for this workflow and the AppHost SDK.
@@ -77,6 +77,18 @@ CI and shared deployment validation run the same formatting verification with
 Tests use Microsoft.Testing.Platform, selected in `global.json`. To run only one
 test project, replace `--solution opengamebuilder.slnx` with, for example,
 `--project tests\OpenGameBuilder.Api.Tests\OpenGameBuilder.Api.Tests.csproj`.
+
+The root `NuGet.Config` deliberately has one source, `nuget.org`, and clears
+both inherited package sources and inherited package-source mappings. Its `*`
+mapping means every package uses that one feed; it is not a claim of namespace
+isolation between multiple feeds. CI restores on a clean runner. For a local
+empty-cache check without changing the normal global packages folder, choose a
+new temporary directory and run:
+
+```pwsh
+$packages = Join-Path $env:TEMP "opengamebuilder-packages-$([guid]::NewGuid())"
+dotnet restore opengamebuilder.slnx --packages $packages --force --no-http-cache
+```
 
 Start Aspire from the repository root:
 
