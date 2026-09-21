@@ -138,7 +138,7 @@ Questions or concerns about archived material should be raised with the maintain
 
 AI-assisted development is allowed and supported in OpenGameBuilder.
 
-Contributors may use AI tools for coding, testing, debugging, documentation, review, learning, and project exploration. The repository includes AI guidance files such as `AGENTS.md` and Copilot instruction files to help those tools work well with the project.
+Contributors may use AI tools for coding, testing, debugging, documentation, review, learning, and project exploration. Repository-specific guidance lives in `AGENTS.md`; tools with their own instruction mechanisms may also use their standard configuration when the repository adds one.
 
 AI use does not lower the quality bar. If you submit AI-assisted work, you are responsible for understanding, reviewing, testing, and maintaining it.
 

@@ -21,18 +21,44 @@ on:
         type: string
         default: main
 
+# Validation can execute a selected protected patch branch in main's run context.
+cache-mode: none
+
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: cd-production
   cancel-in-progress: false
 
 jobs:
+  require-main-dispatch:
+    name: Require main dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject non-main workflow ref
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != 'refs/heads/main' ]; then
+            echo "CD Production must be dispatched from main, not $DISPATCH_REF." >&2
+            exit 1
+          fi
+
+  resolve-source:
+    needs: require-main-dispatch
+    uses: ./.github/workflows/_resolve-source.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ inputs.ref }}
+
   validate:
     name: Validate release
+    needs: resolve-source
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     outputs:
       kind: ${{ steps.validate.outputs.kind }}
@@ -45,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ needs.resolve-source.outputs.protected-revision }}
           fetch-depth: 0
 
       - name: Validate
@@ -64,12 +90,12 @@ jobs:
       packages: write
     with:
       environment-slug: production
-      dotnet-environment: Production
+      source-ref: ${{ inputs.ref }}
       git-ref: ${{ needs.validate.outputs.source_sha }}
-      # Repo variable PRODUCTION_SMOKE_TEST_URL holds the base URL only
-      # (e.g. https://opengamebuilder.com); the API liveness path
-      # /api/alive is appended automatically by the smoke-test job.
+      # Repo variable PRODUCTION_SMOKE_TEST_URL holds the public base URL for
+      # the browser's frontend-to-API smoke test.
       smoke-test-url-var: PRODUCTION_SMOKE_TEST_URL
+    # Required for the called job to receive its selected environment's secrets.
     secrets: inherit
 
   publish:
@@ -78,6 +104,7 @@ jobs:
       - validate
       - deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Create release bot token
@@ -88,6 +115,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          permission-workflows: write
 
       - uses: actions/checkout@v7.0.1
         with:

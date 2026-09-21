@@ -10,13 +10,26 @@ public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddOpenGameBuilderApiClient(IConfiguration configuration)
+        public IServiceCollection AddOpenGameBuilderApiClient(IConfiguration configuration, Uri? applicationBaseAddress = null)
         {
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(configuration);
+            if (applicationBaseAddress is not null &&
+                (!applicationBaseAddress.IsAbsoluteUri ||
+                 (applicationBaseAddress.Scheme != Uri.UriSchemeHttp && applicationBaseAddress.Scheme != Uri.UriSchemeHttps)))
+            {
+                throw new ArgumentException("The application base address must be an absolute HTTP or HTTPS URL.", nameof(applicationBaseAddress));
+            }
 
             services.AddOptions<OpenGameBuilderApiClientOptions>()
                 .Bind(configuration.GetSection(OpenGameBuilderApiClientOptions.SectionName))
+                .PostConfigure(options =>
+                {
+                    if (configuration[$"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl"] is null && applicationBaseAddress is not null)
+                    {
+                        options.BaseUrl = applicationBaseAddress.AbsoluteUri;
+                    }
+                })
                 .Validate(options => IsValidBaseUrl(options.BaseUrl), $"{OpenGameBuilderApiClientOptions.SectionName}:BaseUrl must be a valid absolute URL with HTTP or HTTPS scheme.");
 
             services.AddHttpClient<IAboutApiClient, AboutApiClient>((serviceProvider, httpClient) =>

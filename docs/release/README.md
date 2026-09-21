@@ -12,6 +12,20 @@ workflows you need to know about:
 The single source of truth for the version is `<VersionPrefix>` in
 `Directory.Build.props`. See [versioning.md](./versioning.md).
 
+Each deployment records `releases/<release-id>/release-manifest.txt` with the resolved source commit,
+the immutable API image digest reference, and the SHA-256 of the published web
+archive. After validation the package job publishes the portable frontend once;
+after environment approval, deployment verifies it and builds the API image once
+without environment-specific frontend publishing. These identities are more
+precise than the version or mutable commit-named convenience tag. Inspect the
+manifest and workflow artifact when identifying an installed release. The host's
+`current` and `previous` files identify the active and rollback pair; see
+[hosting setup](../setup/hosting.md#application-activation-and-rollback). The
+browser smoke check follows the activated page, observes its `/api/about` call,
+and compares the running API's source revision with the selected protected
+commit. The section 14 staging rollback rehearsal passed on 2026-09-20; the
+[checklist records the live evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
+
 ## Standard release (X.Y.0)
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the
@@ -37,7 +51,8 @@ The single source of truth for the version is `<VersionPrefix>` in
 > **Note:** CD Production runs the workflow file from the branch it is
 > dispatched on (usually `main`), but it checks out the specified `ref` before
 > running validation and release scripts. Ensure patch branches contain
-> compatible release scripts for their release run.
+> compatible deployment and release code for their release run, including the
+> `/api/about` source revision used by the browser smoke test.
 
 ## What the production workflow validates
 
@@ -53,12 +68,31 @@ version number itself (`Z == 0` → standard, `Z > 0` → patch) and checks:
 ## What happens on failure
 
 The tag, GitHub Release, and follow-up PR are only created **after** a
-successful production deploy and smoke test. If anything fails earlier, none of
-the post-deploy artifacts are produced and you can fix and rerun safely.
+successful production deploy and smoke test. If activation or smoke testing
+fails, the workflow attempts to restore the previous web/API pair. Inspect the
+rollback job result and the host's `current` and `previous` files before rerunning.
+
+If deployment and smoke testing succeed but tag creation, GitHub Release
+creation, or the follow-up PR fails, production is already running the new pair.
+Do not roll it back solely because publication failed. Read the active manifest
+and workflow run to confirm the exact source SHA and image digest. After fixing
+the publishing error, rerun from the same protected source branch while it still
+resolves to that SHA; the release scripts accept the matching existing tag and
+release. If that branch has moved, use the recorded commit and resolve the
+publication state with the maintainer before dispatching another deployment.
 
 If the post-deploy steps fail after the tag exists (e.g. release creation
-hiccup), simply rerun the workflow — it is idempotent for tags that already
-point at the expected commit.
+hiccup), rerun the workflow from the same source branch and commit. Validation
+accepts an already-published standard or patch release only when its tag still
+points at that commit and it remains the latest stable release. A different tag
+target, a skipped patch number, or an older release line is rejected.
+
+If the patch merge-back encounters a conflict in `Directory.Build.props` or any
+other file, the follow-up step stops without pushing a merge branch. Resolve the
+merge locally and open the merge-back PR manually; preserve both sides' non-version
+changes and keep main's current `VersionPrefix` if it is already at least
+`X.(Y+1).0`. Do not choose the entire props file from one side. The production
+release may already be published even though this follow-up PR is still missing.
 
 ## Don't do these
 

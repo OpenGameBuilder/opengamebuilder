@@ -5,23 +5,49 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      rehearse-rollback:
+        description: "After staging smoke passes, intentionally fail and restore the previous release"
+        required: false
+        type: boolean
+        default: false
+
+# Keep source builds and the called deployment workflow out of the shared cache.
+cache-mode: none
 
 concurrency:
   group: cd-staging
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
+  require-main-dispatch:
+    name: Require main dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject non-main workflow ref
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != 'refs/heads/main' ]; then
+            echo "CD Staging must run from main, not $DISPATCH_REF." >&2
+            exit 1
+          fi
+
   deploy:
+    needs: require-main-dispatch
     uses: ./.github/workflows/_deploy.yml
+    permissions:
+      contents: read
+      packages: write
     with:
       environment-slug: staging
-      dotnet-environment: Staging
-      # Repo variable STAGING_SMOKE_TEST_URL holds the base URL only
-      # (e.g. https://staging.opengamebuilder.com); the API liveness path
-      # /api/alive is appended automatically by the smoke-test job.
+      rehearse-rollback: ${{ inputs.rehearse-rollback || false }}
+      # Repo variable STAGING_SMOKE_TEST_URL holds the public base URL for
+      # the browser's frontend-to-API smoke test.
       smoke-test-url-var: STAGING_SMOKE_TEST_URL
+    # Required for the called job to receive its selected environment's secrets.
     secrets: inherit

@@ -1,0 +1,52 @@
+name: _ Resolve protected deployment source
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Protected branch to resolve, either main or patch/vX.Y.Z.
+        required: true
+        type: string
+      expected-sha:
+        description: If supplied, reject a branch that has moved from this commit.
+        required: false
+        type: string
+        default: ""
+    outputs:
+      protected-revision:
+        description: Immutable commit verified to belong to the protected branch.
+        value: ${{ jobs.resolve.outputs.sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Resolve protected branch without executing its code
+        id: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REF: ${{ inputs.ref }}
+          EXPECTED_SHA: ${{ inputs.expected-sha }}
+        run: |
+          if [[ "$SOURCE_REF" != main && ! "$SOURCE_REF" =~ ^patch/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Deployment source must be main or patch/vX.Y.Z." >&2
+            exit 1
+          fi
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/branches/${SOURCE_REF}" \
+            --jq 'if .protected then .commit.sha else error("Deployment branch is not protected") end')"
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "GitHub did not return a valid protected-branch commit." >&2
+            exit 1
+          fi
+          if [[ -n "$EXPECTED_SHA" && "$sha" != "$EXPECTED_SHA" ]]; then
+            echo "Deployment branch moved after source selection; start a new run." >&2
+            exit 1
+          fi
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
