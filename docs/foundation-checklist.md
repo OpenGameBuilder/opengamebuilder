@@ -301,7 +301,7 @@ and [release failure guidance](release/README.md#what-happens-on-failure).
   Keep Dependabot/update automation capable of maintaining those pins.
 - [ ] Verify the deployment SSH host key through a trusted channel and pin it,
   rather than trusting a fresh `ssh-keyscan` result during each deployment.
-- [ ] Run the API container as an explicit non-root user and verify permissions.
+- [x] Run the API container as an explicit non-root user and verify permissions.
 - [x] Configure trusted forwarded headers for Caddy before middleware relying on
   request scheme or client IP. Test HTTPS redirects; do not trust arbitrary proxies.
 - [x] Recheck NuGet configuration inheritance on a clean machine. Explicitly clear
@@ -313,16 +313,17 @@ and [release failure guidance](release/README.md#what-happens-on-failure).
 deployment still work with the hardened configuration and least required privileges.
 
 **Implemented locally (2026-09-21):** third-party Actions and base/edge images
-are immutable while the existing Dependabot ecosystems remain enabled. CI rejects
-unpinned replacements and is configured to start and probe the API image as its
-non-root user. The API
+are immutable while the existing Dependabot ecosystems remain enabled. A local
+image build and runtime probe confirmed that the API starts with a nonzero UID,
+can read its assembly, cannot write `/app`, and returns its liveness response; CI
+repeats that probe. The API
 trusts one forwarded hop only from the deployed `ogb-edge` network, with redirect
 and spoofing coverage. An isolated empty-cache restore passes with inherited
 package sources and mappings cleared. Deployment now requires a pinned
 `DEPLOY_KNOWN_HOSTS` environment variable and never learns trust with
-`ssh-keyscan`. Keep the container-permission item, SSH item, and live acceptance
-open until CI runs the image probe, an administrator verifies the server key out
-of band and configures both environments, and a merged staging deployment passes.
+`ssh-keyscan`. Keep the SSH item and live acceptance open until an administrator
+verifies the server key out of band and configures both environments, CI passes,
+and a merged staging deployment passes.
 
 ## Phase 3: Prepare to welcome community contributors
 
