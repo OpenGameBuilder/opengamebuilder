@@ -67,7 +67,8 @@ jobs:
       if: matrix.build-mode == 'manual'
       shell: bash
       run: |
-        dotnet restore opengamebuilder.slnx
+        dotnet --version
+        dotnet restore opengamebuilder.slnx --locked-mode
         dotnet build opengamebuilder.slnx --configuration Release --no-restore --no-incremental
 
     - name: Perform CodeQL Analysis

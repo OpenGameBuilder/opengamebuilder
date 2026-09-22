@@ -2,16 +2,20 @@
 
 ## Supported environment and prerequisites
 
-The supported editor workflow in this guide is **Windows 11**, using PowerShell
+The supported editor workflow in this guide is **Windows 11**, using
+[PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
 with either Visual Studio 2026 or VS Code. Linux, macOS, and WSL development are
 not yet validated by this guide; Linux CI builds do not establish editor or
 browser-certificate support on those platforms.
 
+- [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows),
+  invoked as `pwsh`.
 - [Git for Windows](https://git-scm.com/download/win).
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), version
-  **10.0.401 or a compatible later 10.0 feature band**, as selected by
-  [`global.json`](../../global.json). Run `dotnet --version` from the repository
-  root to check the selected SDK. Update Visual Studio if its bundled SDK is older.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), exactly
+  **10.0.401**, as selected by [`global.json`](../../global.json). The repository
+  disables SDK roll-forward and prerelease selection so a different feature band
+  is a setup failure, not a substitute. Update Visual Studio if its bundled SDK
+  is older.
 - **Aspire CLI 13.4.2**, the version used for this workflow and the AppHost SDK.
   The SDK and hosting package are separately versioned in the
   [AppHost project](../../src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj)
@@ -37,8 +41,10 @@ development server. **Docker, a database, production credentials, and Discord
 access are not required.** Aspire is the local launcher, not the production
 deployment mechanism.
 
-When updating the SDK requirement in `global.json`, keep the API Dockerfile's
-SDK image compatible. CI builds the API image without pushing it.
+When updating the SDK requirement in `global.json`, review the compatible pinned
+SDK image in the API Dockerfile and the generated dependency lockfiles together.
+Dependabot SDK updates are reviewed with those files; CI builds the API image
+without pushing it.
 
 ## Command-line workflow (start here)
 
@@ -47,8 +53,25 @@ Clone the repository, then run the remaining commands from its root:
 ```pwsh
 git clone https://github.com/OpenGameBuilder/opengamebuilder.git
 Set-Location opengamebuilder
-dotnet --version
-aspire --version
+pwsh ./scripts/doctor.ps1
+pwsh ./scripts/check.ps1 quick
+```
+
+`doctor.ps1` is a read-only prerequisite report. Its default `development`
+scope reports PowerShell, the SDK, Aspire CLI, Git, and Bash with their remedies;
+it does not install tools, trust certificates, start services, or open a browser.
+Use `-Scope quick`, `full`, `browser`, or `development` when checking a narrower
+workflow.
+
+The normal solution gate is `pwsh ./scripts/check.ps1 quick`: it runs the quick
+doctor check, a locked restore, C# formatting verification, a Release build, and
+the current 72 solution tests. `check.ps1 format` performs only the formatting
+verification after its locked restore. To apply formatter changes deliberately,
+run `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
+
+The initial browser-debugging setup is an explicit, interactive operation:
+
+```pwsh
 dotnet dev-certs https --trust
 dotnet dev-certs https --check --trust
 ```
@@ -59,16 +82,6 @@ connections. See Microsoft's
 [development certificate guidance](https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate)
 if the check fails.
 
-Restore, check formatting, build, and test before starting services:
-
-```pwsh
-dotnet restore opengamebuilder.slnx
-dotnet format opengamebuilder.slnx --verify-no-changes --no-restore
-dotnet build opengamebuilder.slnx --configuration Debug --no-restore
-dotnet build opengamebuilder.slnx --configuration Release --no-restore
-dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
-```
-
 Ordinary builds do not restore local tools or install Git hooks. The formatter
 ships with the .NET SDK; no Husky installation is needed for these checks.
 CI and shared deployment validation run the same formatting verification with
@@ -77,6 +90,39 @@ CI and shared deployment validation run the same formatting verification with
 Tests use Microsoft.Testing.Platform, selected in `global.json`. To run only one
 test project, replace `--solution opengamebuilder.slnx` with, for example,
 `--project tests\OpenGameBuilder.Api.Tests\OpenGameBuilder.Api.Tests.csproj`.
+
+Direct `dotnet restore`, `build`, `test`, and `format` commands remain useful for
+focused editor work. Use `--locked-mode` for a manual restore that must reproduce
+the committed graph. After an intentional SDK or
+[`Directory.Packages.props`](../../Directory.Packages.props) change, refresh
+locks with:
+
+```pwsh
+dotnet restore opengamebuilder.slnx --force-evaluate -p:RestoreLockedMode=false
+```
+
+Review every generated lockfile and run the full check before committing. See
+[NuGet's lock-file documentation](https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies)
+for the restore model. The API, Web Client, and two test entry points commit
+`packages.lock.json`; shared-library locks cannot constrain the graph selected
+by a downstream consuming application, so shared libraries do not duplicate
+them. The AppHost's implicit SDK packages vary by host, so it commits reviewed
+`packages.win-x64.lock.json` and `packages.linux-x64.lock.json` baselines. For an
+intentional dependency refresh, update the native graph with the solution command
+above, then refresh the Linux AppHost graph and confirm the native graph remains
+locked:
+
+```pwsh
+dotnet restore src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj --force-evaluate -p:RestoreLockedMode=false -p:NETCoreSdkRuntimeIdentifier=linux-x64 -m:1
+dotnet restore opengamebuilder.slnx --locked-mode
+```
+
+Refresh each AppHost lock on its matching host, or review an explicit
+cross-target restore as above. A new host platform needs its own reviewed
+AppHost lock before it is supported. `Directory.Build.targets` rejects a missing
+entry-point lock before a locked restore can create one; `--locked-mode` then
+rejects stale dependency graphs. CI restores with `--locked-mode`, and packaging's
+implicit restore is locked as well.
 
 The root `NuGet.Config` deliberately has one source, `nuget.org`, and clears
 both inherited package sources and inherited package-source mappings. Its `*`

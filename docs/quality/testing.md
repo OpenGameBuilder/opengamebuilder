@@ -66,8 +66,25 @@ analysis or claiming this repository change fixed that managed workflow. See
 [deployment validation](../../.github/workflows/_deploy.yml) use the same
 [validation action](../../.github/actions/validate/action.yml), so restore,
 formatting verification, Release build, solution tests, and smoke-package checks
-cannot drift between the two paths. The solution commands are in
-[developer setup](../setup/development.md#command-line-workflow-start-here).
+cannot drift between the two paths. Start with the canonical local commands:
+
+```pwsh
+pwsh ./scripts/check.ps1 quick
+pwsh ./scripts/check.ps1 full
+pwsh ./scripts/check.ps1 full -Serial
+```
+
+`quick` is the normal solution gate: quick doctor checks, locked restore,
+format verification, Release build, and the current 72 tests. `full` includes
+that gate plus frontend Release publish and its portability guard, `npm ci` and
+the smoke-script syntax check, and all five existing Bash script suites. It
+requires Git for Windows/Git Bash, Git, Node.js 22/npm, and the Docker CLI with
+Compose support. It does not require a Docker daemon, deployment credentials,
+services, or a browser.
+
+Use `-Serial` when Windows task-host or pipe contention affects validation. It
+serializes restore, build, and publish work and disables MSBuild node reuse;
+the checks and their scope are otherwise unchanged.
 
 PR validation also publishes the frontend in Release using the completed build
 and runs [the portability guard](../../scripts/verify-web-publish.sh). Deployment
@@ -75,22 +92,12 @@ disables this extra publish in the shared action because its required `package`
 job already publishes and checks the frontend before any deployment job runs.
 Both paths reject environment-specific configuration in the published artifact.
 
-After the solution gate, run these local equivalents from the repository root
-with Git Bash and Node.js 22/npm available:
-
-```pwsh
-dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --no-build --output artifacts/web
-& 'C:\Program Files\Git\bin\bash.exe' scripts/verify-web-publish.sh artifacts/web/wwwroot
-npm ci --prefix tests/deploy-smoke
-node --check tests/deploy-smoke/smoke.mjs
-```
-
-The Node checks install the locked smoke dependencies and parse `smoke.mjs`;
-they do not install or launch a browser. These build/package checks need no
-deployment credentials or public URL and do not establish browser acceptance.
-The deployment job still installs dependencies and Chromium on its own runner
-before activation. Live browser smoke runs after activation and can trigger
-recovery if it fails.
+The Node portion of `full` installs the locked smoke dependencies and parses
+`smoke.mjs`; it does not install or launch a browser. These build/package checks
+need no deployment credentials or public URL and do not establish browser
+acceptance. The deployment job installs its dependencies and Chromium on its own
+runner before activation. Live browser smoke runs after activation and can
+trigger recovery if it fails.
 
 A failing phase fails the job. Available console logs and a formatting report
 are uploaded on failure and retained for seven days; assertion details are in
@@ -99,13 +106,15 @@ are uploaded on failure and retained for seven days; assertion details are in
 the new checks when they run. The test command uses the repository's
 Microsoft.Testing.Platform runner without adding a separate test-reporting dependency.
 
-Release-script behavior has an additional Bash test gate:
+The five Bash suites exercised by `full` are `release-scripts`, `deploy-edge`,
+`deploy-topology`, `deploy-app`, and `supply-chain`. Run an individual suite
+with Git Bash when working on it, for example:
 
 ```pwsh
-bash tests/release-scripts/run.sh
+& 'C:\Program Files\Git\bin\bash.exe' tests/release-scripts/run.sh
 ```
 
-Run this with Git Bash on Windows. The suite creates temporary local Git
+The release-script suite creates temporary local Git
 repositories, mocks GitHub CLI calls and Git pushes, and never publishes a
 branch, tag, or release. CI and deployment validation run it after the solution
 tests and upload its log on failure.
@@ -154,7 +163,53 @@ Deployment additionally runs a Chromium smoke test from `tests/deploy-smoke` tha
 loads the published frontend, observes its API request, and checks the expected
 source revision. That live test requires a deployed staging or production URL.
 
+### Reproducible command validation
+
+On 2026-09-22, a fresh source snapshot passed `pwsh ./scripts/check.ps1 full -Serial`
+with SDK 10.0.401, PowerShell 7.6.5, and Node.js 22.23.2/npm 10.9.9. This covered
+locked restore, format verification, a Release build with zero warnings, all 72
+.NET tests, frontend Release publish and its portability guard, locked smoke
+dependencies and syntax, and all five isolated shell suites. The serialized
+option avoided a Windows MSBuild task-host failure; it did not omit checks.
+
+Both Windows and Linux AppHost graphs passed locked restore; the Linux graph was
+selected explicitly on Windows, not executed on a Linux host. Deliberately
+missing entry-point locks and changed package requirements stopped the shared
+quick command at restore, before build. Doctor fixtures rejected a missing SDK,
+wrong SDK selection/policy, Node 24, and non-exact or mismatched Playwright pins.
+Missing smoke URL inputs failed before launching Chromium. PowerShell/YAML
+parsing, changed documentation targets/anchors, and diff checks passed.
+
+The shared commands and workflow wiring have local evidence. Hosted `build-test`,
+CodeQL, Docker image packaging, and live browser smoke after these changes remain
+unverified. No services, deployments, certificate trust changes, or editor
+rehearsals were performed for this validation.
+
 ### Browser-smoke dependency updates
+
+`pwsh ./scripts/check.ps1 browser` runs the existing
+[`smoke.mjs`](../../tests/deploy-smoke/smoke.mjs) Chromium test against an
+authorized, already deployed HTTPS release. It requires the pinned Playwright
+Chromium browser to be installed and these environment variables:
+
+```pwsh
+$env:SMOKE_TEST_BASE_URL = 'https://authorized-release.example'
+$env:EXPECTED_SOURCE_SHA = '<source-sha>'
+$env:EXPECTED_RELEASE_ID = '<release-id>'
+pwsh ./scripts/check.ps1 browser
+```
+
+Install the pinned test dependency and Chromium explicitly when needed:
+
+```pwsh
+npm ci --prefix tests/deploy-smoke
+node tests/deploy-smoke/node_modules/playwright/cli.js install chromium
+```
+
+The browser command never deploys, installs a browser, or installs operating
+system packages. On Linux, `--with-deps` remains an explicit operating-system
+installation decision, as in the workflow. This smoke is evidence for the
+specified release only; it is not broader browser or hosted acceptance.
 
 [Dependabot](../../.github/dependabot.yml) checks `/tests/deploy-smoke` weekly,
 using the repository's dependency-update cadence and cooldowns. Its npm entry
@@ -163,9 +218,15 @@ described in [GitHub's configuration reference](https://docs.github.com/en/code-
 After merging configuration changes, check GitHub's Dependabot update-job list
 for that npm directory and inspect its first run for configuration errors.
 
-For Playwright updates, review the release notes and the manifest/lockfile diff,
-then run the `npm ci` and syntax commands above with Node.js 22. Dependency PRs
-receive the same required `build-test` validation. Package installation and
+For an intentional Playwright update, use the exact-version command below,
+review the release notes and manifest/lockfile diff, then run `full` with Node.js
+22. Dependency PRs receive the same required `build-test` validation.
+
+```pwsh
+npm install --save-dev --save-exact playwright@<version> --prefix tests/deploy-smoke
+```
+
+Package installation and
 syntax checks do not establish compatibility with the updated Chromium build.
 Review the browser smoke result from an authorized staging deployment: the
 release URL and base path, successful `/api/about` request, expected source

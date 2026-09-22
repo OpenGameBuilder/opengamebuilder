@@ -12,6 +12,7 @@ COPY src/ ./src/
 
 RUN dotnet publish src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj \
     --configuration Release \
+    -p:RestoreLockedMode=true \
     --output /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.12@sha256:2d584d8147faddb0d678c5748d47953e5b8e18621ed4fb7049a91381d9d7746f AS final

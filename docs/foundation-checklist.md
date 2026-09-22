@@ -397,16 +397,16 @@ This step does not block engine development or justify further deployment expans
 
 ### 13. Make setup and validation reproducible
 
-- [ ] Add a small `doctor` command that reports selected SDK/tool versions,
+- [x] Add a small `doctor` command that reports selected SDK/tool versions,
   missing prerequisites, and actionable remedies. Keep installation and trust
   changes explicit; ordinary checks must not change the developer's environment.
-- [ ] Provide documented formatting, quick-check, full-check, and browser-test
+- [x] Provide documented formatting, quick-check, full-check, and browser-test
   commands, with shared implementations used locally and by CI. Keep the headless
   build/test path usable without deployment credentials or running services.
-- [ ] Replace accidental SDK drift from `global.json`'s `latestMinor` roll-forward
+- [x] Replace accidental SDK drift from `global.json`'s `latestMinor` roll-forward
   with a deliberate supported baseline for formatting, analyzers, and builds.
   Log the selected SDK and update it through reviewed dependency changes.
-- [ ] Introduce committed NuGet lockfiles for application entry points and locked
+- [x] Introduce committed NuGet lockfiles for application entry points and locked
   CI restores after SDK selection is settled. Keep npm tools exactly pinned with
   committed lockfiles. Document how intentional dependency updates refresh them;
   a library lockfile does not constrain downstream consumers.
@@ -415,6 +415,18 @@ This step does not block engine development or justify further deployment expans
 toolchain. Missing prerequisites produce useful diagnostics, CI rejects dependency
 drift, and local/CI checks have equivalent scope. A fresh editor rehearsal remains
 the separate acceptance in step 5. See [NuGet lockfiles](https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#locking-dependencies).
+
+**Result (2026-09-22):** The read-only doctor and shared formatting, quick, full,
+and browser commands are documented in [development setup](setup/development.md)
+and used by CI. SDK selection is exact; application and test entry points have
+committed locks, including separate Windows/Linux AppHost graphs. Locked restores
+also cover CodeQL and packaging. A fresh source snapshot passed the full local
+gate with serialized MSBuild: zero build warnings, 72 tests, frontend packaging,
+smoke-package checks, and all five shell suites. Missing prerequisites, incorrect
+versions, and missing/stale dependency locks were rejected. The
+[validation evidence](quality/testing.md#reproducible-command-validation) separates
+these results from the unverified hosted CI and live browser runs. No deployment
+or editor rehearsal was performed.
 
 ### 14. Format and lint first-party content consistently
 

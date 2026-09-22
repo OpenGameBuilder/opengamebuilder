@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <!--
       Allow MapStaticAssets to substitute fingerprinted asset paths (e.g. css/app.css)
       directly inside wwwroot/index.html at publish time. Required because the standalone
