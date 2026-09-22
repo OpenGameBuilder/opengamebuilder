@@ -101,10 +101,18 @@ is enforced by formatting verification, not by this SDK's build analyzer. Native
 tool installation, reuse without downloads, and rejection of a corrupted
 executable were verified on Windows.
 
-Linux asset and executable checksums were verified, but Linux execution and hosted
-CI remain unverified. The external-link schedule has not run from this change.
-These checks did not start application services, deploy, or establish browser
-acceptance. The initial mechanical formatting sweep is kept separate for review.
+The [Ubuntu 24.04 CI gate for PR #114](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35744440511/job/106802281361)
+also passed the content checks, all seven regression groups, and the full solution
+gate. The tree tested at `d5e0bb6` exactly matches merge commit `f8db700` on `main`,
+including the initial mechanical formatting commit `1f646a6`.
+
+After the merge, `pwsh ./scripts/check.ps1 format -Fix -Serial` was rerun on Windows
+against `f8db700`. C# formatting, Prettier, and shfmt all completed successfully;
+`git diff --exit-code` confirmed that the overall sweep produced no changes.
+The separate mechanical PR originally planned is therefore already covered by
+[the merged PR](https://github.com/OpenGameBuilder/opengamebuilder/pull/114).
+The external-link schedule has not yet run. These formatting checks did not start
+application services, deploy, or establish browser acceptance.
 
 ## Local links and external maintenance
 
