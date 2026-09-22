@@ -1,0 +1,19 @@
+staging.opengamebuilder.com {
+	encode zstd gzip
+
+	handle /health {
+		respond "ok staging" 200
+	}
+
+	handle /api/* {
+		reverse_proxy api-staging:8080
+	}
+
+	handle {
+		root * /srv/opengamebuilder/staging/web
+		try_files {path} /index.html
+		file_server {
+			precompressed br gzip
+		}
+	}
+}

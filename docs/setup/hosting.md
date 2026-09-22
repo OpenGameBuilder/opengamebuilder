@@ -1,9 +1,25 @@
 # Hosting setup
 
-Production uses the Compose files in `deploy/production` and `deploy/edge`;
-staging uses `deploy/staging` and the same edge. The shared Caddy service routes
-both sites and reads their published web files. The `ogb-edge` Docker network
-connects Caddy to both API services. Aspire is only the local launcher.
+Staging and production are independent deployment targets. Each GitHub
+environment supplies its own SSH host, account, key, and trusted host-key entry.
+They can point at the same server or different servers. Aspire is only the local
+launcher; application hosting uses `deploy/staging` and `deploy/production`.
+
+Each server runs **one host-local Caddy edge**, explicitly configured through
+the `EDGE_PROFILE` variable on its GitHub deployment environment:
+
+| Layout | Staging environment's `EDGE_PROFILE` | Production environment's `EDGE_PROFILE` |
+| --- | --- | --- |
+| Both applications on one server (current layout) | `shared` | `shared` |
+| Separate servers | `staging` | `production` |
+
+There is no default. Missing, unknown, or mismatched profiles fail closed.
+`shared` is an intentional configuration, not an inferred relationship between
+hosts. Each host has its own `ogb-edge` Docker network and Caddy certificate
+volumes; the identical names on separate machines do not connect those machines.
+An isolated profile has no routes, web mounts, or API aliases for the other
+environment. Shared hosting still shares host/Docker privileges and outage risk;
+it is not a security isolation boundary.
 
 ## Runtime trust boundaries
 
@@ -26,7 +42,7 @@ Caddy terminates HTTPS and replaces client-supplied `X-Forwarded-For`,
 activation, `scripts/deploy-app.sh` reads the actual `ogb-edge` IPAM subnets and
 passes only those CIDRs to the API. Forwarded-header middleware accepts one hop
 from those networks and runs before HTTPS redirection. It does not trust every
-private address or an arbitrary direct client. If the shared network has no IPAM
+private address or an arbitrary direct client. If the host network has no IPAM
 subnet, activation fails before the candidate starts.
 
 The host deployment account is separate from the API process identity. It needs
@@ -35,14 +51,20 @@ key, and the Docker operations used by the reviewed deployment scripts. Docker
 daemon access is host-privileged; do not reuse this account or key for application
 traffic, interactive contributor access, or unrelated automation.
 
-## Shared edge changes
+## Host edge changes
 
-The shared edge is owned by **🌐 CD Shared Edge** (`.github/workflows/cd-edge.yml`).
-After a reviewed change to `deploy/edge/Caddyfile` or `deploy/edge/compose.yml`
-reaches `main`, dispatch that workflow **from `main`**. It uses the `production`
-environment's reviewer approval and deployment credentials, and queues edge
-updates without cancelling an update already in progress. Run it once before
-the first application deployment to create the shared network and Caddy service.
+**🌐 CD Edge** (`.github/workflows/cd-edge.yml`) owns edge updates. Dispatch it
+**from `main`**, selecting the GitHub environment that supplies the target host's
+credentials and approval rules. An edge serving both environments must be
+dispatched through **production**, never staging. Edge updates queue rather than
+cancelling one another, even when two environments happen to share a host.
+
+`scripts/render-edge.sh` combines the common pinned `deploy/edge/compose.yml`
+with the selected `compose.<environment>.yml` mount overrides and
+`Caddyfile.<environment>` site fragments. It produces standalone `compose.yml`
+and `Caddyfile` candidates with an explicit profile marker. Only those rendered
+files are transferred; do not deploy the common Compose base by itself.
+Run the edge workflow before the first application deployment on a new host.
 
 The workflow transfers candidate files to a separate directory on the host.
 `scripts/apply-edge.sh` checks the candidate Compose definition, pulls its Caddy
@@ -52,24 +74,90 @@ files remain in place. A Caddyfile-only update copies the validated file into
 the existing bind mount and calls `caddy reload`; it does not recreate Caddy.
 An intentional Compose change runs `docker compose up -d`, which may recreate
 the service. A failed reload restores the previous files and attempts to reload
-the previous configuration. The workflow checks both API liveness URLs after
-the update. Inspect the job log and host state if activation or recovery fails;
+the previous configuration. The workflow checks each selected site's `/health`
+over HTTPS **on the SSH target host**, forcing its hostname to loopback while
+still validating its TLS certificate. This tests edge readiness without needing
+an application installed, and cannot accidentally validate an old DNS target.
+DNS and certificate issuance must be ready for this check to pass; a new edge
+may be installed while this check fails during a planned DNS cutover. It is not
+application acceptance: each app deployment separately checks the real API and
+browser revision. Inspect the job log and host state if activation or recovery fails;
 do not assume a failed job automatically restored service availability.
 An unchanged candidate leaves a running Caddy container alone, but starts it if
 it is stopped. This cannot repair a port conflict with another host process.
 
-The staging and production application workflows update only their own release
-directory and API service. They require the shared edge network to exist and
-never sync or restart Caddy. Staging deployments queue instead of cancelling an
-in-flight deployment. Production `/api/alive` is checked before and after a
-staging update; a failed preflight stops the update.
+The installed profile marker must agree with an application's configured
+profile before release files are transferred. A normal edge update also refuses
+to change an installed profile. Intentional migrations require
+`allow-profile-change` and **production approval** in a separate authorization
+job, then use the selected environment's own credentials and approval rules to
+apply the change. Normal isolated staging updates do not enter the production
+environment. Existing unmarked edge files
+from the previous shared-only setup may be adopted only as `shared` through
+production; they cannot silently become an isolated edge.
+
+Application workflows update only their own release directory and API. They
+require their host's edge network and never sync or restart Caddy. Staging
+deployments queue instead of cancelling an in-flight deployment. Production
+`/api/alive` is checked before and after staging updates **only when staging's
+profile is `shared`**. Isolated staging neither requires production's URL nor
+depends on production being available.
+
+### Adopt explicit profiles on the current server
+
+Before merging this workflow change, set the environment variable
+`EDGE_PROFILE=shared` in **both** GitHub environments under **Settings >
+Environments > staging/production > Environment variables**. Keep their existing
+SSH secrets and verified host-key entries. These are configuration changes, not
+an instruction to recreate the server or reset a password.
+
+After merge, run **CD Edge** from `main`, select `production`, leave
+`allow-profile-change` off, and approve it. This adopts the existing shared
+layout while preserving the Compose project and certificate-volume names.
+The old unmarked shared layout remains recognizable by application preflight
+during this one-time adoption. Confirm the host-local HTTPS checks and the next
+staging application's browser check pass.
+
+### Later: move staging to its own server
+
+1. Provision the new host with Docker/Compose, curl, a deployment account with
+   write access under `/srv/opengamebuilder`, and ports 80/443 available for its
+   edge. Do not run a competing native Caddy service.
+2. Verify the new server's SSH host key through the
+   [host-key guide](deployment-host-key.md). Change **only staging's** SSH
+   secrets/host-key variable to the new host and set its `EDGE_PROFILE=staging`.
+3. Coordinate DNS and certificate issuance for `staging.opengamebuilder.com`.
+   Run **CD Edge** from `main` with environment `staging`, then **CD Staging**.
+   A first edge check may need rerunning after DNS/certificates are ready; it
+   deliberately does not accept a successful response from the old server.
+4. Verify the new host's edge, API revision, and browser flow. Then set
+   **production's** `EDGE_PROFILE=production` and dispatch **CD Edge** through
+   production with `allow-profile-change` enabled. This deliberately removes the
+   obsolete staging route/mount from the old host; coordinate the brief proxy
+   interruption. Keep the old staging data until the cutover is accepted.
+
+Pause conflicting deployment runs during the move. Moving credentials/profile
+alone does not migrate application data, DNS, certificates, or release history.
+Retain a documented recovery plan; no migration or cleanup is performed by a
+normal application deployment.
+
+To move **production** instead, provision and verify its new host, set
+production's own SSH configuration and `EDGE_PROFILE=production`, then run its
+edge and application workflows and verify the cutover. Once production is
+accepted on the new host, leave staging's SSH configuration pointing at the old
+host, set staging's `EDGE_PROFILE=staging`, and dispatch **CD Edge** with
+environment `staging` and `allow-profile-change` enabled. Its separate
+production approval authorizes removing the old production route/mount; the
+apply job still uses staging's credentials to reach the old host. You do not
+need to point production credentials back at that host. The same DNS,
+certificate, data-retention, and recovery precautions apply in either direction.
 
 ### Host Caddy conflicts and read-only verification
 
 Only the Docker edge should own this server's ports 80 and 443. A separately
 installed `caddy.service` can start at boot, occupy those ports, and prevent
 `ogb-edge-caddy-1` from starting. An API container being up does not establish
-that either public site is reachable.
+that a public site is reachable.
 
 In an existing **root SSH session on the Hetzner server**, from any directory,
 these commands inspect state without changing services or printing environment
@@ -79,10 +167,13 @@ variables or private keys:
 systemctl is-enabled caddy
 systemctl is-active caddy
 ss -ltnp '( sport = :80 or sport = :443 )'
-docker inspect --format '{{.Name}} image={{.Config.Image}} status={{.State.Status}} restarts={{.RestartCount}}' ogb-edge-caddy-1 ogb-staging-api-1 ogb-production-api-1
+docker ps --all --filter name=ogb- --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+docker inspect --format '{{.Name}} image={{.Config.Image}} status={{.State.Status}} restarts={{.RestartCount}}' ogb-edge-caddy-1
 docker logs --since 2h --tail 150 ogb-edge-caddy-1 2>&1
-docker logs --since 2h --tail 150 ogb-staging-api-1 2>&1
-docker logs --since 2h --tail 150 ogb-production-api-1 2>&1
+# Choose an application actually deployed on this host; repeat for the other
+# only if this is a shared host.
+environment=staging
+docker logs --since 2h --tail 150 "ogb-${environment}-api-1" 2>&1
 ```
 
 The native Caddy service should be disabled/inactive (or not installed).
@@ -92,23 +183,23 @@ logs may contain client addresses or request data; redact sensitive content
 before sharing them.
 
 If inspection confirms the native service is the conflicting, superseded OGB
-proxy, coordinate a short interruption for **both sites**, then run on the host:
+proxy, coordinate a short interruption for **the sites on this host**, then run:
 
 ```bash
 systemctl disable --now caddy
 docker start ogb-edge-caddy-1
-curl --fail --show-error https://opengamebuilder.com/api/alive
-curl --fail --show-error https://staging.opengamebuilder.com/api/alive
 ```
 
 Do not stop a service hosting unrelated sites. No root-password reset or web
 console is needed when the existing SSH session works. Restarting the container
 restores its existing image; it does **not** apply a new image pin. After an edge
-change is reviewed and merged, use GitHub **Actions > CD Shared Edge > Run
-workflow**, select `main`, and approve the production environment. A Compose
-image change can recreate the shared proxy and briefly interrupt both sites.
+change is reviewed and merged, use GitHub **Actions > CD Edge > Run workflow**,
+select `main` and the correct environment (production for a shared host), and
+approve it. A Compose image change can briefly interrupt the sites on that host.
 Verify the running image reference matches `deploy/edge/compose.yml` and that
-both workflow liveness checks pass.
+the selected host's edge checks and its deployed applications' smoke tests pass.
+
+## Application artifacts
 
 After source validation, the package job produces one Release web archive.
 After environment approval, deployment verifies that archive and builds and
@@ -183,8 +274,8 @@ not a zero-downtime atomic swap of the API and web processes. The section 14
 staging failure and rollback rehearsal passed on 2026-09-20; see the
 [checklist evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
 
-To recover an edge change, fix the candidate on `main` and dispatch **CD Shared
-Edge** again. For an urgent host-side recovery, use the last known-good edge
+To recover an edge change, fix the candidate on `main` and dispatch **CD Edge**
+for the affected host again. For an urgent host-side recovery, use the last known-good edge
 files retained in the host's `.rollback.*` directory after a failed activation,
 validate them with `caddy validate`, and reload Caddy. Do not restart or
 recreate Caddy for a Caddyfile-only correction. Coordinate host-side changes

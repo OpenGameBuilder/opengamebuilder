@@ -1,0 +1,4 @@
+services:
+  caddy:
+    volumes:
+      - ../production/web:/srv/opengamebuilder/production/web:ro

@@ -71,7 +71,7 @@ repositories, mocks GitHub CLI calls and Git pushes, and never publishes a
 branch, tag, or release. CI and deployment validation run it after the solution
 tests and upload its log on failure.
 
-The shared-edge apply script also has an isolated Bash test:
+The host-edge apply script also has an isolated Bash test:
 
 ```pwsh
 & 'C:\Program Files\Git\bin\bash.exe' tests/deploy-edge/run.sh
@@ -80,9 +80,24 @@ The shared-edge apply script also has an isolated Bash test:
 It mocks Docker and verifies invalid-candidate rejection, Caddyfile-only reload,
 failed-reload restoration, intentional Compose updates, first-time setup, and
 recovery of a stopped edge even when the candidate files are unchanged.
+It also verifies environment/profile ownership and explicit migration approval.
 CI runs it without SSH, Docker, deployment credentials, or service changes.
 Live staging and production availability must still be checked by the deployment
 smoke tests after the workflow change reaches `main`.
+
+Host topology has a separate gate requiring the **Docker Compose CLI**, but not
+a running Docker daemon, SSH, or deployment credentials:
+
+```pwsh
+& 'C:\Program Files\Git\bin\bash.exe' tests/deploy-topology/run.sh
+```
+
+It renders shared, staging-only, and production-only candidates and checks real
+Compose normalization, image pins, stable certificate volumes, relative mounts,
+and absence of the other environment from isolated profiles. Invalid/missing
+profiles fail closed. Mocked curl tests ensure the edge readiness check targets
+the selected SSH host even before DNS cutover. CI/deployment validation run it;
+ordinary .NET tests still do not require Docker.
 
 Application activation and rollback have an isolated host-script test:
 

@@ -240,6 +240,16 @@ Live staging deployment and production availability read-back remain to be
 verified after the protected workflow change is merged; no edge or application
 deployment was run for this local implementation.
 
+**Host independence follow-up:** deployment environments explicitly select a
+`shared`, `staging`, or `production` edge profile. Each host owns its own network,
+proxy, and certificate volumes; an isolated profile contains no routes or web
+mounts for the other environment. Only shared staging deployments probe
+production availability. Profile changes require explicit production approval,
+and application preflight checks the installed profile before transferring a
+release. See [hosting setup](setup/hosting.md#host-edge-changes) for adoption and
+future separation. Local regression/configuration validation does not establish
+live separate-host acceptance; no host migration is performed by this change.
+
 ### 13. Make builds portable and promote identifiable artifacts
 
 - [x] Prefer deployed frontend requests to the current origin's `/api` rather than
