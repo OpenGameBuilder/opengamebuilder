@@ -17,8 +17,8 @@ architecture may change before v1; original-game compatibility is not establishe
 
 The next milestone is to make the foundation ready for engine development.
 The first engine milestone's compatibility goal, independent fixture, and
-acceptance criteria are still to be chosen in
-[section 9 of the foundation checklist](docs/foundation-checklist.md#9-record-the-engine-boundary-and-first-milestone).
+acceptance criteria are still to be agreed through a
+[public proposal](https://github.com/OpenGameBuilder/opengamebuilder/discussions).
 Full original-site recreation and broad game compatibility are outside this
 initial foundation work.
 
@@ -31,7 +31,7 @@ initial foundation work.
 2. Read the [contribution guide](CONTRIBUTING.md) and
    [testing guidance](docs/quality/testing.md) before changing code. If you use AI
    tools, follow the [AI policy](AI_POLICY.md).
-3. Pick a bounded task from the [foundation roadmap](docs/foundation-checklist.md)
+3. Pick a bounded task from the [public roadmap](https://github.com/orgs/OpenGameBuilder/projects/3)
    or [open issues](https://github.com/OpenGameBuilder/opengamebuilder/issues).
    Check existing issues before starting, and propose larger changes before
    implementation as described in the contribution guide.
@@ -41,10 +41,9 @@ and browser/accessibility expectations.
 
 Useful starting tasks include following the setup guide in your editor and
 reporting a reproducible failure, improving an unclear setup instruction, or
-adding a focused regression test for an API/client bug. Section 3 of the
-[checklist](docs/foundation-checklist.md#3-repair-the-documented-development-workflow)
-tracks the remaining fresh-checkout editor verification. Engine contributors
-can help define the small, independently testable milestone in section 9.
+adding a focused regression test for an API/client bug. Fresh-checkout editor
+verification remains open. Engine contributors can help define a small,
+independently testable milestone through a public proposal.
 
 Use the [issue forms](https://github.com/OpenGameBuilder/opengamebuilder/issues/new/choose)
 for reproducible bugs and concrete proposals. See [support](SUPPORT.md) for help

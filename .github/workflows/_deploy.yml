@@ -69,6 +69,8 @@ jobs:
           checkout-ref: ${{ needs.resolve-source.outputs.protected-revision }}
           working-directory: deployment-source
           artifact-name: ${{ inputs.environment-slug }}-validation
+          # The required package job below publishes and verifies the deployable frontend.
+          publish-web: "false"
 
   package:
     name: Package portable web client

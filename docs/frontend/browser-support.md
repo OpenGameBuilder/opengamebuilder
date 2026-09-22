@@ -3,7 +3,7 @@
 The current frontend is a Blazor WebAssembly placeholder that displays application
 information from the API. There is no editor yet. This policy separates recorded
 checks from the browser and accessibility targets to verify with the first
-functional frontend feature, alongside [foundation section 6](../foundation-checklist.md#6-establish-frontend-failure-handling-and-a-smoke-test).
+functional frontend feature.
 
 ## Recorded browser check
 
@@ -63,7 +63,7 @@ These are implementation observations, not a runtime accessibility pass:
   region. Its unhandled-error UI has a reload link, but its dismiss control is a
   `span` without keyboard or button semantics in the markup.
 
-Resolve these gaps with the first functional frontend feature under section 6.
+Resolve these gaps with the first functional frontend feature.
 There is currently no recorded keyboard, focus, or screen-reader acceptance, and
 no claim of accessibility conformance.
 

@@ -287,8 +287,8 @@ PR failed, keep that source branch at the same commit and follow the
 The bot may create the tag, Release, and follow-up PR after deployment; it
 cannot approve its own PR, bypass CI, move a release tag, or recover the server.
 There is no agreed backup operator; see [practical stewardship](../community/stewardship.md).
-Artifact rollback was rehearsed in staging as recorded in
-[foundation section 14](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
+Artifact rollback was rehearsed in staging; the
+[hosting guide records the evidence](hosting.md#recorded-deployment-evidence).
 That evidence does not establish a second operator's access or recovery readiness.
 
 ## Acceptance evidence
@@ -376,7 +376,7 @@ PR #84 was closed without merging and both refs created by this run were deleted
 Only the exact verification patch ref was temporarily excluded for deletion;
 read-back confirmed the exclusion was removed and the gate has no bypass actors.
 The successful creation/PR operation, enforced review/check requirements, and
-unchanged tag-immutability rules complete section 7's bot acceptance. No human
+unchanged tag-immutability rules complete the release-bot acceptance check. No human
 approval was fabricated and no deployment, tag change, or release was performed.
 
 ## Administrator verification
@@ -429,7 +429,7 @@ Then perform a controlled acceptance check without deploying:
    details; do not create, move, or delete a real release tag merely to test rules.
    Rehearse actual release/tag operations only during an authorized release.
 6. Record PR URLs, head SHAs, check-run URLs, merge-blocking evidence, and the
-   authenticated ruleset/bypass inventory here before completing section 7.
+   authenticated ruleset/bypass inventory here before claiming merge-gate acceptance.
    Close temporary PRs; do not merge them just to exercise the gate.
 
 See GitHub's [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)

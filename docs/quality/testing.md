@@ -15,8 +15,7 @@ See [developer setup](../setup/development.md) for SDK prerequisites.
 The existing deployment smoke below checks published frontend startup and a
 real API round trip in Chromium. Component tests and broader browser coverage
 for loading, success, network failure, and invalid responses accompany the first
-functional frontend feature, as scoped in section 6 of the
-[foundation checklist](../foundation-checklist.md). See the
+functional frontend feature. See the
 [browser and accessibility matrix](../frontend/browser-support.md) for recorded
 evidence, unverified targets, and the manual checks required as the editor develops.
 
@@ -54,14 +53,39 @@ analysis or claiming this repository change fixed that managed workflow. See
 [CI](../../.github/workflows/ci.yml) and
 [deployment validation](../../.github/workflows/_deploy.yml) use the same
 [validation action](../../.github/actions/validate/action.yml), so restore,
-formatting verification, Release build, and solution tests cannot drift between
-the two paths. The local equivalents are in
+formatting verification, Release build, solution tests, and smoke-package checks
+cannot drift between the two paths. The solution commands are in
 [developer setup](../setup/development.md#command-line-workflow-start-here).
+
+PR validation also publishes the frontend in Release using the completed build
+and runs [the portability guard](../../scripts/verify-web-publish.sh). Deployment
+disables this extra publish in the shared action because its required `package`
+job already publishes and checks the frontend before any deployment job runs.
+Both paths reject environment-specific configuration in the published artifact.
+
+After the solution gate, run these local equivalents from the repository root
+with Git Bash and Node.js 22/npm available:
+
+```pwsh
+dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --no-build --output artifacts/web
+& 'C:\Program Files\Git\bin\bash.exe' scripts/verify-web-publish.sh artifacts/web/wwwroot
+npm ci --prefix tests/deploy-smoke
+node --check tests/deploy-smoke/smoke.mjs
+```
+
+The Node checks install the locked smoke dependencies and parse `smoke.mjs`;
+they do not install or launch a browser. These build/package checks need no
+deployment credentials or public URL and do not establish browser acceptance.
+The deployment job still installs dependencies and Chromium on its own runner
+before activation. Live browser smoke runs after activation and can trigger
+recovery if it fails.
 
 A failing phase fails the job. Available console logs and a formatting report
 are uploaded on failure and retained for seven days; assertion details are in
-`test.log`. The test command uses the repository's Microsoft.Testing.Platform
-runner without adding a separate test-reporting dependency.
+`test.log`. The shared action also captures `web-publish.log`,
+`web-configuration.log`, `smoke-dependencies.log`, and `smoke-syntax.log` for
+the new checks when they run. The test command uses the repository's
+Microsoft.Testing.Platform runner without adding a separate test-reporting dependency.
 
 Release-script behavior has an additional Bash test gate:
 
@@ -110,6 +134,10 @@ Application activation and rollback have an isolated host-script test:
 
 It uses temporary releases and a mocked Docker command to check legacy
 migration, asset retention, rollback, API startup failure, and archive rejection.
+First-deployment cases cover partial startup failure, recovery after activation
+(the browser-smoke failure boundary), successful retry, cleanup failure, and
+missing or corrupt expected predecessor state. These checks run without SSH or
+Docker services; they do not establish live browser or staging acceptance.
 Deployment additionally runs a Chromium smoke test from `tests/deploy-smoke` that
 loads the published frontend, observes its API request, and checks the expected
 source revision. That live test requires a deployed staging or production URL.

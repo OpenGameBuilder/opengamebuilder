@@ -1,16 +1,16 @@
 # Documentation
 
 Start with [development setup](setup/development.md) to build, test, and run the
-application. The [foundation checklist](foundation-checklist.md) records current
-work, acceptance evidence, and deferred features. There is no game runtime or
-editor yet; section 9 tracks the first engine milestone decision.
+application. The [public roadmap](https://github.com/orgs/OpenGameBuilder/projects/3)
+tracks project work. There is no game runtime or editor yet; the first engine
+milestone's behavior and acceptance criteria remain to be agreed.
 
 ## Working on the application
 
 | Task | Read |
 | --- | --- |
 | Install tools, run locally, or debug | [Development setup](setup/development.md) |
-| Choose a task or propose a change | [Contributing](../CONTRIBUTING.md) and [foundation checklist](foundation-checklist.md) |
+| Choose a task or propose a change | [Contributing](../CONTRIBUTING.md) and [open issues](https://github.com/OpenGameBuilder/opengamebuilder/issues) |
 | Understand the current HTTP surface and health checks | [API](backend/api.md) |
 | Run tests and understand their limits | [Testing](quality/testing.md) |
 | Maintain agent instructions and vendored skills | [AI tooling maintenance](setup/ai-tooling.md) and [AI policy](../AI_POLICY.md) |

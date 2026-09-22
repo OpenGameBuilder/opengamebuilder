@@ -1,5 +1,5 @@
 name: Validate solution
-description: Shared restore, formatting, Release build, and test gate for CI and deployment.
+description: Shared solution, frontend packaging, and smoke-package validation for CI and deployment.
 
 inputs:
   checkout-ref:
@@ -13,6 +13,10 @@ inputs:
   artifact-name:
     description: Unique name for this job's failure diagnostics.
     required: true
+  publish-web:
+    description: Publish and verify the frontend; disable only when the caller has a separate required packaging job.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -60,6 +64,46 @@ runs:
       run: >
         dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
         2>&1 | tee artifacts/validation/test.log
+
+    - name: Publish web client
+      if: ${{ inputs.publish-web == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj \
+          --configuration Release --no-build --output artifacts/web \
+          2>&1 | tee artifacts/validation/web-publish.log
+
+    - name: Verify portable web configuration
+      if: ${{ inputs.publish-web == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        bash scripts/verify-web-publish.sh artifacts/web/wwwroot \
+          2>&1 | tee artifacts/validation/web-configuration.log
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '22'
+        package-manager-cache: false
+
+    - name: Validate browser smoke dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        npm ci --prefix tests/deploy-smoke \
+          2>&1 | tee artifacts/validation/smoke-dependencies.log
+
+    - name: Check browser smoke syntax
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        node --check tests/deploy-smoke/smoke.mjs \
+          2>&1 | tee artifacts/validation/smoke-syntax.log
 
     - name: Test release scripts without external writes
       shell: bash
