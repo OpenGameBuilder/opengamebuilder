@@ -195,6 +195,56 @@ load its application information. Stop the compound to stop both debuggers.
 In Visual Studio, use **Configure Startup Projects** to select the API and web
 client for a local multiple-startup configuration instead of the shared Aspire
 profile. Keep their named project launch profiles and the fixed ports above.
+The web client supports the project profile only; there is no IIS Express profile.
+
+### Verify editor debugging from a fresh checkout
+
+Use a fresh checkout without copied `.vs`, `bin`, `obj`, or user settings, and
+complete the prerequisites and command-line checks above. Rehearse each editor
+separately, stopping the previous stack before starting the next one.
+
+1. In Visual Studio, open the solution and select **Aspire** as described above.
+   In VS Code, open the repository root and select **Launch All (API + Web)**.
+2. Set an API breakpoint in `AboutController.Get` in
+   [`AboutController.cs`](../../src/OpenGameBuilder.Api/Controllers/AboutController.cs)
+   and a frontend breakpoint on the `_title` assignment immediately after
+   `await Client.GetAboutAsync()` in
+   [`Home.razor.cs`](../../src/OpenGameBuilder.Web.Client/Pages/Home.razor.cs).
+3. Press F5. Use the debugger's Edge or Chrome window, rather than an unrelated
+   browser tab, and confirm the API and browser debug sessions attach. Open
+   `https://localhost:7001`, confirm that the API breakpoint is hit, and continue.
+   Blazor's debug proxy can start after the first page's `OnInitializedAsync`
+   has run, so an initial missed frontend breakpoint is inconclusive. Retry
+   after the browser debugger is ready and record whether the frontend
+   breakpoint is hit; see [Microsoft's Blazor debugging guidance](https://learn.microsoft.com/aspnet/core/blazor/debug?view=aspnetcore-10.0#debug-a-blazor-webassembly-app-in-an-ide).
+4. Continue execution and perform the browser success check above: the API
+   request returns 200 and the home heading displays the Development version.
+5. Stop debugging and confirm both application processes stop before switching
+   editors or launch methods.
+
+Record the source revision, Windows/editor/browser versions, launch profile,
+breakpoint results, and browser request result. Build and CLI startup checks
+alone do not establish F5, debugger attachment, or fresh-editor acceptance.
+
+### Recorded setup verification
+
+On 2026-09-22, a fresh local clone of `5c5fdbaf0930db009d4d9c6a3f3ee5644a689d60`
+with the contributor-guidance, web launch-profile, and startup-HTML repairs was
+opened without copied editor state or build outputs. The host was Windows 11
+(build 26200), with .NET SDK 10.0.401, Aspire CLI 13.4.2, and an already trusted
+development certificate. No Docker or production credentials were needed.
+
+| Check | Result |
+| --- | --- |
+| Solution validation in the working checkout | Restore, format verification, Release build (zero warnings), and all 72 tests passed; frontend Release publish and the portability guard also passed. |
+| Visual Studio Insiders 18.11.12210.170, shared Aspire profile | F5 built and started the fresh clone; Aspire reported both resources healthy. A browser request hit `AboutController.Get`, and continuing displayed `OpenGameBuilder 0.11.0 (Development)` in Chrome 153.0.8010.53. |
+| VS Code 1.138.0, Launch All (API + Web) | F5 started both projects. Reloading the launched Edge page hit `AboutController.Get` in VS Code; the frontend displayed the Development heading. |
+| Remaining editor acceptance | The frontend `Home.OnInitializedAsync` breakpoint was not hit in the externally opened Visual Studio Chrome tab. Full Blazor breakpoint verification in each editor's debugger-owned browser remains open; neither API debugging nor the heading alone proves it. |
+
+The fresh clone's initial CLI restore hit a local NuGet scratch-lock access error;
+Visual Studio subsequently restored and built it successfully. This records a
+rehearsal on an existing development machine, not a clean-machine installation.
+Repeat the debugger procedure above when closing the remaining editor acceptance.
 
 ## Formatting, warnings, and optional Git hooks
 

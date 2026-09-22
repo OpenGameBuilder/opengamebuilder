@@ -66,7 +66,12 @@ The repository is intended to work smoothly from a fresh checkout. If the setup 
 
 ## Repository Standards
 
-The repository includes an `.editorconfig`, and formatting runs on commit.
+The repository's [`.editorconfig`](.editorconfig) defines formatting rules.
+Formatting verification is required; Git hooks are optional and run only after
+you opt in. Follow [development setup](docs/setup/development.md#command-line-workflow-start-here)
+for the required validation commands and
+[formatting and optional hooks](docs/setup/development.md#formatting-warnings-and-optional-git-hooks)
+for applying fixes or enabling the pre-commit hook.
 
 Please keep changes consistent with the existing style and project structure. When future coding standards or architecture documentation are added, contributors should follow those documents as well.
 

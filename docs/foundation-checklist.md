@@ -190,11 +190,11 @@ services, or deployment state were changed; no new deployment was performed.
 although Husky is opt-in. The web project's IIS Express profile advertises origins
 not allowed by development CORS. Fresh-checkout editor acceptance remains open.
 
-- [ ] Say that format verification is required and hooks are optional; link the
+- [x] Say that format verification is required and hooks are optional; link the
   authoritative setup commands instead of duplicating them.
-- [ ] Remove the unsupported IIS Express profile, or explicitly support and test
+- [x] Remove the unsupported IIS Express profile, or explicitly support and test
   it with matching configuration. Preserve the documented direct and Aspire paths.
-- [ ] Correct the old `OpenGameBuilder.Web` startup title and scoped-CSS filename
+- [x] Correct the old `OpenGameBuilder.Web` startup title and scoped-CSS filename
   hint in [index.html](../src/OpenGameBuilder.Web.Client/wwwroot/index.html).
 - [ ] Follow the setup guide from a fresh checkout in Visual Studio and VS Code,
   including F5, debugger attachment, frontend startup, and the API request.
@@ -202,6 +202,17 @@ not allowed by development CORS. Fresh-checkout editor acceptance remains open.
 **Acceptance:** the solution gate passes after configuration changes. Both
 documented editor paths work without undocumented steps, Docker, or production
 credentials; record actual editor verification separately from CLI results.
+
+**Result (2026-09-22, editor acceptance partial):** CONTRIBUTING now requires
+format verification and links the optional-hook setup. The unsupported web IIS
+Express profile/settings are removed, and the startup title and scoped-CSS hint
+match the application and project. Restore, format verification, Release build
+(zero warnings), all 72 .NET tests, frontend Release publish, and the portability
+guard passed. Fresh-checkout Visual Studio and VS Code F5 rehearsals started the
+API and frontend, hit the API breakpoint, and displayed the Development heading.
+[Setup verification evidence](setup/development.md#recorded-setup-verification)
+records the editor versions, successful checks, and remaining Blazor debugger
+acceptance; the full editor item remains unchecked.
 
 ### 6. Remove unused scaffolding and duplicate documentation
 
