@@ -108,6 +108,29 @@ updates:
     cooldown:
       default-days: 3
 
+  # DocFX is isolated from opt-in developer tools.
+  - package-ecosystem: "nuget"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Indiana/Indianapolis"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github/actions/docs"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:15"
+      timezone: "America/Indiana/Indianapolis"
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 3
+
   # API Dockerfile base images.
   - package-ecosystem: "docker"
     directory: "/src/OpenGameBuilder.Api"

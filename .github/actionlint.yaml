@@ -11,3 +11,6 @@ paths:
   .github/workflows/cd-staging.yml:
     ignore:
       - '^unexpected key "cache-mode" for "workflow" section\.'
+  .github/workflows/docs-pages.yml:
+    ignore:
+      - '^unexpected key "cache-mode" for "workflow" section\.'

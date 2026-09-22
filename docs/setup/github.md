@@ -15,7 +15,8 @@ tests in its place.
 
 CI runs on every pull request, without workflow-level path filters, on pushes
 to `patch/v*`, and by manual dispatch. `build-test` aggregates the selection job
-and its selected lanes. Documentation-only PRs run the shared content check;
+and its selected lanes. Documentation-only PRs run the shared content check and
+the DocFX site build with rendered link, anchor, search, and edit-link checks;
 application, workflow, tooling, mixed, and unrecognized changes require both
 Windows solution checks and Linux full validation. Pushes and manual runs always
 require both platforms. See [selection and lane coverage](../quality/testing.md#pr-lanes-and-the-required-gate)
@@ -25,7 +26,7 @@ The [shared validation action](../../.github/actions/validate/action.yml) uses
 the repository's `content`, `quick`, or `full` command. Both OS lanes run locked
 restore, formatting verification, a Release solution build (including AppHost),
 and all tests. Linux additionally checks content, frontend packaging, smoke-package
-installation/syntax, and the shell suites, then builds and verifies the API
+installation/syntax, the documentation site, and the shell suites, then builds and verifies the API
 container without pushing it. The aggregate requires explicit `success` for
 every selected lane and `skipped` for unselected lanes; failures, cancellations,
 missing results, and unexpected skips cannot pass it. Keep only the stable
@@ -54,8 +55,11 @@ into a separate directory and runs the shared checks there. This keeps executabl
 pipeline definitions separate from the selected application's files.
 Third-party Actions in workflows and in the local composite validation action
 are pinned to reviewed commit SHAs with adjacent release comments. Separate
-Dependabot entries cover `.github/workflows` and `.github/actions/validate`, so
-both sets continue to receive reviewable version-update PRs.
+Dependabot entries cover `.github/workflows`, `.github/actions/validate`, and
+`.github/actions/docs`, so their pins continue to receive reviewable update PRs.
+The DocFX tool manifest under `docs/.config` has its own NuGet update entry.
+See [documentation publication](documentation.md#publication-and-hosted-acceptance)
+for the manual protected-`main` Pages workflow and its outstanding hosted acceptance.
 
 The shared PowerShell command checks native exit codes while retaining output.
 The API image check uses Bash with `-e -o pipefail`, so `tee` cannot hide failure.

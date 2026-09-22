@@ -32,7 +32,7 @@ test("Prettier respects formatter ownership and generated/vendor boundaries", as
 });
 
 test("deployment cache exception still rejects missing, writable, and overridden cache modes", () => {
-  for (const file of ["_deploy", "cd-production", "cd-staging"]) {
+  for (const file of ["_deploy", "cd-production", "cd-staging", "docs-pages"]) {
     const name = `.github/workflows/${file}.yml`;
     for (const mode of [undefined, "full", "read-only", true, "None"]) {
       assert.throws(

@@ -540,11 +540,11 @@ Sources: [Playwright servers](https://playwright.dev/docs/test-webserver),
 
 ### 17. Publish searchable documentation and checked examples
 
-- [ ] Build a DocFX site with its modern template from the existing Markdown.
+- [x] Build a DocFX site with its modern template from the existing Markdown.
       Keep one source copy per document, generated HTML untracked, and concise
       navigation for setup, contribution, architecture, testing, and operations.
       Exclude this temporary plan from site content and navigation.
-- [ ] Add search and edit links, a PR site build, and checks of rendered local
+- [x] Add search and edit links, a PR site build, and checks of rendered local
       links/anchors. Use appropriate failing diagnostic severities for broken content.
       Keep external-link maintenance separate as described in step 14.
 - [ ] Configure publication from validated protected content when authorized,
@@ -560,6 +560,24 @@ actionable, and hosted acceptance is recorded separately. Custom branding and AP
 generation do not block the first engine slice.
 Sources: [DocFX template](https://dotnet.github.io/docfx/docs/template.html),
 [.NET reference](https://dotnet.github.io/docfx/docs/dotnet-api-docs.html).
+
+**Result (2026-09-22, local acceptance):** DocFX 2.80.1 builds 27 existing-source
+pages with the modern template, task navigation, search, and original-source edit
+links. The temporary plan and agent instructions are excluded; generated output
+stays under ignored `artifacts/docs/site`. Repository-file links stay relative in
+Markdown and resolve to the built source revision in the site. `check-docs.ps1` passed with zero build
+warnings, all rendered local links/anchors, search and edit-link inventory, and
+four regression groups rejecting deliberate content defects. Both selected PR
+lanes run the gate and retain review artifacts. `check.ps1 full -Serial` also
+passed, including the 72 .NET tests, content and CI-policy regressions, frontend
+packaging, and five shell suites.
+
+The manual protected-`main` Pages workflow and guarded `github-pages` environment
+are configured, but the workflow has not been dispatched. Actual hosted acceptance
+remains pending. The first hosted run of the new PR checks is also unverified. The engine-example and
+filtered-reference item remains open because steps 7–8 have no implemented slice
+to compile or reuse. [Documentation maintenance](setup/documentation.md) records
+the permanent build, publication, evidence, and example-adoption procedures.
 
 ### 18. Clarify branches and make release notes useful
 
