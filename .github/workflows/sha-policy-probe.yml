@@ -1,0 +1,14 @@
+name: Action SHA policy probe
+on:
+  push:
+    branches: [codex/section-20-policy-probe-20260922]
+permissions:
+  contents: read
+jobs:
+  rejected-before-execution:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo UNEXPECTED_RUNNER_EXECUTION
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
