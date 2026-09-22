@@ -7,6 +7,11 @@ Staging and production may use the same server or different servers; complete
 this guide separately for each environment. The normal path needs no root
 password, password reset, server restart, or SSH configuration change.
 
+Administrator confirmation of each existing pin's original trust source is still
+unverified in the [host evidence record](hosting.md#outstanding-host-verification).
+Completing this procedure must record that source as well as successful pin
+transfer; a passing deployment alone does not resolve the provenance gap.
+
 ## What we are doing
 
 SSH authenticates both ends of the connection. Your personal SSH private key

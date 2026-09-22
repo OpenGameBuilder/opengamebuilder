@@ -103,20 +103,25 @@ deployments queue instead of cancelling an in-flight deployment. Production
 profile is `shared`**. Isolated staging neither requires production's URL nor
 depends on production being available.
 
-### Adopt explicit profiles on the current server
+### Shared-profile adoption
 
-Before merging this workflow change, set the environment variable
-`EDGE_PROFILE=shared` in **both** GitHub environments under **Settings >
-Environments > staging/production > Environment variables**. Keep their existing
-SSH secrets and verified host-key entries. These are configuration changes, not
-an instruction to recreate the server or reset a password.
+The explicit-profile workflow is merged. Read-only GitHub inspection on
+**2026-09-22** confirmed `EDGE_PROFILE=shared` in both environments and a
+successful CD Edge run using the production environment and shared profile; see the
+[recorded evidence](#recorded-deployment-evidence). This replaces the earlier
+pre-merge setup instructions. Current host state and application acceptance
+after that edge run still need the checks [listed below](#outstanding-host-verification).
 
-After merge, run **CD Edge** from `main`, select `production`, leave
-`allow-profile-change` off, and approve it. This adopts the existing shared
-layout while preserving the Compose project and certificate-volume names.
-The old unmarked shared layout remains recognizable by application preflight
-during this one-time adoption. Confirm the host-local HTTPS checks and the next
-staging application's browser check pass.
+For a host still using the unmarked legacy shared layout, the deployment
+administrator first confirms `EDGE_PROFILE=shared` in both environments under
+**Settings > Environments > staging/production > Environment variables** and
+confirms each environment's SSH host/key configuration. With deployment
+authorization, dispatch **CD Edge** from `main`, select `production`, leave
+`allow-profile-change` off, and approve it. This adopts the shared marker while
+preserving the Compose project and certificate-volume names. Application
+preflight accepts the legacy shared layout during adoption. Record the edge
+run, both host-local HTTPS checks, and subsequent application smoke evidence;
+merging the workflow alone does not complete adoption.
 
 ### Later: move staging to its own server
 
@@ -169,6 +174,7 @@ systemctl is-active caddy
 ss -ltnp '( sport = :80 or sport = :443 )'
 docker ps --all --filter name=ogb- --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 docker inspect --format '{{.Name}} image={{.Config.Image}} status={{.State.Status}} restarts={{.RestartCount}}' ogb-edge-caddy-1
+head -n 1 /srv/opengamebuilder/edge/Caddyfile
 docker logs --since 2h --tail 150 ogb-edge-caddy-1 2>&1
 # Choose an application actually deployed on this host; repeat for the other
 # only if this is a shared host.
@@ -198,6 +204,25 @@ select `main` and the correct environment (production for a shared host), and
 approve it. A Compose image change can briefly interrupt the sites on that host.
 Verify the running image reference matches `deploy/edge/compose.yml` and that
 the selected host's edge checks and its deployed applications' smoke tests pass.
+
+### Outstanding host verification
+
+The remaining evidence belongs to **`ostomachion`, the deployment and host
+administrator**. As of the **2026-09-22** documentation check, the following
+items remain unverified; no SSH session or host change was performed for this
+check. Record dated, redacted results here when completed.
+
+| Remaining check | Owner | Required evidence |
+| --- | --- | --- |
+| Original SSH host-key trust source for each environment | `ostomachion` (deployment administrator) | Confirm whether each pin came from an authenticated independent channel or an established trusted SSH connection, using the [host-key guide](deployment-host-key.md). Successful strict SSH alone does not establish how the first key was authenticated. |
+| Current installed profile and running Caddy digest | `ostomachion` (host administrator) | Capture the marker and running container image reference with the read-only commands above; compare with the intended profile and the pinned image in the reviewed `deploy/edge/compose.yml`. A successful past edge apply is not a fresh host inspection. |
+| Competing native Caddy boot and listener state | `ostomachion` (host administrator) | Record `systemctl is-enabled/is-active caddy` and port-owner output. The native service must be disabled/inactive or absent, and the Docker edge must own 80/443. Remediation, if needed, is a separately authorized operation. |
+| Application acceptance after shared-profile adoption | `ostomachion` (deployment operator) | Record the next authorized staging browser smoke and production application check after edge run `35681866962`. Its host-local `/health` checks establish edge readiness only; the latest inspected staging browser run preceded the edge apply. |
+
+Separate-host migration and backup-operator readiness are not established by
+shared-host acceptance. Follow the migration procedure only when that move is
+authorized; operator continuity remains tracked in
+[practical stewardship](../community/stewardship.md).
 
 ## Application artifacts
 
@@ -294,9 +319,8 @@ The Compose service is replaced before the root web redirect switches. During
 that short interval, an already loaded page can call the new API, so API changes
 must remain compatible with the retained frontend until its clients have aged
 out. This mechanism provides an atomic web switch and a recoverable pair; it is
-not a zero-downtime atomic swap of the API and web processes. The
-staging failure and rollback rehearsal passed on 2026-09-20; see the
-[recorded deployment evidence](#recorded-deployment-evidence).
+not a zero-downtime atomic swap of the API and web processes. See the
+[recorded deployment evidence](#recorded-deployment-evidence) for rehearsal results.
 
 To recover an edge change, fix the candidate on `main` and dispatch **CD Edge**
 for the affected host again. For an urgent host-side recovery, use the last known-good edge
@@ -306,6 +330,21 @@ recreate Caddy for a Caddyfile-only correction. Coordinate host-side changes
 with any active edge workflow so its next write does not overwrite the repair.
 
 ## Recorded deployment evidence
+
+Read-only GitHub inspection on **2026-09-22** confirmed that
+[PR #113](https://github.com/OpenGameBuilder/opengamebuilder/pull/113) merged at
+`e164922c19213ae1ca2936554cca3970269cfac6`, and both environment `EDGE_PROFILE`
+values are `shared`. [CD Edge run 35681866962](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35681866962)
+at that commit selected production credentials and the shared profile. Its apply
+step recreated and started Caddy, and both selected host-local edge checks passed
+at **03:27 UTC on 2026-09-22**. This establishes recorded shared-profile adoption,
+not just a merged configuration change.
+
+The [staging run at the same commit](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35681727268)
+passed profile preflight and browser smoke by **03:06 UTC**, before that edge
+apply. It does not establish application acceptance after adoption. The
+[outstanding checks](#outstanding-host-verification) retain that follow-up and
+current-host/key-provenance gaps with their owner.
 
 The [successful staging rollout](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542650898)
 and [2026-09-20 rollback rehearsal](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542855238)

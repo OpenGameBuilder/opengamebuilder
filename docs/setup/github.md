@@ -1,10 +1,10 @@
 # GitHub Setup
 
-This guide describes the intended workflow code in this checkout and separately
-records live GitHub settings. At the 2026-09-19 audit, remote `main` was still
-`f40de883662f2fbe35859879f772b5a9f329256d`; this checkout's newer
-protected-source workflow and validation action had not been published. Do not
-assume a local workflow change is active on GitHub until it is merged.
+This guide describes the checked-in workflows and separately dates inspected
+GitHub settings and acceptance evidence. Protected-source deployment and explicit
+host profiles are published; see the [deployment evidence](hosting.md#recorded-deployment-evidence).
+Later local changes still need their own hosted checks before hosted success is
+claimed. A merged workflow does not establish that host configuration was applied.
 
 ## CI merge gate
 
@@ -16,9 +16,12 @@ tests in its place.
 CI runs on every pull request, without path filters, and on pushes to `patch/v*`.
 The [shared validation action](../../.github/actions/validate/action.yml) runs
 restore, formatting verification, a Release solution build (including AppHost),
-and all tests. Both CI and [deployment validation](../../.github/workflows/_deploy.yml)
-use this action. Deployment requires its validation job to succeed before entering
-the environment job. CI additionally builds the API container without pushing it.
+and all tests, plus smoke-package installation and JavaScript syntax checks.
+CI also publishes the frontend and checks its portable configuration; deployment
+does that in its required `package` job. Both CI and
+[deployment validation](../../.github/workflows/_deploy.yml) use the shared action.
+Deployment requires validation and packaging to succeed before entering the
+environment job. CI additionally builds the API container without pushing it.
 No deployment credentials are supplied to pull-request CI; the deployment
 validation job also has a read-only repository token.
 
@@ -42,20 +45,31 @@ both sets continue to receive reviewable version-update PRs.
 
 Validation commands use explicit Bash shells, whose `-e -o pipefail` behavior
 keeps a failing command from being hidden by `tee`. Failures upload the available
-restore, formatting, build, and test console logs, plus the formatter's JSON
-report, as `ci-validation`, `staging-validation`, or `production-validation`.
+solution, script-suite, frontend-package (when run), and smoke-package console
+logs, plus the formatter's JSON report, as `ci-validation`, `staging-validation`,
+or `production-validation`.
 Each name includes the run-attempt suffix so reruns do not collide.
 Artifacts expire after seven days. These are diagnostic logs, not TRX reports;
 test failures and stack traces are in `test.log`. A cancellation, runner loss, or
 job timeout can prevent the upload, so also consult the Actions job log.
 Do not log credentials or sensitive response bodies.
 
-Every runner job has an explicit timeout: CI and CodeQL 30 minutes, deployment
-validation 20, deployment 30, smoke tests 5, and release-script jobs 10. Reusable
-source-resolution jobs have a 5-minute timeout. Reusable
-workflow callers use the timeouts on their called jobs. These are upper bounds,
-not targets. Do not add `continue-on-error`, conditional skipping, or path filters
-to the required job.
+Every runner job has an explicit timeout:
+
+| Runner job | Timeout (minutes) |
+| --- | --- |
+| CI `build-test`; each CodeQL analysis | 30 |
+| Deployment `build-test` | 20 |
+| Deployment `package` | 25 |
+| Deployment `deploy`, including browser setup, activation, smoke, and recovery | 45 |
+| Production release validation/publication; patch preparation | 10 |
+| Source resolution; main-dispatch guards; edge migration authorization | 5 |
+| Edge validation and apply | 15 |
+
+Reusable workflow callers use the timeouts on their called jobs. Browser smoke
+has no separate job or workflow step timeout. These are upper bounds, not targets.
+Do not add `continue-on-error`, conditional skipping, or path filters to the
+required job.
 
 ## Live protection
 
@@ -160,10 +174,8 @@ separate administrator setting, not a reason to broaden workflow tokens.
 
 ## Deployment authority and recovery
 
-Authenticated read-back on **2026-09-19** found that both `production` and
-`staging` select only the **`main` branch** for deployment. The obsolete
-`release/**/*` tag rule on production and `release/**/*` branch rule on staging
-were removed; neither belongs to the current process. GitHub matches an
+Authenticated read-back on **2026-09-22** confirmed that both `production` and
+`staging` select only the **`main` branch** for deployment. GitHub matches an
 environment's deployment rule against the workflow run's `GITHUB_REF`, not the
 commit checked out inside a job. For both release kinds, dispatch **CD
 Production** with the branch picker on `main`: the `ref` input chooses `main`
@@ -181,23 +193,18 @@ explains this distinction.
 | `patch/vX.Y.Z` or a tag | Any | Workflow guard fails; production also denies | Not run |
 | `main` | Tag, arbitrary SHA, or unprotected branch | Environment permits the dispatch ref | Source resolver rejects the input |
 
-Staging runs on a push to `main` or a manual dispatch from `main`; other
-dispatch refs are denied by its environment policy in the normal path. On
-2026-09-20, `main` at `93666e325c8c3bf02e9a5fbdbdffa4b7097198c9`
-contained the guards and source resolver; they remained in the merged fix at
-`65cf767afd587ce5ea72368df8d888c69bd0a7e7`. A
+Staging runs on a push to `main` or a manual dispatch from `main`; the workflow
+guard and environment policy reject other dispatch refs in the normal path. The
 [deliberately invalid production dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
 from `main` with a tag as the source input failed in the resolver; validation,
 deployment, and release jobs were skipped. A
 [non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
-from the fix branch failed at the first guard, with all downstream jobs skipped.
-Neither run tested an approved production release.
-The [merge-triggered staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531733842)
-at that commit passed protected-source resolution, validation, deployment, and
-the API liveness smoke test. It verifies the corrected secret handoff and the
-staging path, not production approval or a standard/patch release.
+failed at the first guard, with all downstream jobs skipped. These rejection
+checks did not deploy. Successful application and edge runs are recorded in
+[hosting](hosting.md#recorded-deployment-evidence).
 
-The production environment has one required reviewer, `ostomachion`.
+The production environment has one required reviewer, `ostomachion`, confirmed
+along with self-review and administrator bypass settings on **2026-09-22**.
 Self-approval is allowed because there is no second eligible release reviewer;
 administrator bypass is also enabled. **Decision (2026-09-19): retain bypass
 for emergency recovery while there is only one release operator.** It is not
@@ -234,26 +241,21 @@ variable from an unverified `ssh-keyscan` result. During rotation, authenticate
 the replacement before changing the variable. The workflow
 requires an exact host match, enables strict host-key checking, and prints the
 pinned fingerprint to the job log without printing private credentials.
+Administrator confirmation of the original trust source remains unverified;
+see the [owned host checks](hosting.md#outstanding-host-verification).
 
 The `RELEASE_BOT_PRIVATE_KEY` is a repository secret
 because **Prepare Patch** needs the App before any deployment environment is
 entered; the client ID and smoke-test URLs are repository variables. Deployment
-callers use `secrets: inherit`: the
-[merged staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
-showed that omitting this handoff left the selected environment's `DEPLOY_HOST`
-and `DEPLOY_SSH_KEY` empty inside the reusable deployment workflow, despite their
-configured names. It failed at SSH setup after publishing an image, before
-syncing files or restarting services. The workflow checks the three deployment
+callers use `secrets: inherit`. The workflow checks the three deployment
 secrets and the pinned host-key variable for presence in the environment job
-before publishing an image; it never logs secret values. The successful staging
-run above passed the earlier three-secret check,
-SSH setup, file sync, service restart, and the smoke test. Inheritance also makes
+before publishing an image; it never logs secret values. Inheritance also makes
 the repository-scoped `RELEASE_BOT_PRIVATE_KEY` available to the trusted
 reusable workflow's secret context, although no deployment step references it.
 Keep the reusable workflow definition trusted and the bot key out of
 scripts/checkout. Revisit isolation if release credentials move to a separate
-approval boundary. Only the deployment call receives `packages: write`;
-validation has `contents: read`, and the smoke test has no token permissions.
+approval boundary. The deployment job's permissions and retained credentials
+also cover its browser-smoke steps, as detailed below.
 The App installation has contents, pull requests, and workflows write plus metadata
 read; its creation-only branch/tag bypasses and the no-bypass tag-immutability
 rule are recorded above. The token-creation action requests these permissions
@@ -264,7 +266,44 @@ GitHub makes environment secrets available only after that environment's rules
 pass. On 2026-09-20, the signed-in organization Actions secrets settings page
 explicitly reported that OpenGameBuilder has no organization secrets. This was
 a read-only UI metadata check; no secret values were viewed. The audit CLI
-token still receives 403 for the organization secret API inventory.
+token received 403 for the organization secret API inventory at that inspection;
+organization-secret inventory was not refreshed in the 2026-09-22 documentation check.
+
+### Deployment job credential boundary
+
+In [_deploy.yml](../../.github/workflows/_deploy.yml), source resolution,
+validation, and packaging use separate jobs with `contents: read`. Only `deploy`
+enters the selected environment and receives `contents: read` plus
+`packages: write`. These are job-wide token permissions; a later smoke step
+does not reduce them. See [GitHub's permissions reference](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions).
+
+The deployment runner logs in to GHCR with its `GITHUB_TOKEN`, builds/pushes the
+API image, then sets up SSH. [Docker login](https://docs.docker.com/reference/cli/docker/login/)
+retains authentication in the runner's
+Docker credential configuration (`~/.docker/config.json` or its configured
+credential store). SSH setup writes `~/.ssh/deploy_key` and `~/.ssh/config` with
+mode 600, and the public pin to `~/.ssh/known_hosts`. Checkout uses
+`persist-credentials: false`; this prevents persisted Git checkout credentials,
+but does not remove Docker or SSH credentials. Node/Playwright installation,
+activation, browser smoke, finalization, and recovery all run afterward on the
+same runner. The key and registry login remain available through those steps;
+there is no explicit logout or key-removal step. File modes protect against other
+users, not later code running as the same runner user. The smoke command receives
+only its URL and expected identities as explicit step environment variables,
+but it is not an isolated credential-free job.
+
+**Decision (2026-09-22): retain the combined deployment job.** It keeps activation,
+smoke acceptance, finalization, and failure recovery in one transaction using
+the same SSH connection configuration and candidate identity. Dependencies are
+installed before activation; a subsequent failed activation or smoke check
+triggers rollback in that job. Cancellation, timeout, or runner loss can prevent
+recovery; inspect the host's pending transaction before retrying. This choice
+trusts the reviewed protected-source deployment scripts and locked smoke
+dependencies with the deployment runner's authority. It records an exposure
+boundary, not evidence of exploitation. Splitting jobs would need an explicit
+handoff and recovery coverage; it is not part of this documentation correction.
+
+### Settings inspection and operator ownership
 
 Read back these settings without revealing secret values:
 
@@ -278,8 +317,8 @@ gh api repos/OpenGameBuilder/opengamebuilder/actions/secrets --jq '.secrets[].na
 gh api orgs/OpenGameBuilder/installations --jq '.installations[] | select(.app_id == 3815756) | {repository_selection, permissions}'
 ```
 
-Today `ostomachion` is the only human who can both initiate and approve a
-production release and handle recovery. If deployment fails before publishing,
+At the recorded access inspection, `ostomachion` was the only human who could
+both initiate and approve a production release and handle recovery. If deployment fails before publishing,
 fix the cause and rerun from `main` with the intended protected source branch.
 If deployment succeeded but tagging, GitHub Release creation, or the follow-up
 PR failed, keep that source branch at the same commit and follow the
@@ -293,91 +332,28 @@ That evidence does not establish a second operator's access or recovery readines
 
 ## Acceptance evidence
 
-The validation baseline is published in
-[PR #82](https://github.com/OpenGameBuilder/opengamebuilder/pull/82). Its temporary
-companion [patch PR #83](https://github.com/OpenGameBuilder/opengamebuilder/pull/83)
-was closed without merging after verification. The disposable target
-`patch/v0.0.0-ci-gate-check` was deleted; it was never a release to deploy or tag.
-The original developer worktree and staged changes remain untouched by the
-isolated verification commits.
+These are historical acceptance checks, not the current test count or a fresh
+inspection of every repository setting. Current local commands and evidence
+boundaries are in [testing guidance](../quality/testing.md).
 
-Local verification used SDK `10.0.401` and Git for Windows Bash with the runner's
-fail-fast/pipefail options. Restore, formatting verification, Release build, and
-all **62 tests** passed (none skipped); Visual Studio build also passed. The known
-ASPIRE010 warning remains. All four simulated failing `dotnet` pipelines retained
-their nonzero exit codes and captured logs. Workflow structure, wiring, branch
-patterns, timeouts, and documentation links were checked.
-
-At head `7b9b1e54f070abb3cda809e3c33c5280273dfaa5`, both PRs reported `BLOCKED`,
-and `gh pr checks --required` identified the failing `build-test` check.
-
-| Target | Deliberately failing CI run | Result |
+| Check | Evidence | What it establishes |
 | --- | --- | --- |
-| `main` (PR #82) | [34996043271](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996043271) | 62 passed, 1 deliberate assertion failed; merge blocked |
-| `patch/v*` (PR #83) | [34996046998](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996046998) | 62 passed, 1 deliberate assertion failed; merge blocked |
+| Required CI rejects a behavior failure on `main` and `patch/v*` | Deliberately failing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996043271) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996046998) | `build-test` failed, diagnostic artifacts contained the assertion, and both PRs were blocked |
+| Corrected validation baseline passes on both branch families | Passing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998082400) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998087065) | Tests and API image build passed; CodeQL and code-quality checks passed without suppressing alerts |
+| Release App can prepare a patch without bypassing the PR gate | [Prepare Patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742), [PR #84](https://github.com/OpenGameBuilder/opengamebuilder/pull/84), and [its CI run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002166207) | Branch/PR creation succeeded; review remained required and NU1903 blocked the old dependency baseline |
 
-Both runs passed restore, formatting, and build, and uploaded `ci-validation-1`
-with the failing assertion and stack trace in `test.log`. Both CodeQL Advanced
-language jobs ran for both targets. The aggregate CodeQL gate also correctly
-caught a cache-poisoning risk from executing the shared action at an unchecked
-deployment ref. Protected-source resolution addresses that trust boundary rather
-than suppressing the alert. Its exact shell was checked with nine allowed,
-rejected, moved-ref, unprotected-ref, and malformed-response cases, plus a real
-read-only lookup of protected `main`.
+The baseline was published through [PR #82](https://github.com/OpenGameBuilder/opengamebuilder/pull/82).
+Temporary [patch PR #83](https://github.com/OpenGameBuilder/opengamebuilder/pull/83)
+and PR #84 were closed without merging, and their disposable refs were removed.
+Temporary deletion exclusions were removed afterward; read-back found no
+merge-gate bypass actors. No release tags were changed by these acceptance checks.
+The recorded human-review settings do not establish independent approval of
+maintainer-authored PRs; the sole-maintainer exception above still applies.
 
-After removing the deliberate test and completing trusted action/source
-separation, head `ad8f7d7223a2908e48a828d85b74e78d01dab401` passed:
-
-| Target | Passing CI run | Result |
-| --- | --- | --- |
-| `main` (PR #82) | [34998082400](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998082400) | All 62 tests passed; Docker image built without pushing |
-| `patch/v*` (PR #83) | [34998087065](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998087065) | All 62 tests passed; Docker image built without pushing |
-
-Both CodeQL Advanced language analyses and the managed code-quality analysis
-passed. The [aggregate CodeQL check](https://github.com/OpenGameBuilder/opengamebuilder/runs/104479502143)
-passed with zero annotations, and both PR merge refs had zero open code-scanning
-alerts. No alert was dismissed and no security query was disabled. The shared
-action was also executed locally against a separate source worktree: all 62
-tests passed and all five diagnostic files appeared in that source directory.
-
-The authenticated review rule verifies the approval count, stale-review dismissal,
-latest-push approval, and the documented sole-maintainer exception. No fake human
-approval was submitted. Resolve genuine review findings before merging; a green
-test/scan check is not approval to bypass outstanding review conversations.
-
-Cleanup temporarily excluded only the disposable patch ref from ruleset
-`16765458` to allow deletion. Immediate read-back confirmed that the exclusion
-list was restored to empty, with no bypass actors. The separate disposable bot
-probe branch was also deleted. `main` and all existing release tags were unchanged;
-no PR was merged and no deployment or release was performed.
-
-### Successful release-bot acceptance
-
-[Prepare Patch run 35002126742](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742)
-used the approved App token and completed successfully. It created:
-
-- `patch/v0.9.1` at the existing `v0.9.0` commit
-  `4fc9f816443eb6011958d6c6d43d64c82d9bfad3`, preserving its historical merges.
-- `chore/prepare-v0.9.1` at `6167c2bc2a801b525ff8bf502d52121c80cd04a9`.
-- Bot-authored [PR #84](https://github.com/OpenGameBuilder/opengamebuilder/pull/84),
-  changing only `VersionPrefix` from `0.9.0` to `0.9.1`.
-
-The PR reported `REVIEW_REQUIRED` and `BLOCKED`, with `build-test` still required.
-[Its CI run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002166207)
-failed restore with NU1903 for the old release's `Microsoft.OpenApi` 2.0.0
-([advisory](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)).
-That is the gate correctly rejecting an old dependency baseline, not a bot
-permission failure. The current dependency/test baseline's green main and patch
-runs are recorded above. Real patch preparation from older tags must receive the
-current dependency and validation baseline before merging; do not disable Audit
-or required checks to make an old release green.
-
-PR #84 was closed without merging and both refs created by this run were deleted.
-Only the exact verification patch ref was temporarily excluded for deletion;
-read-back confirmed the exclusion was removed and the gate has no bypass actors.
-The successful creation/PR operation, enforced review/check requirements, and
-unchanged tag-immutability rules complete the release-bot acceptance check. No human
-approval was fabricated and no deployment, tag change, or release was performed.
+Patch branches created from older tags must receive the current dependency and
+validation baseline through their preparation PR. Do not disable NuGet Audit,
+required checks, or review to make an old release pass. Deployment and rollback
+acceptance is recorded separately in [hosting](hosting.md#recorded-deployment-evidence).
 
 ## Administrator verification
 
@@ -408,7 +384,7 @@ again. Do not display tokens or copy credentials into the repository.
 
 Then perform a controlled acceptance check without deploying:
 
-1. Publish this CI/action/test baseline and run CI on a representative PR.
+1. After a CI/action/test change is merged, run CI on a representative PR.
    Confirm the reported check is exactly `build-test`, and require it from
    GitHub Actions in the ruleset.
 2. On a temporary PR to `main`, deliberately break an existing test. Confirm the

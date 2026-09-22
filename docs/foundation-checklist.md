@@ -152,15 +152,15 @@ smoke job and old timeouts; smoke now runs in the 45-minute deployment job with
 `packages: write`, after SSH setup. Its opening unpublished-workflow snapshot and
 [hosting's](setup/hosting.md) "before merging" instructions are also obsolete.
 
-- [ ] Describe the actual job, token, and on-disk credential boundaries. Review
+- [x] Describe the actual job, token, and on-disk credential boundaries. Review
   whether the combined job is intentional; record that decision or make a focused
   change with recovery coverage. Do not imply this audit demonstrated exploitation.
-- [ ] State that production workflows must be dispatched from `main`, separately
+- [x] State that production workflows must be dispatched from `main`, separately
   from the protected application source `ref`, in [release guidance](release/README.md).
-- [ ] Replace completed rollout instructions and conflicting verification diaries
+- [x] Replace completed rollout instructions and conflicting verification diaries
   with current procedures and concise evidence links. Keep unresolved host adoption
   explicit rather than assuming merge means host configuration was applied.
-- [ ] Carry forward administrator confirmation of the SSH host key's trusted
+- [x] Carry forward administrator confirmation of the SSH host key's trusted
   source and [host verification](setup/hosting.md#host-caddy-conflicts-and-read-only-verification)
   of the running Caddy digest and competing native-service boot state.
 
@@ -168,6 +168,19 @@ smoke job and old timeouts; smoke now runs in the 45-minute deployment job with
 Every remaining host action names its owner and unverified state. Documentation
 work does not perform a deployment; successful SSH use alone does not establish
 how the original host key was authenticated.
+
+**Result (2026-09-22):** [GitHub setup](setup/github.md#deployment-job-credential-boundary)
+now matches the workflow's job permissions, retained Docker/SSH credentials,
+timeouts, and combined activation/smoke/recovery decision. Release guidance
+requires `main` dispatch separately from protected application source. Read-only
+GitHub checks confirmed environment branch rules, production approval settings,
+both shared-profile variables, and the completed edge adoption run. The
+[hosting evidence](setup/hosting.md#recorded-deployment-evidence) distinguishes
+that run from the earlier staging browser check; original host-key provenance,
+current Caddy digest/boot state, and application acceptance after adoption remain
+explicitly unverified and assigned to `ostomachion`. Documentation link, anchor,
+workflow-reference, and diff checks passed. No workflow code, credentials,
+services, or deployment state were changed; no new deployment was performed.
 
 ## Phase 2: Make the supported contributor path accurate
 
