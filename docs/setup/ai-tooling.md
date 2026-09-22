@@ -1,117 +1,233 @@
 # AI tooling maintenance
 
-AI tools are optional. Local agents follow [AGENTS.md](../../AGENTS.md), the
+AI tools are optional. Local agents follow [AGENTS.md](../../AGENTS.md),
 [AI policy](../../AI_POLICY.md), and the same
-[development and validation workflow](development.md#command-line-workflow-start-here)
-as human contributors. Skills supply reference material, not permission to act.
+[validation workflow](development.md#command-line-workflow-start-here) as human
+contributors. Skills provide reference material; they do not grant permissions.
 
-## Repository scope
+## Toolchain and commands
 
-The six vendored Aspire skills form one upstream bundle: `aspire`,
-`aspire-init`, `aspireify`, `aspire-orchestration`, `aspire-monitoring`, and
-`aspire-deployment`. Keep the bundle together so its routing and reference links
-remain intact. `dotnet-inspect` is a separate skill for inspecting .NET APIs.
-
-Aspire is the local launcher. The generic deployment skill includes Azure, AWS,
-Kubernetes, and Aspire publishing guidance; those are not approved production
-workflows for this repository. Use [hosting](hosting.md) and the
-[release process](../release/README.md) for the existing Compose deployment.
-Installed skills do not authorize deployments, releases, credential handling,
-destructive operations, new infrastructure, or changes to this architecture.
-Documentation-only work does not start services.
-
-The [MCP configuration](../../.mcp.json) invokes `aspire agent mcp`; its CLI
-installation and verification belong to [development setup](development.md).
-The `dotnet-inspect` skill's `dnx` examples are optional tool invocations, not
-pinned build dependencies. Review any tool execution separately from updating
-the skill text. Never use its source/IL inspection features on original
-MyGameBuilder proprietary material; the AI policy's source restrictions apply.
-
-## Verified provenance
-
-All seven skills were introduced in application commit
-`f69f43d9d36c26d500678f8874831b71f0459e33`. The original import did not record an
-upstream pin. The following matching snapshots were reconstructed and verified
-on 2026-09-22 UTC; they establish content provenance, not the original install command.
-
-| Vendored content                       | Verified source                                                                                                                                                                                        | License and attribution                                                                               |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Six Aspire skill directories, 36 files | [microsoft/aspire-skills at `35f41b0`](https://github.com/microsoft/aspire-skills/tree/35f41b013fb0e1cb7860c47ccc26d827ed5fba8b/skills)                                                                | [MIT, Microsoft Corporation](../licenses/aspire-skills-MIT.txt)                                       |
-| `dotnet-inspect/SKILL.md`              | `DotnetInspectSkillFileContent` in [Aspire CLI 13.4.2 at `d7d0b67`](https://github.com/microsoft/aspire/blob/d7d0b6759ce4b936c76bc4775814d27db560dd6d/src/Aspire.Cli/Agents/CommonAgentApplicators.cs) | [.NET Foundation and Contributors, MIT](../licenses/aspire-MIT.txt); original skill by Richard Lander |
-
-The original dotnet-inspect skill is from
-[richlander/dotnet-inspect v0.5.0](https://github.com/richlander/dotnet-inspect/blob/0fe16f7ffc8a1ece0c9a8607ebae0db1cbb65d20/skills/dotnet-inspect/SKILL.md),
-whose project declares MIT licensing. Aspire embeds an adapted copy with
-frontmatter and final-newline differences; use the embedded source above to
-reproduce the vendored file.
-
-The 36 Aspire files also match the `aspire-skills-v0.0.1.tgz` bundle embedded in
-that pinned CLI revision. Its SHA-256 is
-`8f0aa535917bb6d2589acbf8f986c7b0d622ee7744e39c526bb7166c0664b53c`.
-The current upstream `v0.0.1` release artifact differs, so a version label alone
-is insufficient to reproduce these files. The dotnet-inspect file's SHA-256,
-after converting CRLF to LF without adding a final newline, is
-`944d0d4130c9286cbffcf7347e5127c8828c48525f6b0489c52c0e369ac0faab`.
-All 37 vendored files match their recorded sources after CRLF-to-LF normalization;
-there are no repository content patches. These third-party notices remain MIT;
-the application repository's Apache license does not replace them.
-
-## Reproduce or update deliberately
-
-Use a focused branch and a separate temporary candidate directory. Do not run an
-unpinned installer over the working skills or regenerate them during restore,
-build, CI, or ordinary agent work.
-
-For the current Aspire snapshot, from the repository root in PowerShell:
+Aspire CLI, AppHost SDK, and `Aspire.Hosting.AppHost` are aligned at **13.5.4**.
+The [local .NET tool manifest](../../.config/dotnet-tools.json) pins the CLI;
+`AspireUseCliBundle=false` retains NuGet-restored orchestration for IDE/CI builds.
+Restore tools explicitly from the repository root:
 
 ```pwsh
-$repositoryRoot = (Get-Location).Path
-$skillSource = Join-Path $env:TEMP ("ogb-aspire-skills-" + [guid]::NewGuid())
-git -c core.autocrlf=false clone https://github.com/microsoft/aspire-skills.git $skillSource
-git -C $skillSource checkout --detach 35f41b013fb0e1cb7860c47ccc26d827ed5fba8b
-$skillNames = 'aspire', 'aspire-init', 'aspireify', 'aspire-orchestration', 'aspire-monitoring', 'aspire-deployment'
-foreach ($name in $skillNames) {
-    foreach ($part in 'SKILL.md', 'references') {
-        git diff --no-index --ignore-cr-at-eol -- "$repositoryRoot/.agents/skills/$name/$part" "$skillSource/skills/$name/$part"
-    }
-}
+dotnet tool restore
+dotnet tool run aspire -- --version
 ```
 
-No diff means the current snapshot matches. Git returns 1 for a content difference
-and values above 1 for errors; inspect every comparison before copying anything.
-These paths contain all 36 installed files at this revision. Upstream `evals`
-directories are excluded by the bundle's install manifest and are not vendored.
-For later revisions, inspect the manifest for added assets or changed exclusions.
+Use `dotnet tool run aspire -- <arguments>` wherever upstream skills say
+`aspire <arguments>`. This prevents an unrelated global CLI from shadowing the
+selected version. Tool restore also installs the existing Husky tool but does
+not enable hooks. Application restore, build, test, and publish do not install
+or invoke these tools. AI remains optional, including when using Aspire locally.
 
-For dotnet-inspect, retrieve `CommonAgentApplicators.cs` at the pinned Aspire
-commit. Extract the C# raw string named `DotnetInspectSkillFileContent`: remove
-the opening/closing delimiters and the closing delimiter's eight-space indentation
-from every content line, keep blank lines, use LF, and add no trailing newline.
-Compare its SHA-256 with the value above and the local skill. Do not copy the
-current richlander `main` file and describe it as the embedded version.
+`dotnet-inspect` is an optional global tool pinned to **0.25.0** in the
+[provenance manifest](../../.config/ai-tooling-provenance.json). Install or update
+it deliberately, then verify the executable selected by PATH:
 
-For an update, choose explicit upstream commits and verify compatibility with the
-repository's selected CLI/SDK. Review the entire candidate diff, including
-commands, permissions, external references, additional files, and licenses.
-Replace only the selected skill trees after review, explicitly removing obsolete
-files rather than leaving them behind in an overlay. Retain full license notices
-and attribution, then update this source record and checksum evidence in the same PR.
+```pwsh
+dotnet tool install --global dotnet-inspect --version 0.25.0
+# For an existing installation, use tool update with the same exact version.
+dotnet-inspect --version
+dotnet-inspect skill
+```
 
-Keep repository-specific instructions in AGENTS.md and these setup documents;
-avoid editing vendored text. If a local patch is necessary, record its exact files,
-reason, and upstream base here, and reapply/review it deliberately on each update.
+Reopen the terminal/editor if the global tool directory is newly added to PATH.
+Use `dotnet-inspect <arguments>` for the upstream entry point's unversioned
+`dnx dotnet-inspect -y -- <arguments>` examples. Load `dotnet-inspect skill`
+before substantive inspection: the installed executable supplies its own
+version-matched guide. The short vendored entry point remains upstream text;
+this repository command selection is a documented override, not a vendor patch.
+Neither the optional executable nor a successful API lookup proves application
+compatibility. Inspect only permitted inputs under the AI policy, never original
+MyGameBuilder proprietary source or binaries to derive implementation.
 
-Before completing an update, compare all installed files with the chosen sources,
-check referenced local assets and notices, review the diff, and run
-`git diff --check`. A text-only skill or policy update does not require starting
-Aspire. If the toolchain or application changes, run the documented solution gate
-and any relevant runtime checks; a source match is not a runtime test.
+## Local client discovery
 
-## Cloud coding agents
+AGENTS.md is the authoritative project guidance. The supported local clients are
+Codex, VS Code Copilot, and Visual Studio Copilot. Cloud coding agents are not
+supported. Configuration support and completed client acceptance are distinct;
+see the recorded evidence below.
 
-Not applicable: the maintainer confirmed local agents only on 2026-09-22 UTC.
-Automated Copilot review does not constitute a supported cloud coding environment.
-There is no cloud setup workflow or claim of runner validation. If a cloud coding
-agent is adopted, add a minimal setup using the same SDK and validation commands,
-verify it on that actual runner, and record the result before calling it supported.
-Keep production secrets out of that environment.
+| Client                | Instruction and skill discovery                                                        | Aspire MCP configuration                                                      |
+| --------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Codex app/CLI         | Root `AGENTS.md`, repository `.agents/skills`                                          | [`.codex/config.toml`](../../.codex/config.toml), loaded for trusted projects |
+| VS Code Copilot       | Root `AGENTS.md`, shared Copilot adapter, repository `.agents/skills`                  | [`.vscode/mcp.json`](../../.vscode/mcp.json), `servers` with explicit `stdio` |
+| Visual Studio Copilot | Shared Copilot adapter points to AGENTS.md; check repository skill paths in the client | [`.mcp.json`](../../.mcp.json), `servers` with explicit `stdio`               |
+
+The short `.github/copilot-instructions.md` adapter directs both
+editors to the shared guidance without duplicating it. Visual Studio does not
+use AGENTS.md as an automatically loaded instruction file, so verify that the
+agent follows the adapter's reference. Open the repository root (or its solution)
+so MCP starts with the local tool manifest and `aspire.config.json` in scope.
+The three configurations invoke the same pinned command. A root `.mcp.json`
+alone is not Codex configuration. No secrets, user-specific paths, model settings,
+trust declarations, or permission bypasses belong in these adapters.
+
+After updating configuration, start a new Codex session in this trusted checkout.
+Run `codex mcp get aspire --json` and use `/mcp` to confirm the server connects.
+Ask the agent to identify its loaded project guidance and repository skill paths;
+compare them with this checkout. A configuration listing alone does not prove an
+MCP handshake or that an agent applied instructions correctly. The installed
+Codex app-server's `skills/list` and `mcpServerStatus/list` can also inspect actual
+discovery without submitting a model task.
+
+Codex's [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+and [instruction discovery rules](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+explain its project scope. Consult the
+[Copilot support matrix](https://docs.github.com/en/copilot/reference/custom-instructions-support),
+[VS Code MCP guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers),
+and [Visual Studio MCP guide](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=visualstudio)
+for each editor's discovery rules. In VS Code, use **MCP: List Servers**, select
+`aspire`, and inspect its output and tools. In Visual Studio's Copilot Agent mode,
+check the tools picker for Aspire and inspect the loaded instruction references.
+Confirm that skill paths belong to this checkout, not a personal skill directory.
+Handle any client trust prompt yourself; repository configuration does not grant
+trust. A listed server or skill name alone does not establish successful loading.
+
+Use the client's filesystem sandbox, command approvals, and MCP trust controls in
+addition to repository instructions. Keep production credentials out of local
+agent sessions. Extra MCP servers, cloud environments, repository plugins, and
+agent fleets need a recurring workflow and a separate reviewed decision.
+
+## Provenance and deliberate updates
+
+The six Aspire skills (`aspire`, `aspire-init`, `aspireify`,
+`aspire-orchestration`, `aspire-monitoring`, and `aspire-deployment`) are one
+upstream bundle. Keep their routing and reference files together. The short
+`dotnet-inspect` entry point is embedded in the selected Aspire CLI source and
+loads the installed inspection tool's guide on demand.
+
+The [provenance manifest](../../.config/ai-tooling-provenance.json) records
+immutable source commits, release artifact hashes, source paths, license sources,
+and SHA-256 for every installed skill and notice. Hashes normalize CRLF and CR
+to LF, preserving all other text and final-newline differences. The third-party
+notices retain their own licenses; the application's Apache license does not
+replace them. There are no local content patches to the vendored skills.
+
+Aspire skills 0.0.2 use 13.5.3 in examples; their bundle manifest declares CLI
+compatibility `>=13.5.0 <13.6.0`. CLI/SDK 13.5.4 is within that declared range
+and passed the local rehearsal below. The candidate review excluded two
+telemetry hook scripts, ten evaluation assets, and three Copilot CLI extension
+families (`aspire-apphosts`, `aspire-doctor`, and `aspireify`). Their source and
+bundle entries were inspected separately; none were installed or enabled.
+Upstream references can still link to mutable branches, and `aspire agent init`
+can replace checked-in files: neither is an approved automatic update path.
+Production continues to use
+[Compose hosting](hosting.md), not the generic skill's deployment commands.
+Deployments, releases, credential handling, destructive operations, and changes
+to production hosting still require explicit authorization under AGENTS.md.
+
+**Owner and cadence:** `ostomachion` reviews these pins monthly and before any
+Aspire toolchain or agent-client upgrade. Dependabot covers the configured
+package/SDK ecosystems, but does not replace review of vendored skill commits,
+embedded entry points, global executable pins, client adapters, or tool bundles.
+Use a focused reviewed PR for an update; never regenerate unpinned skills during
+builds or routine agent work.
+
+1. Select exact candidate versions and resolve tags to full commits. Download
+   source and release artifacts into a separate ignored candidate directory.
+2. Verify the artifact digest, installation manifest, exclusions, notices, and
+   every installed file against those pinned sources. Review all command,
+   permission, hook, extension, and external-reference changes before copying.
+   For the embedded dotnet-inspect entry point, extract the C# raw string named
+   `DotnetInspectSkillFileContent`, remove its delimiter indentation, retain its
+   exact content, and add no newline beyond the source string.
+3. Replace the selected skill trees, explicitly remove obsolete files, and update
+   the source record, normalized hashes, tool pins, notices, and commands together.
+   Store repository-specific instructions in AGENTS.md or this guide.
+4. Run the offline check below, the normal solution gate, relevant content/script
+   checks, and the manual rehearsal. Review the final diff and retain a concise
+   result in this guide. Record source matching separately from runtime success.
+
+## Read-only checks
+
+```pwsh
+node scripts/check-ai-tooling.mjs
+node scripts/check-ai-tooling.mjs --installed
+node scripts/check-ai-tooling.mjs --installed --require-inspect
+node --test tests/ai-tooling/check.test.mjs
+```
+
+The default check is offline: it compares source pins, normalized file hashes,
+exact file inventory, CLI/SDK/hosting versions, and the MCP adapters. It does not
+install tools, change files, start services, or regenerate hashes. Content
+validation includes this default check. `--installed` additionally executes
+version commands; a missing optional dotnet-inspect is reported without failing
+unless `--require-inspect` is specified. Native tools may write their normal
+user-cache logs; the checker itself never modifies the checkout.
+
+A passing manifest check proves consistency with the reviewed record, not fresh
+upstream source comparison, safe vendor behavior, runtime readiness, or client
+instruction discovery. The deliberate-defect tests keep drift failures visible.
+
+## Manual rehearsal and acceptance
+
+After significant tooling changes, rehearse these three small tasks and record
+the source base, tool/client versions, commands, result, and limitations:
+
+1. **Guidance and focused edit:** identify loaded AGENTS.md and skill paths;
+   make a bounded documentation or code change, choose its applicable gate, and
+   review the diff for unrelated edits and unsupported claims.
+2. **API lookup:** obtain the installed dotnet-inspect guide, inspect a known
+   public type in the built Contracts assembly offline, and compare the result
+   with source. Keep UI, HTTP, and host responsibilities in their own projects.
+3. **Local orchestration:** use the pinned CLI to start the existing AppHost,
+   wait for API/web health, verify HTTPS endpoints, connect through the client's
+   Aspire MCP adapter, and list resources. Stop the stack and confirm it stopped.
+   Do not deploy or enable generic upstream hooks during the rehearsal.
+
+Record editor AI adoption separately: verify loaded instructions/references and
+MCP tools in that actual client. API health and CLI success do not establish
+browser rendering, debugger attachment, fresh-machine setup, or another client's
+discovery behavior.
+
+### Recorded rehearsal: 2026-09-22
+
+Base: `abd184efc9f10ba4e6b63137dc844877b97f199b` plus this section 19 change.
+Windows source review matched all 37 Aspire skill files to the pinned 0.0.2
+bundle, extracted the short dotnet-inspect entry point from the pinned Aspire
+CLI source, and verified both unchanged license notices. The offline checker
+covers those 40 files. Source provenance is separate from the runtime results:
+
+- **Focused edit and guidance:** this bounded toolchain/documentation update used
+  the repository AGENTS.md and reviewed the resulting diff. Codex
+  `0.155.0-alpha.9.2` app-server discovery returned all seven enabled repository
+  skills from this checkout. Its Aspire adapter connected to server 13.5.4 and
+  discovered 14 tools without a tool-list error.
+- **API lookup:** dotnet-inspect 0.25.0 supplied its installed guide. An offline
+  `type OpenGameBuilder.Api.Contracts.About.AboutResponse --library
+src/OpenGameBuilder.Api.Contracts/bin/Release/net10.0/OpenGameBuilder.Api.Contracts.dll
+--offline` lookup matched the public type and its four properties in source.
+- **Local orchestration:** the pinned CLI started the existing AppHost on
+  Windows; API and web reached Healthy, and the configured HTTPS API-about and
+  frontend endpoints returned 200. An MCP handshake and resource listing
+  succeeded. The rehearsal stopped the stack and confirmed no running AppHosts.
+- **VS Code Copilot:** VS Code 1.138.0 discovered `aspire` from
+  `.vscode/mcp.json`, started CLI 13.5.4, completed MCP initialization, and
+  reported 14 discovered tools. Copilot displayed **Credit Limit Reached**;
+  a response applying the project instructions remains unverified.
+- **Visual Studio Copilot:** the adapter uses the documented root MCP schema.
+  The editor exposed skill names, but its displayed Aspire 13.4 description did
+  not prove discovery of this updated checkout, and its tools picker returned
+  no Aspire match. Current guidance and MCP tool discovery still require a
+  fresh editor session and an in-editor check; existing unsaved buffers were
+  preserved instead of reloading the solution.
+
+The normal local gate passed: locked restore, format verification, Release build
+with no warnings or errors, and all 72 .NET tests. The installed-version check
+and 11 tooling regression tests also passed. Configuration checks do not close
+the outstanding Copilot instruction acceptance. Content checks passed; the
+27-page documentation build, rendered links, and source inventory passed against
+a temporary local snapshot containing the new files. All four documentation
+regression groups passed separately with their own Git fixtures. The working
+branch and index were unchanged; source-link validation against its current
+HEAD requires committing the new files first.
+
+Once Copilot is available,
+start a fresh session in each editor, ask it to identify the loaded instruction
+and skill paths and list Aspire tools, and record the observed references and
+result here. No hosted, cloud-agent, browser-rendering, or fresh-machine
+acceptance is implied.

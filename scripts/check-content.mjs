@@ -140,6 +140,14 @@ try {
     mode === name ||
     (mode === "format" && ["prettier", "shell-format"].includes(name));
 
+  if (mode === "all") {
+    run(
+      process.execPath,
+      ["scripts/check-ai-tooling.mjs"],
+      "AI tooling provenance",
+    );
+  }
+
   if (mode === "all" && source.includes("CHANGELOG.md")) {
     run(
       process.execPath,

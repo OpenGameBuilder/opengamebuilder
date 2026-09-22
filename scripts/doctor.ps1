@@ -155,15 +155,20 @@ function Test-DockerCompose {
 }
 
 function Test-Aspire {
-    $aspire = Find-Tool aspire
-    if (-not $aspire) {
-        Write-Check FAIL "Aspire CLI is missing. Run 'dotnet tool install --global Aspire.Cli --version 13.4.2', then reopen the terminal."
+    $dotnet = Find-Tool dotnet
+    if (-not $dotnet) {
+        Write-Check FAIL "The .NET SDK is required to run the pinned Aspire CLI."
         return
     }
-    $version = Read-Version $aspire
-    if ($version -match '^13\.4\.2(?:\+|$)') { Write-Check PASS "Aspire CLI $version" }
-    elseif ($version) { Write-Check FAIL "Aspire CLI $version is installed; install version 13.4.2." }
-    else { Write-Check FAIL "Aspire at '$aspire' did not report a version; install version 13.4.2." }
+    $manifest = Get-Content -Raw (Join-Path $repoRoot '.config/dotnet-tools.json') | ConvertFrom-Json
+    $expected = $manifest.tools.'aspire.cli'.version
+    Push-Location $repoRoot
+    try { $version = Read-Version $dotnet @('tool', 'run', 'aspire', '--', '--version') }
+    finally { Pop-Location }
+    if ($expected -and $version -and ($version -split '\+')[0] -eq $expected) {
+        Write-Check PASS "Repository Aspire CLI $version"
+    }
+    else { Write-Check FAIL "Aspire CLI $expected is not restored or did not report its version. Run 'dotnet tool restore' from the repository root." }
 }
 
 function Show-ManifestPins {

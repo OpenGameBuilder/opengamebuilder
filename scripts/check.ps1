@@ -64,6 +64,7 @@ try {
         Invoke-Check 'content' 'node' $contentArguments
         if ($Mode -eq 'full') {
             Invoke-Check 'content-regressions' 'node' @('--test', 'tests/content-checks/check.test.mjs')
+            Invoke-Check 'ai-tooling-regressions' 'node' @('--test', 'tests/ai-tooling/check.test.mjs')
             Invoke-Check 'ci-policy-regressions' 'node' @('--test', 'tests/ci-policy/check.test.mjs')
             Invoke-Check 'contributor-regressions' 'node' @('--test', 'tests/node-policy/check.test.mjs', 'tests/staged-content/check.test.mjs')
         }

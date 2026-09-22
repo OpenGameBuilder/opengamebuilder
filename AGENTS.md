@@ -13,16 +13,16 @@ dotnet build opengamebuilder.slnx --configuration Release --no-restore
 dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
 ```
 
-The selected .NET SDK comes from `global.json`. Install the Aspire CLI required
-by `.mcp.json` before using an Aspire MCP client or local orchestration, then
-verify it from the repository root:
+The selected .NET SDK comes from `global.json`. Before local orchestration or
+Aspire MCP use, restore and verify the repository-pinned CLI from the root:
 
 ```pwsh
-dotnet tool install --global Aspire.Cli --version 13.4.2
-aspire --version
+dotnet tool restore
+dotnet tool run aspire -- --version
 ```
 
-If `aspire` is newly installed, reopen the terminal if it is not on `PATH`.
+Use `dotnet tool run aspire -- <arguments>` for upstream skill commands written
+as `aspire <arguments>`; this selects the local pin regardless of global PATH.
 The setup guide is authoritative for prerequisites, certificate trust, endpoint
 checks, and editor debugging.
 
@@ -30,6 +30,8 @@ Before changing vendored skills or agent setup, read
 [AI tooling maintenance](docs/setup/ai-tooling.md) for source pins, licenses,
 update steps, and supported local-agent scope. Generic cloud/deployment skills
 do not override this repository's workflows or authorization requirements.
+For .NET API inspection, use the optional pinned `dotnet-inspect` executable
+and its `skill` command instead of upstream unversioned `dnx` examples.
 
 ## Project map and boundaries
 

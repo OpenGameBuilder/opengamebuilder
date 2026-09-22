@@ -1,0 +1,5 @@
+# Repository MCP configuration. Codex loads this only for trusted projects.
+[mcp_servers.aspire]
+command = "dotnet"
+args = ["tool", "run", "aspire", "--", "agent", "mcp"]
+startup_timeout_sec = 60

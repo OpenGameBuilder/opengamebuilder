@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "aspire-skills": {
+      "repository": "https://github.com/microsoft/aspire-skills",
+      "version": "0.0.2",
+      "commit": "842c4fb8d9ff5f89bf3e5f6f16739a728b5ba77e",
+      "source": "https://github.com/microsoft/aspire-skills/tree/842c4fb8d9ff5f89bf3e5f6f16739a728b5ba77e/skills",
+      "license": "https://github.com/microsoft/aspire-skills/blob/842c4fb8d9ff5f89bf3e5f6f16739a728b5ba77e/LICENSE",
+      "artifact": {
+        "url": "https://github.com/microsoft/aspire-skills/releases/download/v0.0.2/aspire-skills-v0.0.2.tgz",
+        "sha256": "728435773a3ee405c3f40c54f8c44e1bef0b0ef305dd95a732cd066ebfb998f2"
+      }
+    },
+    "aspire-cli": {
+      "repository": "https://github.com/microsoft/aspire",
+      "version": "13.5.4",
+      "commit": "9c1b401dd67746739044f68959cbf4d3d7af93a6",
+      "source": "https://github.com/microsoft/aspire/blob/9c1b401dd67746739044f68959cbf4d3d7af93a6/src/Aspire.Cli/Agents/CommonAgentApplicators.cs",
+      "license": "https://github.com/microsoft/aspire/blob/9c1b401dd67746739044f68959cbf4d3d7af93a6/LICENSE.TXT"
+    },
+    "dotnet-inspect": {
+      "repository": "https://github.com/richlander/dotnet-inspect",
+      "version": "0.25.0",
+      "commit": "473d56a68e26338fc27aca9808c1e98dbf30b259",
+      "source": "https://github.com/richlander/dotnet-inspect/blob/473d56a68e26338fc27aca9808c1e98dbf30b259/skills/dotnet-inspect/SKILL.md",
+      "license": "https://github.com/richlander/dotnet-inspect/blob/473d56a68e26338fc27aca9808c1e98dbf30b259/src/dotnet-inspect/dotnet-inspect.csproj#L26"
+    }
+  },
+  "tools": {
+    "aspire": {
+      "version": "13.5.4"
+    },
+    "dotnet-inspect": {
+      "version": "0.25.0"
+    }
+  },
+  "files": {
+    ".agents/skills/aspire-deployment/references/aws.md": "8ebaf752bd385a3144018708140910f249479697aeeebcf8012dd0d1951c583a",
+    ".agents/skills/aspire-deployment/references/azure.md": "92c20d25d188202340a2f7c0c742c022c405da9b4090f67a6de5727c7a6a434d",
+    ".agents/skills/aspire-deployment/references/cicd.md": "d393d636b24246a84d8421787ff0bc99d7bea8cb12137ffe4129e6303991d351",
+    ".agents/skills/aspire-deployment/references/docker-compose.md": "0fecea36281f9ba6d17cd7b2d8388a713a8a61e56743687aeae0262e247cc868",
+    ".agents/skills/aspire-deployment/references/github-actions-azure-csharp.yml": "edd51e0076ba1a0c6d2cbf79e101d0c9b025a43ce2d1ceef0accb68a168bd719",
+    ".agents/skills/aspire-deployment/references/github-actions-azure-typescript.yml": "ed159b42af22cd5f005fe3a92de59fffcb4516bb678f2b236db3748dd6bb7d11",
+    ".agents/skills/aspire-deployment/references/javascript.md": "032832652c021aec9bf8443de8363cb8bcee83d740e4678ab02bcf8c151bbb1e",
+    ".agents/skills/aspire-deployment/references/kubernetes.md": "e079ecef3bcb2ab1ec68e08714f19e275c23c98bb95cc3dd590713dd64ee00b9",
+    ".agents/skills/aspire-deployment/references/preflight.md": "a1138a34814f3bafb59cdbd8112653974ff21a9ee18651b00d293af3af8e1c64",
+    ".agents/skills/aspire-deployment/SKILL.md": "cc350fcf228093e277c1923b5495e05553fc571609176650c61b6d452aeb3617",
+    ".agents/skills/aspire-init/references/init-workflow.md": "bfd2c573618918abd703b23fbec5e140ccfbb777fe7d962fb27a4d623e2e08da",
+    ".agents/skills/aspire-init/references/templates.md": "00329072e422f624c74dab3d40f612e8dea4b3f3e92c4765b4d382fa8e9d54ee",
+    ".agents/skills/aspire-init/SKILL.md": "fd5628ad9419b9b06c6459985e8ac84e6a47ee1fecf4f997d078e02f2fc40d32",
+    ".agents/skills/aspire-monitoring/references/diagnostics-bridge.md": "77ced858a562da1511551acadcef411ba10882cfde42916c683d1f06078a9a3b",
+    ".agents/skills/aspire-monitoring/references/monitoring.md": "a3302c4994d1c6ba8dc43cac5d6ad916541ef01adc84197d4ec605bea3ef1041",
+    ".agents/skills/aspire-monitoring/references/playwright-handoff.md": "915db809d8b5f5e44ffd5a5e4a2eb18ffb37ff8f4e4a4d496f53146909d54a7d",
+    ".agents/skills/aspire-monitoring/SKILL.md": "3c67d980d6e5eb58f063c5975c3d7a805abf85cbcef5e54c29ac8d3c0e64a24f",
+    ".agents/skills/aspire-orchestration/references/agent-workflows.md": "bc6e9231379137a944da2d371a8281d0bb9bc092475fa467aeff9387f243745f",
+    ".agents/skills/aspire-orchestration/references/app-commands.md": "b2337ba223628e9008519491304a1a07002c58c1a4f50ea51036cfee183b1ec2",
+    ".agents/skills/aspire-orchestration/references/detection.md": "1d5a4f302af362964c2c361b64c94586ace2b7d85a61bb04c429280b81f5936e",
+    ".agents/skills/aspire-orchestration/references/resource-management.md": "5739cc030088aa1610c8bef1c3208ee80baf5dced9dabda43b354e7f69c8e872",
+    ".agents/skills/aspire-orchestration/references/safety-guardrails.md": "cbd18cc7dd3decdd3a7003d081f888145ad02eef2080e66c597c1fc204e94cfd",
+    ".agents/skills/aspire-orchestration/SKILL.md": "0394067bdb2375ff4c2cb6763841f8518922547320c7d3d71c93cf02c579b220",
+    ".agents/skills/aspire/references/aspire-13-3-breaking-changes.md": "a8000f1f07a32d234fe2b4e7ee2899985975933277e49c3d24faef4a395ac667",
+    ".agents/skills/aspire/references/aspire-13-5-breaking-changes.md": "3df5a551357f0dfda259262d74f645aff1d2145276c052e0a430694f50ca8962",
+    ".agents/skills/aspire/SKILL.md": "cb79bd07ca797660b6896e798dcae87611be285d62a2d2e52df0f0d00ea7989f",
+    ".agents/skills/aspireify/references/apphost-wiring.md": "5580502ba322a63569d404bc38d84fc56186c8268075e6ca05d2f0221e22838e",
+    ".agents/skills/aspireify/references/csharp-authoring.md": "19391f5a0ae7398ed2a4f4005b64b066b6a978208c7e7f101bfc068ebac761c4",
+    ".agents/skills/aspireify/references/docker-compose.md": "79e733a4955610b5d22c774d2d8d1dca7eecc9acb423c91542bb3d83beb34686",
+    ".agents/skills/aspireify/references/full-solution-apphosts.md": "0b48337d70e09d27ae877ac894b901ea57978efb1808e36a2c9b810b47c227e0",
+    ".agents/skills/aspireify/references/javascript-apps.md": "5403d5c7308f907755bc2d42c0e2d81b0fc5fc2bf11d15a4a02d234a14bcf693",
+    ".agents/skills/aspireify/references/opentelemetry.md": "b2e596a1caecac9883c7540df6f9a7e017be3c54ce8f0c6572b20d89c4343f80",
+    ".agents/skills/aspireify/references/scan-and-propose.md": "dd2f83b516ea66fcd2ab0d58196e67881def2c0d03067d6dd99c02f7f5bf0504",
+    ".agents/skills/aspireify/references/service-defaults.md": "2c9e616a02305e06c9e5704615890032c3249bc0ee20772ecba762bf6890c3eb",
+    ".agents/skills/aspireify/references/typescript-authoring.md": "be70476199a7680c48cc87fdbe38ba9b7e011f87e0bf680cf0f143b647a74bc5",
+    ".agents/skills/aspireify/references/validation.md": "688e71fd1ac17ae4b4f6e58a22e3002e5cfa8079e63fdc1e84d16293666ff9ad",
+    ".agents/skills/aspireify/SKILL.md": "a81b165cc6b703e5e815d6bb9f05bcda52b0d383be878378da3a5d7ae9a8ee0f",
+    ".agents/skills/dotnet-inspect/SKILL.md": "5165f9b8457f85f3e3674cade69c9a8b26cdb8dfefb66cef400903b45d1e08fb",
+    "docs/licenses/aspire-MIT.txt": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
+    "docs/licenses/aspire-skills-MIT.txt": "7df20dcdf9197e9945c14858d41c60f11b52b93e5b69e2b63416b874d598d322"
+  }
+}

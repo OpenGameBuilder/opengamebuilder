@@ -16,18 +16,22 @@ browser-certificate support on those platforms.
   disables SDK roll-forward and prerelease selection so a different feature band
   is a setup failure, not a substitute. Update Visual Studio if its bundled SDK
   is older.
-- **Aspire CLI 13.4.2**, the version used for this workflow and the AppHost SDK.
-  The SDK and hosting package are separately versioned in the
+- **Aspire CLI 13.5.4**, aligned with the AppHost SDK and hosting package.
+  The local CLI pin is in [the tool manifest](../../.config/dotnet-tools.json),
+  with the SDK and hosting package in the
   [AppHost project](../../src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj)
   and [`Directory.Packages.props`](../../Directory.Packages.props).
-  If the CLI is not installed, run:
+  Restore it explicitly from the repository root before local orchestration:
 
   ```pwsh
-  dotnet tool install --global Aspire.Cli --version 13.4.2
-  aspire --version
+  dotnet tool restore
+  dotnet tool run aspire -- --version
   ```
 
-  Reopen the terminal after installation if `aspire` is not on `PATH`.
+  Use `dotnet tool run aspire -- <arguments>` throughout this checkout. A global
+  `aspire` executable may select another version. Tool restore installs the
+  manifest tools but does not enable Git hooks or AI clients; the application
+  build/test gate does not require the CLI or AI tooling.
 
 - Microsoft Edge or Google Chrome for Blazor WebAssembly debugging.
 - For Visual Studio: **[Visual Studio 2026](https://visualstudio.microsoft.com/vs/)**
@@ -152,7 +156,7 @@ dotnet restore opengamebuilder.slnx --packages $packages --force --no-http-cache
 Start Aspire from the repository root:
 
 ```pwsh
-aspire run
+dotnet tool run aspire -- run
 ```
 
 [`aspire.config.json`](../../aspire.config.json) selects the AppHost; its default
@@ -163,8 +167,8 @@ The latter name is intentional even though the project is `OpenGameBuilder.Web.C
 Use the dashboard login URL printed by Aspire, then open the web endpoint below.
 Stop with Ctrl+C before rebuilding or switching launch methods.
 
-For a background session instead, use `aspire start`, `aspire wait api`,
-`aspire wait web`, and `aspire ps`; finish with `aspire stop`.
+For a background session instead, use `dotnet tool run aspire -- start`, `dotnet tool run aspire -- wait api`,
+`dotnet tool run aspire -- wait web`, and `dotnet tool run aspire -- ps`; finish with `dotnet tool run aspire -- stop`.
 
 ### Expected endpoints and success check
 
@@ -217,7 +221,7 @@ not supported; Aspire's isolated mode does not change the browser override.
 
 1. Complete the prerequisites and command-line build/test steps above.
 2. Open the repository root with `code .` and install the recommended extensions.
-3. For the same Aspire workflow as the command line, run `aspire run` in VS Code's
+3. For the same Aspire workflow as the command line, run `dotnet tool run aspire -- run` in VS Code's
    integrated PowerShell terminal. This starts the stack but does not attach the
    VS Code debuggers automatically.
 4. **Terminal > Run Build Task** runs `build-all`. **Tasks: Run Test Task** runs
@@ -364,7 +368,7 @@ ordinary restore, build, test, or publish commands.
   and Console tabs. Verify the web page is using the local API URL and both
   projects are running in Development.
 - **Port in use or locked build output:** stop your existing debug session,
-  watch tasks, or CLI-managed stack (`aspire stop`) before rebuilding. Do not
+  watch tasks, or CLI-managed stack (`dotnet tool run aspire -- stop`) before rebuilding. Do not
   terminate unrelated processes or start a second copy to work around a conflict.
 - **Node works in one terminal but is missing in an editor terminal:** close and
   reopen the editor after installing Node so it inherits the normal user `PATH`,

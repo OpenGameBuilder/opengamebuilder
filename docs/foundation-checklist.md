@@ -661,22 +661,33 @@ upstream candidates are [Aspire 13.5.4](https://github.com/microsoft/aspire/rele
 (describing 13.5.3), and [dotnet-inspect 0.25.0](https://github.com/richlander/dotnet-inspect/releases/tag/v0.25.0).
 These are update candidates, not proven compatible upgrades; recheck at execution.
 
-- [ ] Update the compatible CLI, AppHost SDK, skill bundle, and documented
+- [x] Update the compatible CLI, AppHost SDK, skill bundle, and documented
       commands together using [AI tooling maintenance](setup/ai-tooling.md). Preserve
       source pins, licenses, checksums, local-only scope, and Compose production.
       Review newly supplied hook/extension assets separately rather than enabling them.
-- [ ] Replace the long dotnet-inspect reference with the upstream entry point
+- [x] Replace the long dotnet-inspect reference with the upstream entry point
       that retrieves its installed tool's version-matched guide. Decide and document
       how the optional executable is pinned/updated without making AI mandatory.
 - [ ] Keep AGENTS.md authoritative and concise; add client-specific adapters only
       for supported clients that need them. Verify actual instruction/MCP discovery;
       do not assume a configuration filename works in every client.
-- [ ] Add a read-only tool/version/provenance check and an owned review cadence
+- [x] Add a read-only tool/version/provenance check and an owned review cadence
       for pins not covered by Dependabot. Changes arrive as bounded reviewed updates,
       not unpinned regeneration during build or routine agent work.
-- [ ] Rehearse two or three representative tasks after significant tooling
+- [x] Rehearse two or three representative tasks after significant tooling
       changes, checking commands, repository boundaries, reviewability, and truthful
       evidence. Use a small manual checklist, not an agent-evaluation service.
+
+**Result (2026-09-22):** aligned CLI/SDK/hosting at 13.5.4, installed the pinned
+0.0.2 skill bundle and short dotnet-inspect entry point, and documented the
+optional 0.25.0 executable. Added checksum/version checks, regression coverage,
+an owned review cadence, and adapters for Codex, VS Code Copilot, and Visual
+Studio Copilot. Source comparison, the normal gate (72 tests), and three local
+rehearsals passed. Codex discovered all seven repository skills and 14 Aspire
+MCP tools; VS Code connected to 13.5.4 and discovered 14 tools. The client item
+remains open: VS Code's credit limit prevented an instruction-response check,
+and Visual Studio's current guidance/MCP discovery remains unverified. See
+[the recorded evidence and remaining checks](setup/ai-tooling.md#recorded-rehearsal-2026-09-22).
 
 **Acceptance:** source checks and the normal gate pass, Windows Aspire startup
 and MCP discovery work on the selected toolchain, and supported clients load the
