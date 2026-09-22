@@ -35,8 +35,12 @@ fi
 if [[ -f "$active_caddyfile" ]] && cmp -s "$candidate_caddyfile" "$active_caddyfile"; then
   config_changed=false
 fi
-if [[ "$compose_changed" == false && "$config_changed" == false ]]; then
-  echo "Edge configuration is already current."
+compose_active=(docker compose -f "$active_compose" --project-directory "$edge_dir")
+# Matching files do not guarantee the edge survived a host restart or port
+# conflict. A stopped service still needs the normal Compose startup below.
+if [[ "$compose_changed" == false && "$config_changed" == false ]] &&
+  [[ -n "$("${compose_active[@]}" ps -q caddy)" ]]; then
+  echo "Edge configuration is already current and Caddy is running."
   exit 0
 fi
 
@@ -69,8 +73,6 @@ if [[ "$config_changed" == true ]] && ! cp "$candidate_caddyfile" "$active_caddy
   restore_files
   exit 1
 fi
-
-compose_active=(docker compose -f "$active_compose" --project-directory "$edge_dir")
 
 # A Compose change is an explicit edge-service update. Caddyfile-only changes
 # leave the container running and use Caddy's graceful configuration reload.

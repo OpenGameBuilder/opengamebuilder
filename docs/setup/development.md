@@ -217,7 +217,10 @@ required check; a local pre-commit hook is only a convenience.
 [`Directory.Build.targets`](../../Directory.Build.targets) applies this policy
 unconditionally after project properties are loaded. There is no test exemption.
 This is the C# `TreatWarningsAsErrors` policy, not MSBuild's command-line
-`-warnaserror` switch; task-level warnings such as ASPIRE010 may still be warnings.
+`-warnaserror` switch; task-level warnings are handled separately.
+The AppHost explicitly retains NuGet-restored orchestration dependencies and
+acknowledges only `ASPIRE010`, the advisory about optional CLI bundle delegation.
+This does not disable compiler warnings or change the local launch workflow.
 
 To opt into the existing Husky pre-commit hook, run these commands from the
 repository root (Git for Windows supplies its `sh` interpreter):
@@ -247,7 +250,9 @@ ordinary restore, build, test, or publish commands.
 - **Blazor breakpoint does not bind:** use Edge or Chrome, the
   `OpenGameBuilder.Web` profile, and the recommended debugger extensions. See
   [Microsoft's Blazor debugging guide](https://learn.microsoft.com/aspnet/core/blazor/debug?view=aspnetcore-10.0).
-- **ASPIRE010 CLI-bundle warning:** the current AppHost SDK/hosting-package
-  combination emits this warning when built without the CLI bundle. A successful
-  build alone is not a startup check; use the endpoint checks above. Do not
-  suppress warnings or change package versions just to follow this guide.
+- **Aspire dependency mode:** `AspireUseCliBundle=false` is intentional. The
+  AppHost restores orchestration dependencies from NuGet rather than requiring
+  CLI bundle delegation during IDE/CI builds, and suppresses only the associated
+  `ASPIRE010` advisory using the [documented opt-out](https://aspire.dev/diagnostics/aspire010/).
+  Revisit that choice if adopting CLI-bundle-only features. A successful build
+  alone is not a startup check; use the endpoint checks above.
