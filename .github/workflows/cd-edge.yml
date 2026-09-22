@@ -34,42 +34,66 @@ jobs:
     timeout-minutes: 15
     environment: production
     steps:
-      - name: Check deployment credentials
+      - name: Check deployment configuration
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY; do
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_KNOWN_HOSTS DEPLOY_USER DEPLOY_SSH_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::${name} is unavailable to the edge job."
               exit 1
             fi
           done
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]] || { echo '::error::DEPLOY_HOST is invalid.'; exit 1; }
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]] || { echo '::error::DEPLOY_USER is invalid.'; exit 1; }
 
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null || {
+            echo '::error::DEPLOY_KNOWN_HOSTS has no key for DEPLOY_HOST.'
+            exit 1
+          }
+          printf 'Host deployment\n  HostName %s\n  User %s\n' "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+          cat >> ~/.ssh/config <<'EOF'
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            BatchMode yes
+          EOF
+          chmod 600 ~/.ssh/config ~/.ssh/deploy_key
           chmod 644 ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/known_hosts
 
       - name: Transfer candidate and apply it
         env:
           CANDIDATE_DIR: /srv/opengamebuilder/edge-candidates/${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh deployment \
             mkdir -p "$CANDIDATE_DIR"
-          rsync -az -e "ssh -i ~/.ssh/deploy_key" \
+          rsync -az \
             ./deploy/edge/compose.yml ./deploy/edge/Caddyfile \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:"$CANDIDATE_DIR/"
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            deployment:"$CANDIDATE_DIR/"
+          ssh deployment \
             bash -s -- "$CANDIDATE_DIR" < ./scripts/apply-edge.sh
 
       - name: Check both sites after edge update

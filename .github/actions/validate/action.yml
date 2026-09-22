@@ -19,13 +19,13 @@ runs:
   steps:
     - name: Check out the resolved source
       if: ${{ inputs.checkout-ref != '' }}
-      uses: actions/checkout@v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         ref: ${{ inputs.checkout-ref }}
         path: ${{ inputs.working-directory }}
         persist-credentials: false
 
-    - uses: actions/setup-dotnet@v6
+    - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       with:
         global-json-file: ${{ inputs.working-directory }}/global.json
 
@@ -82,9 +82,16 @@ runs:
         set -o pipefail
         bash tests/deploy-app/run.sh 2>&1 | tee artifacts/validation/deploy-app.log
 
+    - name: Verify supply-chain pins
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        bash tests/supply-chain/run.sh 2>&1 | tee artifacts/validation/supply-chain.log
+
     - name: Upload validation failure diagnostics
       if: ${{ failure() && !cancelled() }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ inputs.artifact-name }}-${{ github.run_attempt }}
         path: ${{ inputs.working-directory }}/artifacts/validation/

@@ -58,6 +58,25 @@ updates:
     cooldown:
       default-days: 3
 
+  # Third-party Actions used inside the local composite validation action.
+  - package-ecosystem: "github-actions"
+    directory: "/.github/actions/validate"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:15"
+      timezone: "America/Indiana/Indianapolis"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      validation-actions:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 3
+
   # API Dockerfile base images.
   - package-ecosystem: "docker"
     directory: "/src/OpenGameBuilder.Api"

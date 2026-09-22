@@ -73,6 +73,19 @@ Deployment additionally runs a Chromium smoke test from `tests/deploy-smoke` tha
 loads the published frontend, observes its API request, and checks the expected
 source revision. That live test requires a deployed staging or production URL.
 
+Supply-chain declarations have an additional deterministic check:
+
+```pwsh
+& 'C:\Program Files\Git\bin\bash.exe' tests/supply-chain/run.sh
+```
+
+It rejects third-party Actions that are not full commit SHAs, mutable API base or
+edge image references, a missing explicit API user, deployment-time
+`ssh-keyscan`, inherited NuGet source mappings, or missing Dependabot ecosystems.
+CI also loads the locally built API image and runs
+`scripts/verify-api-image.sh`; that Docker-backed check verifies the runtime user,
+application-directory permissions, startup, and `/api/alive`.
+
 The stable required PR check is `build-test`. Workflow success alone does not
 make it a merge gate: GitHub must require that check and enforce human review.
 See [GitHub setup](../setup/github.md) for the inspected settings, administrator

@@ -297,20 +297,35 @@ and [release failure guidance](release/README.md#what-happens-on-failure).
 
 ### 15. Harden the existing hosting and supply chain
 
-- [ ] Pin Actions to reviewed commit SHAs and deployed container images to digests.
+- [x] Pin Actions to reviewed commit SHAs and deployed container images to digests.
   Keep Dependabot/update automation capable of maintaining those pins.
 - [ ] Verify the deployment SSH host key through a trusted channel and pin it,
   rather than trusting a fresh `ssh-keyscan` result during each deployment.
-- [ ] Run the API container as an explicit non-root user and verify permissions.
-- [ ] Configure trusted forwarded headers for Caddy before middleware relying on
+- [x] Run the API container as an explicit non-root user and verify permissions.
+- [x] Configure trusted forwarded headers for Caddy before middleware relying on
   request scheme or client IP. Test HTTPS redirects; do not trust arbitrary proxies.
-- [ ] Recheck NuGet configuration inheritance on a clean machine. Explicitly clear
+- [x] Recheck NuGet configuration inheritance on a clean machine. Explicitly clear
   inherited source mappings for the single-feed setup, or document and adopt
   reviewed source-specific mappings. Do not treat a global wildcard as namespace
   isolation between feeds.
 
 **Acceptance:** image startup, proxy behavior, restore, dependency updates, and
 deployment still work with the hardened configuration and least required privileges.
+
+**Implemented locally (2026-09-21):** third-party Actions and base/edge images
+are immutable while the existing Dependabot ecosystems remain enabled. A local
+image build and runtime probe confirmed that the API starts with a nonzero UID,
+can read its assembly, cannot write `/app`, and returns its liveness response; CI
+repeats that probe. The API
+trusts one forwarded hop only from the deployed `ogb-edge` network, with redirect
+and spoofing coverage. An isolated empty-cache restore passes with inherited
+package sources and mappings cleared. Deployment now requires a pinned
+`DEPLOY_KNOWN_HOSTS` environment variable and never learns trust with
+`ssh-keyscan`. Keep the SSH item and live acceptance open until an administrator
+verifies and records the key through an existing trusted SSH connection or an
+independent authenticated channel, configures both environments, CI passes, and
+a merged staging deployment passes. Follow the
+[host-key setup guide](setup/deployment-host-key.md) for commands and trust limits.
 
 ## Phase 3: Prepare to welcome community contributors
 
