@@ -1,14 +1,21 @@
-name: Action SHA policy probe
+name: Dependency policy acceptance probe
 on:
   push:
     branches: [codex/section-20-policy-probe-20260922]
 permissions:
   contents: read
 jobs:
-  rejected-before-execution:
+  vulnerable-transitive-dependency:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - run: echo UNEXPECTED_RUNNER_EXECUTION
-      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
-          persist-credentials: false
+          base-ref: c15b8153d72efb617f23b6baa10e43eedfe22e09
+          head-ref: ${{ github.sha }}
+          fail-on-severity: high
+          fail-on-scopes: runtime, development, unknown
+          license-check: false
+          comment-summary-in-pr: never
+          show-openssf-scorecard: false
+          warn-only: false
