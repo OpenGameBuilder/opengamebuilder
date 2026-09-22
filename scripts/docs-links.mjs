@@ -1,11 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse } from "parse5";
@@ -50,6 +44,62 @@ export function sourceRevision(repositoryRoot = root) {
   return revision;
 }
 
+function repositoryTree(repositoryRoot, revision) {
+  const result = spawnSync(
+    "git",
+    ["ls-tree", "--full-tree", "-r", "-t", "-z", revision],
+    {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+      shell: false,
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(
+      `Cannot read documentation source revision ${revision}: ${result.stderr}`,
+    );
+  }
+  return new Map(
+    result.stdout
+      .split("\0")
+      .filter(Boolean)
+      .map((entry) => {
+        const separator = entry.indexOf("\t");
+        const [mode, type] = entry.slice(0, separator).split(" ");
+        if (separator < 0 || !mode || !type)
+          throw new Error(`Invalid Git tree entry at ${revision}.`);
+        return [entry.slice(separator + 1), type];
+      }),
+  );
+}
+
+export function sourceMetadata(repositoryRoot, revision) {
+  const tree = repositoryTree(repositoryRoot, revision);
+  return {
+    docurl: Object.fromEntries(
+      documentationFiles(repositoryRoot).map((file) => {
+        const relative = path
+          .relative(repositoryRoot, file)
+          .replaceAll(path.sep, "/");
+        if (tree.get(relative) !== "blob") {
+          throw new Error(
+            `Documentation source is absent from source revision: ${relative}.`,
+          );
+        }
+        return [
+          relative,
+          `${sourceRepository}/blob/${revision}/${relative
+            .split("/")
+            .map(encodeURIComponent)
+            .join("/")}`,
+        ];
+      }),
+    ),
+  };
+}
+
 function inside(directory, candidate) {
   const relative = path.relative(directory, candidate);
   return (
@@ -64,6 +114,7 @@ function inside(directory, candidate) {
 export function resolveRepositoryLinks(directory, repositoryRoot, revision) {
   if (!/^[0-9a-f]{40}$/.test(revision))
     throw new Error("Source revision must be a full commit SHA.");
+  const tree = repositoryTree(repositoryRoot, revision);
   const manifest = JSON.parse(
     readFileSync(path.join(directory, "manifest.json"), "utf8"),
   );
@@ -94,6 +145,12 @@ export function resolveRepositoryLinks(directory, repositoryRoot, revision) {
         const repositoryPath = path
           .relative(repositoryRoot, target)
           .replaceAll(path.sep, "/");
+        const objectType = tree.get(repositoryPath);
+        if (!objectType) {
+          throw new Error(
+            `${page.source_relative_path}: local link is absent from source revision ${href}`,
+          );
+        }
         if (repositoryPath.endsWith(".md") && repositoryPath !== "AGENTS.md") {
           throw new Error(
             `${page.source_relative_path}: documentation target was not rendered: ${href}`,
@@ -106,7 +163,12 @@ export function resolveRepositoryLinks(directory, repositoryRoot, revision) {
             `${page.source_relative_path}: missing site asset ${href}`,
           );
         }
-        const kind = statSync(target).isDirectory() ? "tree" : "blob";
+        if (!["blob", "tree"].includes(objectType)) {
+          throw new Error(
+            `${page.source_relative_path}: unsupported Git object for local link ${href}`,
+          );
+        }
+        const kind = objectType === "tree" ? "tree" : "blob";
         const encodedPath = repositoryPath
           .split("/")
           .map(encodeURIComponent)
@@ -148,19 +210,7 @@ if (
     if (process.argv[2] === "prepare") {
       writeFileSync(
         path.join(root, "artifacts/docs/source-metadata.json"),
-        JSON.stringify({
-          docurl: Object.fromEntries(
-            documentationFiles().map((file) => {
-              const relative = path
-                .relative(root, file)
-                .replaceAll(path.sep, "/");
-              return [
-                relative,
-                `${sourceRepository}/blob/${revision}/${relative}`,
-              ];
-            }),
-          ),
-        }),
+        JSON.stringify(sourceMetadata(root, revision)),
       );
     } else if (process.argv[2] === "resolve") {
       console.log(

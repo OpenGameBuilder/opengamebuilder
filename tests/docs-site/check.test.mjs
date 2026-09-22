@@ -17,6 +17,7 @@ import {
 } from "../../scripts/check-docs.mjs";
 import {
   resolveRepositoryLinks,
+  sourceMetadata,
   sourceRepository,
 } from "../../scripts/docs-links.mjs";
 
@@ -37,6 +38,17 @@ function fixture(action) {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+}
+
+function git(directory, ...arguments_) {
+  const result = spawnSync("git", arguments_, {
+    cwd: directory,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  return result.stdout.trim();
 }
 
 test("rendered checks reject missing pages, anchors, and assets while staying offline", () => {
@@ -87,6 +99,12 @@ test("site gate rejects an unresolved source link after DocFX's repository-link 
         },
       }),
     );
+    git(directory, "init", "--quiet");
+    git(directory, "config", "user.name", "Documentation tests");
+    git(directory, "config", "user.email", "docs@example.invalid");
+    git(directory, "add", ".");
+    git(directory, "commit", "--quiet", "-m", "Broken documentation fixture");
+    const revision = git(directory, "rev-parse", "HEAD");
     const result = spawnSync(
       "dotnet",
       [
@@ -110,7 +128,7 @@ test("site gate rejects an unresolved source link after DocFX's repository-link 
         resolveRepositoryLinks(
           path.join(directory, "site"),
           directory,
-          "a".repeat(40),
+          revision,
         ),
       /missing local link missing\.md/,
     );
@@ -118,14 +136,28 @@ test("site gate rejects an unresolved source link after DocFX's repository-link 
 });
 
 test("relative links retain page context and resolve repository source against each build's commit", () => {
-  for (const revision of ["a".repeat(40), "b".repeat(40)]) {
-    fixture((directory, write) => {
-      write("docs/page.md", "# Guide\n");
-      write("source/example.cs", "// checked source\n");
+  fixture((directory, write) => {
+    write("docs/page.md", "# Guide\n");
+    write("docs/omitted.md", "# Omitted guide\n");
+    write("source/example.cs", "// checked source\n");
+    git(directory, "init", "--quiet");
+    git(directory, "config", "user.name", "Documentation tests");
+    git(directory, "config", "user.email", "docs@example.invalid");
+    git(directory, "add", ".");
+    git(directory, "commit", "--quiet", "-m", "Initial documentation fixture");
+
+    const revisions = [git(directory, "rev-parse", "HEAD")];
+    write("source/example.cs", "// second checked source\n");
+    git(directory, "add", "source/example.cs");
+    git(directory, "commit", "--quiet", "-m", "Update source fixture");
+    revisions.push(git(directory, "rev-parse", "HEAD"));
+    assert.notEqual(revisions[0], revisions[1]);
+
+    for (const revision of revisions) {
       write("site/docs/guide.html", '<h1 id="setup">Setup</h1>');
       write(
         "site/docs/page.html",
-        '<a href="guide.html#setup">Guide</a><a href="../source/example.cs">Code</a><a href="../source/">Directory</a><a href="https://example.com">Remote</a>',
+        '<a href="guide.html#setup">Guide</a><a href="../source/example.cs?plain=1#L1">Code</a><a href="../source/?view=1#files">Directory</a><a href="https://example.com">Remote</a>',
       );
       write(
         "site/manifest.json",
@@ -146,9 +178,15 @@ test("relative links retain page context and resolve repository source against e
       );
       assert.ok(html.includes('href="guide.html#setup"'));
       assert.ok(
-        html.includes(`${sourceRepository}/blob/${revision}/source/example.cs`),
+        html.includes(
+          `${sourceRepository}/blob/${revision}/source/example.cs?plain=1#L1`,
+        ),
       );
-      assert.ok(html.includes(`${sourceRepository}/tree/${revision}/source`));
+      assert.ok(
+        html.includes(
+          `${sourceRepository}/tree/${revision}/source?view=1#files`,
+        ),
+      );
       assert.ok(html.includes('href="https://example.com"'));
       assert.equal(
         readFileSync(path.join(directory, "docs/page.md"), "utf8"),
@@ -165,7 +203,6 @@ test("relative links retain page context and resolve repository source against e
           ),
         /missing local link/,
       );
-      write("docs/omitted.md", "# Omitted guide\n");
       write("site/docs/page.html", '<a href="omitted.md">Omitted</a>');
       assert.throws(
         () =>
@@ -186,6 +223,39 @@ test("relative links retain page context and resolve repository source against e
           ),
         /missing site asset/,
       );
-    });
-  }
+    }
+
+    const revision = revisions.at(-1);
+    assert.equal(
+      sourceMetadata(directory, revision).docurl["docs/page.md"],
+      `${sourceRepository}/blob/${revision}/docs/page.md`,
+    );
+    write("source/untracked.cs", "// absent from the selected commit\n");
+    write("site/docs/page.html", '<a href="../source/untracked.cs">Code</a>');
+    assert.throws(
+      () =>
+        resolveRepositoryLinks(
+          path.join(directory, "site"),
+          directory,
+          revision,
+        ),
+      /absent from source revision/,
+    );
+    write("site/docs/page.html", '<a href="../.git">Git metadata</a>');
+    assert.throws(
+      () =>
+        resolveRepositoryLinks(
+          path.join(directory, "site"),
+          directory,
+          revision,
+        ),
+      /absent from source revision/,
+    );
+
+    write("docs/untracked.md", "# Untracked guide\n");
+    assert.throws(
+      () => sourceMetadata(directory, revision),
+      /Documentation source is absent from source revision: docs\/untracked\.md/,
+    );
+  });
 });
