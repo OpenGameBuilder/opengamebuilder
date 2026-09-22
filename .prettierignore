@@ -1,0 +1,24 @@
+# Prettier owns only these content types (gitignore syntax, not brace globs).
+*
+!*/
+!*.md
+!*.json
+!*.jsonc
+!*.yml
+!*.yaml
+!*.css
+!*.js
+!*.mjs
+!*.cjs
+# Generated output and dependencies have their own producers.
+**/bin/**
+**/obj/**
+**/node_modules/**
+artifacts/**
+.git/**
+.vs/**
+# Preserve upstream skills and their provenance byte for byte.
+.agents/skills/**
+# Package managers own their lockfile formatting.
+**/packages*.lock.json
+**/package-lock.json

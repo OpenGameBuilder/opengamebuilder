@@ -1,0 +1,4 @@
+{
+  "extends": "./node_modules/markdownlint/style/prettier.json",
+  "MD060": false
+}

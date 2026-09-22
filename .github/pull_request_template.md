@@ -1,3 +1,6 @@
+<!-- markdownlint-disable MD041 -->
+<!-- This is a PR body template; GitHub supplies its top-level title. -->
+
 ## Summary
 
 Describe what this pull request changes.

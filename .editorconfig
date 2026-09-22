@@ -24,6 +24,10 @@ generated_code = true
 # C# files
 [*.cs]
 end_of_line = lf
+# Enforce two focused, existing code-style expectations in format/build checks.
+dotnet_diagnostic.IDE0040.severity = warning
+dotnet_diagnostic.IDE0044.severity = warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 # New line preferences
 csharp_new_line_before_open_brace = all
 csharp_new_line_before_else = true
@@ -179,12 +183,17 @@ trim_trailing_whitespace = false
 [*.{props,targets,config}]
 indent_size = 2
 
-# Data serialization
-[*.{json,yaml,yml}]
+# Prettier owns first-party content formatting. Preserve authored prose wrapping.
+[*.{md,json,jsonc,yaml,yml,css,js,mjs,cjs}]
 indent_size = 2
+end_of_line = lf
 
 # Shell scripts
 [*.sh]
+indent_size = 2
+end_of_line = lf
+[.husky/pre-commit]
+indent_size = 2
 end_of_line = lf
 [*.{cmd,bat}]
 end_of_line = crlf

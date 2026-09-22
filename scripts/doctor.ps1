@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('quick', 'full', 'browser', 'development')]
+    [ValidateSet('format', 'content', 'quick', 'full', 'browser', 'development')]
     [string] $Scope = 'development'
 )
 
@@ -159,14 +159,21 @@ if ($PSVersionTable.PSVersion.Major -ge 7) { Write-Check PASS "PowerShell $power
 else { Write-Check FAIL "PowerShell $powerShellVersion is unsupported. Install PowerShell 7 and rerun with pwsh." }
 Show-ManifestPins -RequirePlaywright:($Scope -in @('full', 'browser'))
 
-if ($Scope -in @('quick', 'full', 'development')) { Test-DotNetSdk }
-if ($Scope -in @('full', 'development')) {
+if ($Scope -in @('format', 'quick', 'full', 'development')) { Test-DotNetSdk }
+if ($Scope -in @('format', 'content', 'full', 'development')) {
     Test-Tool 'Git' 'git' 'Install Git (Git for Windows on Windows).' '^git version '
-    Test-Bash
 }
-if ($Scope -in @('full', 'browser')) {
+if ($Scope -in @('full', 'development')) { Test-Bash }
+if ($Scope -in @('format', 'content', 'full', 'browser')) {
     Test-Tool 'Node.js' 'node' 'Install Node.js 22.' '^v?22(?:\.|$)'
     Test-Tool 'npm' 'npm' 'Install npm with Node.js 22.' '^\d+\.'
+}
+if ($Scope -in @('format', 'content', 'full')) {
+    try {
+        & (Join-Path $PSScriptRoot 'install-content-tools.ps1') -Verify
+        Write-Check PASS 'Pinned content-tool executable checksums verified.'
+    }
+    catch { Write-Check FAIL $_.Exception.Message }
 }
 if ($Scope -eq 'full') { Test-DockerCompose }
 if ($Scope -eq 'development') { Test-Aspire }

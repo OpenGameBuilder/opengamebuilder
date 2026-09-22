@@ -1,0 +1,4 @@
+# PR checks are offline: remote availability cannot affect this gate.
+offline = true
+include_fragments = "anchor-only"
+no_progress = true

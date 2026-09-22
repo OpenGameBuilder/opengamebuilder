@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "tools": {
+    "actionlint": {
+      "version": "1.7.12",
+      "releaseUrl": "https://github.com/rhysd/actionlint/releases/tag/v1.7.12",
+      "platforms": {
+        "windows-x64": {
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip",
+          "archiveType": "zip",
+          "archiveSha256": "6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9",
+          "executable": "actionlint.exe",
+          "executableSha256": "54ca21be3de4c7cfa26914aa8b61bd76bf573ef3caac5f80d110558cdf241718"
+        },
+        "linux-x64": {
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+          "archiveType": "tar.gz",
+          "archiveSha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+          "executable": "actionlint",
+          "executableSha256": "c872d6db8c6bf83a8eaa704fc93999f027d55dffbc63b8a6abdccb47df5f4cd4"
+        }
+      }
+    },
+    "shellcheck": {
+      "version": "0.11.0",
+      "releaseUrl": "https://github.com/koalaman/shellcheck/releases/tag/v0.11.0",
+      "platforms": {
+        "windows-x64": {
+          "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.zip",
+          "archiveType": "zip",
+          "archiveSha256": "8a4e35ab0b331c85d73567b12f2a444df187f483e5079ceffa6bda1faa2e740e",
+          "executable": "shellcheck.exe",
+          "executableSha256": "c9e82ada36ef4b8d4caf1f97fa89289048c8f4a33c2c76ffffc88bfe09ff00c5"
+        },
+        "linux-x64": {
+          "url": "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.gz",
+          "archiveType": "tar.gz",
+          "archiveSha256": "b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6",
+          "executable": "shellcheck",
+          "executableSha256": "4da528ddb3a4d1b7b24a59d4e16eb2f5fd960f4bd9a3708a15baddbdf1d5a55b"
+        }
+      }
+    },
+    "shfmt": {
+      "version": "3.14.1",
+      "releaseUrl": "https://github.com/mvdan/sh/releases/tag/v3.14.1",
+      "platforms": {
+        "windows-x64": {
+          "url": "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_windows_amd64.exe",
+          "archiveType": "file",
+          "archiveSha256": "13629ce28442ca80b6b5a819f7574ab39e1c28c6e26734ca816c9714e04851df",
+          "executable": "shfmt.exe",
+          "executableSha256": "13629ce28442ca80b6b5a819f7574ab39e1c28c6e26734ca816c9714e04851df"
+        },
+        "linux-x64": {
+          "url": "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64",
+          "archiveType": "file",
+          "archiveSha256": "76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf",
+          "executable": "shfmt",
+          "executableSha256": "76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf"
+        }
+      }
+    },
+    "lychee": {
+      "version": "0.24.2",
+      "releaseUrl": "https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2",
+      "platforms": {
+        "windows-x64": {
+          "url": "https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-pc-windows-msvc.zip",
+          "archiveType": "zip",
+          "archiveSha256": "32975d1493ee1a975d6bb41e4fb56fe419cb442ded628bb772ba2e614acfacad",
+          "executable": "lychee.exe",
+          "executableSha256": "2d15a3f78ac680103720b0c59667dc6f1da7de35f7e9c95171bdf4b76fb6829b"
+        },
+        "linux-x64": {
+          "url": "https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz",
+          "archiveType": "tar.gz",
+          "archiveSha256": "1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a",
+          "executable": "lychee",
+          "executableSha256": "87e6e75195df5753f08c53b5c0a13694b8328edd8df009914ae9e29b5000162d"
+        }
+      }
+    }
+  }
+}

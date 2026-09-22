@@ -1,0 +1,13 @@
+# actionlint 1.7.12 predates GitHub's cache-mode key. Keep the security setting;
+# check-content.mjs separately requires none in these deployment entry points.
+# Remove only these exceptions when a pinned actionlint release supports the key.
+paths:
+  .github/workflows/_deploy.yml:
+    ignore:
+      - '^unexpected key "cache-mode" for "workflow" section\.'
+  .github/workflows/cd-production.yml:
+    ignore:
+      - '^unexpected key "cache-mode" for "workflow" section\.'
+  .github/workflows/cd-staging.yml:
+    ignore:
+      - '^unexpected key "cache-mode" for "workflow" section\.'

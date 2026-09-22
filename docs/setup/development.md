@@ -61,14 +61,22 @@ pwsh ./scripts/check.ps1 quick
 `doctor.ps1` is a read-only prerequisite report. Its default `development`
 scope reports PowerShell, the SDK, Aspire CLI, Git, and Bash with their remedies;
 it does not install tools, trust certificates, start services, or open a browser.
-Use `-Scope quick`, `full`, `browser`, or `development` when checking a narrower
+Use `-Scope quick`, `full`, `content`, `format`, `browser`, or `development` when checking a narrower
 workflow.
 
 The normal solution gate is `pwsh ./scripts/check.ps1 quick`: it runs the quick
 doctor check, a locked restore, C# formatting verification, a Release build, and
-the current 72 solution tests. `check.ps1 format` performs only the formatting
-verification after its locked restore. To apply formatter changes deliberately,
-run `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
+the current 72 solution tests. `check.ps1 format` verifies C# after locked restore
+and checks first-party content with Prettier and shfmt. To apply formatter changes
+deliberately, run `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
+Install the [content-checking prerequisites](../quality/content-checks.md) before
+using `format`, `content`, or `full`:
+
+```pwsh
+npm ci --ignore-scripts
+pwsh ./scripts/install-content-tools.ps1
+pwsh ./scripts/check.ps1 content
+```
 
 The initial browser-debugging setup is an explicit, interactive operation:
 
@@ -328,6 +336,8 @@ dotnet husky install
 ```
 
 The hook formats staged C# files using the same solution and formatting rules.
+For staged content files it also runs the shared first-party content check against
+the working tree, including unstaged work, without rewriting or staging content.
 Review any resulting changes before committing. If `HUSKY=0` is set in your
 terminal, remove that setting before opting in. To disable hook execution
 temporarily in PowerShell, set `$env:HUSKY = '0'`; use

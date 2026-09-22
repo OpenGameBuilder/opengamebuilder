@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# These assertions match literal workflow expressions and shell source text.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

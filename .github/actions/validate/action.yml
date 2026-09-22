@@ -38,6 +38,11 @@ runs:
         node-version: "22"
         package-manager-cache: false
 
+    - name: Install pinned content tools
+      shell: pwsh
+      working-directory: ${{ inputs.working-directory }}
+      run: ./scripts/install-content-tools.ps1
+
     - name: Run shared full check
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}

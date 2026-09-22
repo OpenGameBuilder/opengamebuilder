@@ -6,7 +6,7 @@ Runs the same validation locally and in CI; see docs/quality/testing.md.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'quick', 'full', 'browser')]
+    [ValidateSet('format', 'content', 'external-links', 'quick', 'full', 'browser')]
     [string] $Mode = 'quick',
     [switch] $Fix,
     [switch] $Serial,
@@ -33,10 +33,28 @@ try {
         }
     }
 
-    $scope = if ($Mode -eq 'format') { 'quick' } else { $Mode }
+    if ($Mode -eq 'full') {
+        $npm = if ($IsWindows) { 'npm.cmd' } else { 'npm' }
+        Invoke-Check 'content-dependencies' $npm @('ci', '--ignore-scripts')
+    }
+    $scope = if ($Mode -eq 'external-links') { 'content' } else { $Mode }
     Invoke-Check 'doctor' (Join-Path $PSHOME $(if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' })) @(
         '-NoProfile', '-File', "$PSScriptRoot/doctor.ps1", '-Scope', $scope
     )
+
+    if ($Mode -in @('content', 'external-links', 'full', 'format')) {
+        $contentMode = switch ($Mode) {
+            'external-links' { 'external-links' }
+            'format' { 'format' }
+            default { 'all' }
+        }
+        $contentArguments = @('scripts/check-content.mjs', $contentMode)
+        if ($Fix) { $contentArguments += '--fix' }
+        Invoke-Check 'content' 'node' $contentArguments
+        if ($Mode -eq 'full') {
+            Invoke-Check 'content-regressions' 'node' @('--test', 'tests/content-checks/check.test.mjs')
+        }
+    }
 
     if ($Mode -eq 'browser') {
         # Browser installation is an explicit setup step, never part of a check.
@@ -50,7 +68,7 @@ try {
         }
         Invoke-Check 'browser-smoke' 'node' @('tests/deploy-smoke/smoke.mjs')
     }
-    else {
+    elseif ($Mode -notin @('content', 'external-links')) {
         $msbuildArguments = if ($Serial) { @('-m:1', '-p:BuildInParallel=false', '-nodeReuse:false') } else { @() }
         Invoke-Check 'restore' 'dotnet' (@('restore', 'opengamebuilder.slnx', '--locked-mode') + $msbuildArguments)
         $formatArguments = @('format', 'opengamebuilder.slnx', '--no-restore', '--report', 'artifacts/validation/format.json')

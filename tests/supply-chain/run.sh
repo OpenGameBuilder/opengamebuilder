@@ -23,7 +23,7 @@ done < <(grep -RhE --include='*.yml' --include='*.yaml' '^[[:space:]]*(- )?uses:
 echo "PASS ${action_count} third-party action references use reviewed commit SHAs"
 
 base_count=0
-while read -r directive image_ref remainder; do
+while read -r directive image_ref _remainder; do
   [[ "$directive" == FROM ]] || continue
   [[ "$image_ref" == scratch ]] && continue
   [[ "$image_ref" =~ @sha256:[0-9a-f]{64}$ ]] || fail "Dockerfile base image is not pinned by digest: $image_ref"
@@ -34,6 +34,8 @@ grep -Eq '^[[:space:]]+image:[[:space:]]+[^[:space:]@]+@sha256:[0-9a-f]{64}$' de
   fail 'edge image is not pinned by digest'
 echo "PASS ${base_count} API base images and the edge image use immutable digests"
 
+# Match the Dockerfile variable reference without expanding it in this test.
+# shellcheck disable=SC2016
 grep -Fq 'USER $APP_UID' src/OpenGameBuilder.Api/Dockerfile || fail 'API image lacks an explicit non-root user'
 if grep -R -n -F 'ssh-keyscan' .github/workflows; then
   fail 'deployment workflow still learns SSH trust with ssh-keyscan'
@@ -75,6 +77,8 @@ mapfile -t api_image_patterns < <(awk '
 for dependency in dotnet/sdk dotnet/aspnet; do
   matched=false
   for pattern in "${api_image_patterns[@]}"; do
+    # Dependabot patterns intentionally match globs, not literal strings.
+    # shellcheck disable=SC2053
     if [[ "$dependency" == $pattern ]]; then
       matched=true
       break

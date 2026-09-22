@@ -74,6 +74,11 @@ pwsh ./scripts/check.ps1 full
 pwsh ./scripts/check.ps1 full -Serial
 ```
 
+See [first-party content checks](content-checks.md) for the pinned tool setup,
+formatter ownership, offline link checks, and separate external-link reports.
+`content` runs that gate without requiring .NET or deployment tools. `full`
+includes it and its deliberate-defect regression tests.
+
 `quick` is the normal solution gate: quick doctor checks, locked restore,
 format verification, Release build, and the current 72 tests. `full` includes
 that gate plus frontend Release publish and its portability guard, `npm ci` and

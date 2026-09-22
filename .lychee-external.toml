@@ -1,0 +1,8 @@
+# Weekly maintenance report; never part of required PR validation.
+scheme = ["https", "http"]
+max_concurrency = 4
+max_retries = 1
+timeout = 15
+no_progress = true
+format = "markdown"
+output = "artifacts/validation/external-links.md"

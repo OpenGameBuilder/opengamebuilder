@@ -2,6 +2,29 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "check-content",
+      "command": "pwsh",
+      "type": "process",
+      "args": [
+        "-NoProfile",
+        "-File",
+        "${workspaceFolder}/scripts/check.ps1",
+        "content"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "format-first-party-content",
+      "command": "node",
+      "type": "process",
+      "args": [
+        "${workspaceFolder}/scripts/check-content.mjs",
+        "format",
+        "--fix"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "build-api",
       "command": "dotnet",
       "type": "process",

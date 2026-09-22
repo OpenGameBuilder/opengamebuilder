@@ -6,6 +6,8 @@ set -euo pipefail
 
 # Plain SemVer X.Y.Z without prerelease/build metadata.
 SEMVER_REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+# Used by callers that source this library.
+# shellcheck disable=SC2034
 TAG_REGEX='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
 repo_root() {

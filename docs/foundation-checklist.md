@@ -430,20 +430,23 @@ or editor rehearsal was performed.
 
 ### 14. Format and lint first-party content consistently
 
-- [ ] Keep `dotnet format` and existing analyzers for C#. Promote selected useful
+- [x] Keep `dotnet format` and existing analyzers for C#. Promote selected useful
       style rules to enforced warnings rather than enabling a large rule set wholesale.
-- [ ] Add exactly pinned Prettier for Markdown, JSON, YAML, CSS, and JavaScript;
+- [x] Add exactly pinned Prettier for Markdown, JSON, YAML, CSS, and JavaScript;
       choose explicit indentation/prose wrapping consistent with scoped EditorConfig
       settings. Use markdownlint-cli2's Prettier-compatible preset for structural rules.
-- [ ] Add actionlint for workflows, ShellCheck for shell defects, and shfmt for
+- [x] Add actionlint for workflows, ShellCheck for shell defects, and shfmt for
       shell formatting. Use versions compatible with the workflow syntax in this repo.
-- [ ] Add pinned lychee checks for local file/image links and anchors, including
+- [x] Add pinned lychee checks for local file/image links and anchors, including
       root and first-party GitHub documents. Check generated HTML when step 17 lands.
       Schedule bounded external-link reports separately; remote outages must not block
       unrelated PRs. Keep exclusions narrow and explained.
-- [ ] Share configurations between editor, optional hooks, command line, and CI.
+- [x] Share configurations between editor, optional hooks, command line, and CI.
       Exclude generated artifacts, dependencies, and vendored skills; avoid competing
-      formatters for a file type. Make the initial formatting sweep a separate PR.
+      formatters for a file type.
+- [ ] Publish the initial formatting sweep as a separate PR. It is isolated in
+      local commit `1f646a6` on `codex/foundation-formatting-sweep`; tooling follows
+      on `codex/foundation-section-14-content`. Neither branch has been published.
 
 **Acceptance:** deliberate formatting, Markdown-structure, missing-target/anchor,
 workflow, and shell defects fail their appropriate checks with clear fixes. Clean
@@ -454,6 +457,16 @@ Sources: [Prettier](https://prettier.io/docs/install),
 [actionlint](https://github.com/rhysd/actionlint/blob/main/docs/checks.md),
 [ShellCheck](https://github.com/koalaman/shellcheck), [shfmt](https://github.com/mvdan/sh),
 [lychee](https://lychee.cli.rs/guides/cli/).
+
+**Result (2026-09-22, local implementation complete):** The
+[shared content workflow](quality/content-checks.md) pins and verifies the tools,
+preserves formatter ownership, checks local links offline, and schedules bounded
+external reports. The full Windows gate passed with zero build warnings and 72
+.NET tests; all seven content regression groups and the final content gate passed.
+[Validation evidence](quality/content-checks.md#recorded-validation) records the
+injected C# failures, installer checks, and narrow actionlint cache-mode exception.
+Linux execution, hosted CI, the scheduled report, and separate PR publication
+remain unverified. No application services or deployments were started.
 
 ### 15. Validate the supported platform and keep CI understandable
 
