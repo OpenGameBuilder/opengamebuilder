@@ -444,9 +444,10 @@ or editor rehearsal was performed.
 - [x] Share configurations between editor, optional hooks, command line, and CI.
       Exclude generated artifacts, dependencies, and vendored skills; avoid competing
       formatters for a file type.
-- [ ] Publish the initial formatting sweep as a separate PR. It is isolated in
-      local commit `1f646a6` on `codex/foundation-formatting-sweep`; tooling follows
-      on `codex/foundation-section-14-content`. Neither branch has been published.
+- [x] Publish and verify the initial formatting sweep. Formatting commit `1f646a6`
+      was included with the tooling in [PR #114](https://github.com/OpenGameBuilder/opengamebuilder/pull/114).
+      Rerunning the configured formatters on merged `main` (`f8db700`) produced no
+      changes; the originally planned separate mechanical PR has no remaining diff.
 
 **Acceptance:** deliberate formatting, Markdown-structure, missing-target/anchor,
 workflow, and shell defects fail their appropriate checks with clear fixes. Clean
@@ -458,15 +459,19 @@ Sources: [Prettier](https://prettier.io/docs/install),
 [ShellCheck](https://github.com/koalaman/shellcheck), [shfmt](https://github.com/mvdan/sh),
 [lychee](https://lychee.cli.rs/guides/cli/).
 
-**Result (2026-09-22, local implementation complete):** The
+**Result (2026-09-22, implementation and formatting acceptance complete):** The
 [shared content workflow](quality/content-checks.md) pins and verifies the tools,
 preserves formatter ownership, checks local links offline, and schedules bounded
 external reports. The full Windows gate passed with zero build warnings and 72
 .NET tests; all seven content regression groups and the final content gate passed.
 [Validation evidence](quality/content-checks.md#recorded-validation) records the
 injected C# failures, installer checks, and narrow actionlint cache-mode exception.
-Linux execution, hosted CI, the scheduled report, and separate PR publication
-remain unverified. No application services or deployments were started.
+The [Ubuntu CI gate](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35744440511/job/106802281361)
+also passed content checks, all seven regression groups, and the full solution
+gate for the exact tree merged in PR #114. A fresh Windows formatter pass over
+that merged tree produced no changes. The external-link schedule has not yet run;
+it is separate from the required formatting and local-link gate. No application
+services or deployments were started by this formatting verification.
 
 ### 15. Validate the supported platform and keep CI understandable
 
