@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Audit the resolved graph, including tests/AppHost and transitive packages.
+         Preserve the existing all-severity NuGet warning-as-error policy. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>
 
   <!-- NuGet can create an absent lock even in locked mode; CI must require it. -->

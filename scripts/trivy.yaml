@@ -1,0 +1,19 @@
+# Runtime image policy. CLI arguments in scan-api-image.sh repeat security-critical
+# values so TRIVY_* environment variables cannot weaken them.
+db:
+  skip-update: false
+image:
+  source:
+    - docker
+list-all-pkgs: true
+pkg:
+  types:
+    - os
+    - library
+scan:
+  disable-telemetry: true
+  scanners:
+    - vuln
+  skip-version-check: true
+vulnerability:
+  ignore-unfixed: false

@@ -1,0 +1,54 @@
+name: Runtime scan acceptance probe
+on:
+  push:
+    branches: [codex/section-20-runtime-probe-20260922]
+permissions:
+  contents: read
+jobs:
+  known-vulnerable-os:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Acquire an obsolete OS fixture without running it
+        run: |
+          docker pull alpine:3.12.0
+          docker tag alpine:3.12.0 opengamebuilder-api:ci
+      - name: Install pinned scanner
+        run: bash scripts/install-trivy.sh
+      - name: Require actionable OS vulnerability rejection
+        run: |
+          if bash scripts/scan-api-image.sh opengamebuilder-api:ci; then
+            echo 'Expected vulnerable OS fixture to be blocked.' >&2
+            exit 1
+          fi
+          jq -e '[.Results[] | select(.Class == "os-pkgs") | .Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length > 0' artifacts/validation/trivy-api-image.json
+      - name: Keep rejection reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runtime-scan-rejection
+          path: artifacts/validation/trivy*
+          retention-days: 7
+  runtime-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Build the actual final API image
+        run: docker build --file src/OpenGameBuilder.Api/Dockerfile --tag opengamebuilder-api:ci .
+      - name: Install pinned scanner
+        run: bash scripts/install-trivy.sh
+      - name: Scan final image
+        run: bash scripts/scan-api-image.sh opengamebuilder-api:ci
+      - name: Keep scan reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runtime-scan-acceptance
+          path: artifacts/validation/trivy*
+          retention-days: 7
