@@ -12,10 +12,13 @@ See [developer setup](../setup/development.md) for SDK prerequisites.
 | `tests\OpenGameBuilder.Api.Tests` | In-process HTTP integration tests of the real API, including a real API-client round trip |
 | `tests\OpenGameBuilder.Api.Client.Tests` | Client registration, configuration, JSON contracts, HTTP/transport failures, and cancellation |
 
-Component tests and a published-app browser smoke test accompany the first
+The existing deployment smoke below checks published frontend startup and a
+real API round trip in Chromium. Component tests and broader browser coverage
+for loading, success, network failure, and invalid responses accompany the first
 functional frontend feature, as scoped in section 6 of the
-[foundation checklist](../foundation-checklist.md). The placeholder page does
-not need a dedicated test project or browser infrastructure.
+[foundation checklist](../foundation-checklist.md). See the
+[browser and accessibility matrix](../frontend/browser-support.md) for recorded
+evidence, unverified targets, and the manual checks required as the editor develops.
 
 [`tests/Directory.Build.props`](../../tests/Directory.Build.props) imports the
 repository-wide build properties and supplies the common test flags, xUnit

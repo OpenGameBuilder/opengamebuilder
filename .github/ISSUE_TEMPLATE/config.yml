@@ -1,1 +1,8 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/OpenGameBuilder/opengamebuilder/discussions
+    about: Ask for help, discuss an idea, or explore a possible contribution in public.
+  - name: Private security report
+    url: https://github.com/OpenGameBuilder/opengamebuilder/security/advisories/new
+    about: Report a suspected vulnerability privately. Do not open a public issue.

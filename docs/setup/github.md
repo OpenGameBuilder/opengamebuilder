@@ -286,9 +286,10 @@ PR failed, keep that source branch at the same commit and follow the
 [release rerun guidance](../release/README.md#what-happens-on-failure).
 The bot may create the tag, Release, and follow-up PR after deployment; it
 cannot approve its own PR, bypass CI, move a release tag, or recover the server.
-There is no agreed backup operator or rehearsed artifact rollback yet; those
-remain foundation sections 21 and 14 respectively. Do not equate an authorized
-GitHub rerun with a tested rollback.
+There is no agreed backup operator; see [practical stewardship](../community/stewardship.md).
+Artifact rollback was rehearsed in staging as recorded in
+[foundation section 14](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
+That evidence does not establish a second operator's access or recovery readiness.
 
 ## Acceptance evidence
 

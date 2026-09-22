@@ -28,13 +28,19 @@ Useful contributions include:
 - issue triage;
 - community support.
 
-If you are unsure where to start, look for issues labeled `good first issue`, `help wanted`, `documentation`, `bug`, or `compatibility`.
+If you are unsure where to start, look for issues labeled `good first issue`,
+`help wanted`, or `documentation`, or issues with the `Bug` type. The public
+[OpenGameBuilder Roadmap](https://github.com/orgs/OpenGameBuilder/projects/3)
+tracks work, including the `Triage` status; triage is not an issue label.
 
 ## Before You Start
 
 For small fixes, documentation improvements, typo fixes, straightforward bugs, and focused cleanup, feel free to open a pull request.
 
-For larger changes, please open an issue or discussion first. This is especially important for changes involving:
+For larger changes, please open an issue or
+[GitHub Discussion](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
+first. Use Discussions for exploratory questions and ideas; private Discord
+access is not required to contribute. This is especially important for changes involving:
 
 - major architecture;
 - game runtime behavior;
@@ -68,7 +74,12 @@ Before opening a pull request, please make sure the project builds and tests pas
 
 ## Issues
 
-Issues are useful for bug reports, feature requests, compatibility problems, documentation gaps, and project discussion.
+Use the [issue forms](https://github.com/OpenGameBuilder/opengamebuilder/issues/new/choose)
+for concrete work: Bug Report for broken behavior, Compatibility Issue for
+observed differences from MyGameBuilder (also tracked as `Bug`), Enhancement for
+improving an existing capability, and Feature Request for a new capability.
+Use [Discussions](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
+for questions and proposals that are still exploratory.
 
 When reporting a bug, please include:
 
@@ -117,6 +128,11 @@ Significant decisions should leave a written record where practical, such as an 
 
 OpenGameBuilder includes preservation work related to MyGameBuilder games and historical material.
 
+Before adding games, assets, submissions, or test fixtures, follow the short
+[material-intake and creator-request checklist](docs/community/stewardship.md#material-intake-and-creator-requests).
+Implementation tests use independently created fixtures. The application's
+Apache-2.0 license does not grant rights to original MyGameBuilder material.
+
 Please handle archival material carefully. The existence of archived material does not automatically mean every item should be public, searchable, or restored without context.
 
 Do not post private, sensitive, identifying, or personal information from archived material in public issues, pull requests, comments, screenshots, or documentation.
@@ -152,13 +168,18 @@ See [`AI_POLICY.md`](AI_POLICY.md) for the full policy.
 
 Please do not report security vulnerabilities in public issues or discussions.
 
-Security issues, privacy concerns, Code of Conduct reports, and sensitive archival concerns should be reported privately using the process described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) or any dedicated security reporting process provided by the project.
+Report security vulnerabilities through [the private security reporting process](SECURITY.md).
+For Code of Conduct reports, privacy concerns, or sensitive archival concerns,
+use the private contact in the organization-wide
+[Code of Conduct](https://github.com/OpenGameBuilder/.github/blob/main/CODE_OF_CONDUCT.md#reporting-an-issue).
 
 ## Community Standards
 
-All contributors are expected to follow the project’s [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+All contributors are expected to follow the organization-wide
+[Code of Conduct](https://github.com/OpenGameBuilder/.github/blob/main/CODE_OF_CONDUCT.md).
 
-Project governance, roles, and decision-making authority are described in [`GOVERNANCE.md`](GOVERNANCE.md).
+Project governance, roles, and decision-making authority are described in the
+organization-wide [governance document](https://github.com/OpenGameBuilder/.github/blob/main/GOVERNANCE.md).
 
 ## Licensing
 

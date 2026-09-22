@@ -26,6 +26,11 @@ If `aspire` is newly installed, reopen the terminal if it is not on `PATH`.
 The setup guide is authoritative for prerequisites, certificate trust, endpoint
 checks, and editor debugging.
 
+Before changing vendored skills or agent setup, read
+[AI tooling maintenance](docs/setup/ai-tooling.md) for source pins, licenses,
+update steps, and supported local-agent scope. Generic cloud/deployment skills
+do not override this repository's workflows or authorization requirements.
+
 ## Project map and boundaries
 
 - `src/OpenGameBuilder.Api.Contracts`: browser-compatible API DTOs; no server or

@@ -353,29 +353,56 @@ application deployments do not apply edge-image changes.
 
 ### 16. Replace the placeholder README with a contributor front door
 
-- [ ] Describe what works today, the first milestone, non-goals, and project status.
-- [ ] Link working setup, contribution, testing, support, roadmap, and license
+- [x] Describe what works today, the first milestone, non-goals, and project status.
+- [x] Link working setup, contribution, testing, support, roadmap, and license
   information before emphasizing deployment badges.
-- [ ] Explain the distinction between this implementation, the archive repository,
+- [x] Explain the distinction between this implementation, the archive repository,
   and the original MyGameBuilder; do not imply official continuation.
 
 **Acceptance:** an unfamiliar contributor can identify a useful task and reach the
 run instructions from the README without asking a maintainer.
 
+**Verified locally (2026-09-21):** the README now describes the API/frontend
+foundation and its current limitations, links directly to the run instructions,
+and gives concrete setup, documentation, and regression-test contribution paths.
+It points to section 9 for the still-unselected first engine milestone rather
+than claiming a compatibility target has been accepted. Setup, contribution,
+testing, support, roadmap, and license links precede workflow badges. Local link
+targets and heading anchors were checked, current behavior was compared with
+the source, and the public archive repository and enabled issue tracker were
+confirmed through GitHub. This documentation review does not close section 3's
+fresh-checkout editor verification or section 9's milestone decisions.
+
 ### 17. Make public support and issue intake usable
 
-- [ ] Make GitHub Discussions the discoverable default for exploratory questions.
+- [x] Make GitHub Discussions the discoverable default for exploratory questions.
   Keep the reunion Discord private if desired, but not a prerequisite for contributing.
-- [ ] Link directly to the authoritative organization-wide Code of Conduct and
+- [x] Link directly to the authoritative organization-wide Code of Conduct and
   governance documents from `CONTRIBUTING.md` and `SUPPORT.md`.
-- [ ] Add question and private-security-reporting links to the issue chooser.
-- [ ] Create or replace the missing `needs triage` label used by templates and
-  Dependabot. Remove the compatibility form's TODO option.
-- [ ] Simplify overlapping enhancement/feature forms if they do not help triage.
+- [x] Add question and private-security-reporting links to the issue chooser.
+- [x] Use the existing project `Triage` status; remove stale `needs triage`
+  label references from issue forms. Dependabot is already corrected. Remove
+  the compatibility form's TODO option.
+- [x] Simplify overlapping enhancement/feature forms if they do not help triage.
   Make the issue labels/types and contributor guidance agree.
 
 **Acceptance:** a newcomer can ask a question, report a bug, propose a change,
 and find private reporting instructions without access to private chat.
+
+**Verified locally and against GitHub (2026-09-21):** Discussions (including Q&A
+and Ideas), private vulnerability reporting, and the public Roadmap's `Triage`
+status already exist. No settings or labels needed creating, and Dependabot
+already omits the stale label. The four issue forms now omit it too. Bug,
+Feature, and Enhancement match enabled organization issue types; the nonexistent
+compatibility type is replaced with Bug while keeping its behavior/evidence form.
+The unused TODO dropdown is removed. Enhancement and Feature remain separate
+because both types exist and the forms distinguish existing and new capabilities.
+Support, contribution guidance, and issue-chooser links now lead to public
+questions, concrete reports/proposals, and private security reporting. Broken
+local policy links now point to the verified organization-wide documents.
+YAML, configured types, and documentation links were checked locally; the hosted
+chooser will reflect these changes after merge. No test issues or reports were
+submitted, and project automation was not changed.
 
 ### 18. Create a small, genuinely actionable contributor backlog
 
@@ -391,34 +418,70 @@ database layer, deployment system, or entire engine.
 
 ### 19. Consolidate documentation and define browser expectations
 
-- [ ] Remove empty Markdown placeholders or turn the intended work into issues.
+- [x] Remove empty Markdown placeholders or turn the intended work into issues.
   Keep only useful setup, architecture, testing, hosting, and compatibility documents.
-- [ ] Add a concise documentation index and repair broken local links.
-- [ ] Correct stale claims, including the statement that health checks are absent.
+- [x] Add a concise documentation index and repair broken local links.
+- [x] Correct stale claims, including the statement that health checks are absent.
   Move general learning resources to the shared location planned by the project,
   retaining useful links rather than duplicating a reference library.
-- [ ] Fill `docs\frontend\browser-support.md` with a tested support policy.
+- [x] Fill `docs\frontend\browser-support.md` with a tested support policy.
   Explain that `.browserslistrc` alone neither implements nor verifies compatibility.
-- [ ] Include keyboard operation, focus, accessible loading/errors, and a concrete
+- [x] Include keyboard operation, focus, accessible loading/errors, and a concrete
   supported-browser smoke matrix for the editor as it develops.
 
 **Acceptance:** referenced documents contain real instructions; local links resolve;
 the claimed browser/accessibility baseline has recorded checks.
 
+**Verified (2026-09-22 UTC):** removed 23 empty placeholders and filled the API
+and browser guides. The [documentation index](README.md) links current operating
+instructions, the repository map, and compatibility boundaries. Five substantive
+learning-resource pages moved to the organization's `.github` repository in
+[draft PR #1](https://github.com/OpenGameBuilder/.github/pull/1), retaining all 211
+original external link targets and replacing broken local references. The index
+links the published shared commit so it works before merge; issue
+[#56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56) remains open
+pending the cross-repository review and merge. The API guide documents existing
+health checks, and testing guidance now distinguishes the existing Chromium
+deployment smoke from section 6's future component and failure-state coverage.
+
+The browser guide records the successful Chromium smoke from staging run
+[35681727268](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35681727268)
+and source-inspected accessibility gaps. Other browsers, keyboard, focus, screen
+readers, and physical mobile devices remain explicitly unverified; their concrete
+acceptance matrix accompanies the first functional frontend feature in section 6.
+This is not an editor or accessibility-conformance acceptance. Markdown paths,
+heading anchors, nonempty documents, preserved resource links, and whitespace
+were checked. No new services or browser sessions were started, and section 18
+was left unchanged.
+
 ### 20. Finish AI tooling maintenance and simplify policy
 
-- [ ] Record vendored skills' upstream source/revision, applicable licenses and
+- [x] Record vendored skills' upstream source/revision, applicable licenses and
   attribution, update/regeneration procedure, and local-edit policy.
-- [ ] Trim unused skill coverage where useful, or explicitly distinguish generic
+- [x] Trim unused skill coverage where useful, or explicitly distinguish generic
   cloud/deployment capabilities from approved repository workflows.
-- [ ] Shorten repetitive sections of `AI_POLICY.md` without weakening human
+- [x] Shorten repetitive sections of `AI_POLICY.md` without weakening human
   accountability, disclosure, privacy, or proprietary-material restrictions.
-- [ ] If using cloud coding agents, add a minimal reproducible setup workflow and
+- [x] If using cloud coding agents, add a minimal reproducible setup workflow and
   validate it on their actual runner. Keep production secrets out of that environment.
   Otherwise record cloud-agent setup as not applicable.
 
 **Acceptance:** local and any supported cloud agents use the same documented
 checks. A maintainer can update the skills deliberately, with provenance preserved.
+
+**Verified (2026-09-22 UTC):** [AI tooling maintenance](setup/ai-tooling.md)
+records matching immutable source revisions for all 37 vendored files, the
+embedded Aspire bundle checksum, dotnet-inspect attribution, complete MIT notices,
+and reproduction/update and local-patch procedures. A clean upstream checkout
+matched all six Aspire skill trees; the extracted dotnet-inspect source matched
+its recorded SHA-256. The vendored files themselves are unchanged. Generic cloud
+and deployment coverage is explicitly separate from this repository's approved
+Compose workflow and authorization boundaries. `AI_POLICY.md` was reduced from
+307 to 119 lines while preserving accountability, disclosure, privacy, licensing,
+and proprietary-source restrictions; its linked source-material heading remains.
+The maintainer confirmed local agents only, so cloud setup and runner validation
+are not applicable. Local links, license contents, and whitespace checks passed;
+no services, cloud environment, or new application tests were needed.
 
 ### 21. Establish practical stewardship and project continuity
 
@@ -426,17 +489,31 @@ checks. A maintainer can update the skills deliberately, with provenance preserv
   repository, hosting, domain, release, and recovery responsibilities.
 - [ ] Provide an alternate private reporting route for concerns involving the
   primary contact. Confirm private vulnerability reporting remains enabled.
-- [ ] Add `CODEOWNERS` when real area owners exist; do not create fictional ownership
+- [x] Add `CODEOWNERS` when real area owners exist; do not create fictional ownership
   or an approval requirement nobody can satisfy.
-- [ ] Document rights/provenance checks for historical games, submissions, assets,
+- [x] Document rights/provenance checks for historical games, submissions, assets,
   and fixtures: source, permitted use, attribution, privacy review, creator requests,
   and removal handling. Do not imply Apache-2.0 grants rights to original material.
-- [ ] Keep archive ownership separate and use independently created fixtures for
+- [x] Keep archive ownership separate and use independently created fixtures for
   implementation tests.
 
 **Acceptance:** contributors know who decides and who can help; someone other than
 the primary maintainer has an agreed recovery role; material is not imported merely
 because it is technically accessible.
+
+**Practical work completed (2026-09-22 UTC):** [stewardship](community/stewardship.md)
+records current responsibilities, material-intake checks, creator/removal handling,
+and the separate archive boundary. Private vulnerability reporting was confirmed
+enabled. No real area owners are assigned, so `CODEOWNERS` is not applicable yet.
+The stale statement that rollback had never been rehearsed is corrected.
+
+**Deferred:** the first two items remain incomplete because no agreed backup
+operator or independent private contact is recorded. Owner: `ostomachion`.
+Trigger: before wider participation or an operational handoff, obtain a willing
+delegate's agreement, record responsibilities and a private reporting route,
+verify necessary repository/hosting/domain access, and rehearse recovery. A
+read-only collaborator is not a substitute for an agreed role. Full continuity
+acceptance is not claimed; local documentation links and whitespace were checked.
 
 ## Final gate: open the project to wider participation
 

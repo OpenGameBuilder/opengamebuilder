@@ -1,7 +1,6 @@
 name: Bug Report
 description: Report something broken or not working as expected.
-labels: ["needs triage"]
-type: bug
+type: Bug
 
 body:
   - type: markdown
@@ -11,7 +10,7 @@ body:
 
         Please do not include passwords, tokens, private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
 
-        Security issues should be reported privately using `SECURITY.md`.
+        Security issues should follow the [private reporting instructions](https://github.com/OpenGameBuilder/opengamebuilder/blob/main/SECURITY.md).
 
   - type: checkboxes
     id: preflight

@@ -1,7 +1,6 @@
 name: Compatibility Issue
 description: Report behavior that differs from MyGameBuilder or affects restored games.
-labels: ["needs triage"]
-type: compatibility
+type: Bug
 
 body:
   - type: markdown
@@ -50,18 +49,6 @@ body:
     attributes:
       label: Steps to reproduce
       description: What should someone do to see the issue?
-    validations:
-      required: false
-
-  - type: dropdown
-    id: area
-    attributes:
-      label: Affected area
-      description: Best guess is fine.
-      multiple: true
-      options:
-        - TODO
-        - Other
     validations:
       required: false
 

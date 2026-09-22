@@ -6,7 +6,7 @@ Please choose the most appropriate channel so maintainers can respond without tu
 
 ## Questions and Discussion
 
-The official Discord server (if you have access) for:
+Use public [GitHub Discussions](https://github.com/OpenGameBuilder/opengamebuilder/discussions) for:
 
 - general questions;
 - project ideas;
@@ -17,11 +17,15 @@ The official Discord server (if you have access) for:
 - "is this worth doing?" conversations;
 - help deciding where a contribution belongs.
 
-Otherwise, open a GitHub issue only when the question is directly tied to actionable project work.
+Start with [Q&A](https://github.com/OpenGameBuilder/opengamebuilder/discussions/categories/q-a)
+for help or [Ideas](https://github.com/OpenGameBuilder/opengamebuilder/discussions/categories/ideas)
+for exploratory proposals. The reunion Discord remains private; access is not
+required to ask questions or contribute.
 
 ## Bugs
 
-Use GitHub Issues for reproducible bugs.
+Use the [Bug Report form](https://github.com/OpenGameBuilder/opengamebuilder/issues/new?template=bug_report.yml)
+for reproducible bugs.
 
 A good bug report includes:
 
@@ -35,11 +39,11 @@ Do not include passwords, tokens, private data, sensitive archival material, or 
 
 ## Feature Requests
 
-Use GitHub Issues or the Discord server for feature requests.
-
-Use an issue when the request is specific and actionable.
-
-Use the Discord server when the idea is still exploratory, broad, or likely to need design conversation before it becomes work.
+Use the [issue chooser](https://github.com/OpenGameBuilder/opengamebuilder/issues/new/choose)
+when the request is specific and actionable: Enhancement is for improvements to
+existing capabilities, and Feature Request is for new capabilities. Use
+[Discussions](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
+when the idea needs exploration first.
 
 ## Development Setup Help
 
@@ -63,7 +67,10 @@ Contribution guidelines are in:
 
 Project governance is described in:
 
-[`GOVERNANCE.md`](GOVERNANCE.md)
+the organization-wide [governance document](https://github.com/OpenGameBuilder/.github/blob/main/GOVERNANCE.md).
+
+[Practical stewardship](docs/community/stewardship.md) records current operating
+responsibilities and the unfilled backup and independent-reporting roles.
 
 AI-assisted contribution expectations are described in:
 
@@ -81,7 +88,7 @@ Follow the private reporting process in:
 
 Code of Conduct reports and other sensitive community concerns should be reported privately using the process described in:
 
-[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+the organization-wide [Code of Conduct](https://github.com/OpenGameBuilder/.github/blob/main/CODE_OF_CONDUCT.md#reporting-an-issue).
 
 Do not post private, sensitive, identifying, or personal information publicly.
 
@@ -89,7 +96,10 @@ Do not post private, sensitive, identifying, or personal information publicly.
 
 OpenGameBuilder is connected to the history of MyGameBuilder.com, but the completed archive is not maintained in this repository.
 
-Use public issues or the Discord server for:
+Use [Discussions](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
+for questions and historical context, or the
+[issue forms](https://github.com/OpenGameBuilder/opengamebuilder/issues/new/choose)
+for concrete work such as:
 
 - safe compatibility notes;
 - observed behavior differences;
@@ -99,7 +109,12 @@ Use public issues or the Discord server for:
 
 Do not post archived game dumps, private user data, sensitive material, or original proprietary assets in this repository unless maintainers have explicitly requested them.
 
-Sensitive archive-related concerns should be reported privately.
+Sensitive archive-related concerns should go to the private contact in the
+[Code of Conduct](https://github.com/OpenGameBuilder/.github/blob/main/CODE_OF_CONDUCT.md#reporting-an-issue).
+Use that route for creator, privacy, or removal requests; identify the material
+and requested action without posting sensitive evidence publicly. Changes to the
+separate archive belong with its maintainers. There is currently no designated
+independent contact for concerns involving the primary contact.
 
 ## Maintainer Response Expectations
 

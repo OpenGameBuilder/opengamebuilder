@@ -1,5 +1,6 @@
-# Browser support policy for frontend compatibility tooling.
-# See docs/frontend/browser-support.md.
+# Compatibility-tooling declaration; no current build step consumes this file.
+# These queries do not implement or verify browser support.
+# See docs/frontend/browser-support.md for targets and recorded checks.
 
 last 2 Chrome major versions
 last 2 Edge major versions
