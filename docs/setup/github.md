@@ -216,11 +216,15 @@ Each environment holds only its own `DEPLOY_HOST`, `DEPLOY_USER`, and
 `DEPLOY_SSH_KEY` secrets, plus a `DEPLOY_KNOWN_HOSTS` environment variable.
 The variable contains the complete OpenSSH `known_hosts` entry for that
 environment's `DEPLOY_HOST`; the public host key is configuration, not a secret.
-Obtain the public key and SHA-256 fingerprint from the hosting provider's console
-or another authenticated out-of-band channel, compare them there with
-`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, and only then set the variable.
-Do not populate it from an unverified `ssh-keyscan` result. During rotation,
-verify the replacement the same way before changing the variable. The workflow
+Follow the [deployment host-key guide](deployment-host-key.md) to read the public
+key through an existing SSH connection that strictly checks a saved, trusted
+server key, construct the entry, set both environment variables, and read them
+back. This carries forward the administrator's existing trust decision; it is
+not independent verification of an unverified first connection. A provider
+console or another authenticated independent channel is needed when the saved
+key is missing, changed without explanation, or untrusted. Do not populate the
+variable from an unverified `ssh-keyscan` result. During rotation, authenticate
+the replacement before changing the variable. The workflow
 requires an exact host match, enables strict host-key checking, and prints the
 pinned fingerprint to the job log without printing private credentials.
 

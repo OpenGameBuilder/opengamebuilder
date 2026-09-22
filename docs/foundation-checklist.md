@@ -322,8 +322,10 @@ and spoofing coverage. An isolated empty-cache restore passes with inherited
 package sources and mappings cleared. Deployment now requires a pinned
 `DEPLOY_KNOWN_HOSTS` environment variable and never learns trust with
 `ssh-keyscan`. Keep the SSH item and live acceptance open until an administrator
-verifies the server key out of band and configures both environments, CI passes,
-and a merged staging deployment passes.
+verifies and records the key through an existing trusted SSH connection or an
+independent authenticated channel, configures both environments, CI passes, and
+a merged staging deployment passes. Follow the
+[host-key setup guide](setup/deployment-host-key.md) for commands and trust limits.
 
 ## Phase 3: Prepare to welcome community contributors
 
