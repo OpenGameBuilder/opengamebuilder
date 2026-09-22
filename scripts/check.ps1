@@ -35,11 +35,16 @@ try {
         Write-Host "Checking $Name"
         & $Command @Arguments 2>&1 | Tee-Object -FilePath "artifacts/validation/$Name.log"
         if ($LASTEXITCODE -ne 0) {
-            throw "$Name failed (exit $LASTEXITCODE). See artifacts/validation/$Name.log."
+            Write-Host "Check stopped. Details: artifacts/validation/$Name.log."
+            exit $LASTEXITCODE
         }
     }
 
     if ($Mode -eq 'full') {
+        if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+            throw 'Node.js is missing. Install the recommended version from .node-version, then restart your terminal or editor.'
+        }
+        Invoke-Check 'node-policy' 'node' @('scripts/check-node.mjs')
         $npm = if ($IsWindows) { 'npm.cmd' } else { 'npm' }
         Invoke-Check 'content-dependencies' $npm @('ci', '--ignore-scripts')
     }
@@ -60,6 +65,7 @@ try {
         if ($Mode -eq 'full') {
             Invoke-Check 'content-regressions' 'node' @('--test', 'tests/content-checks/check.test.mjs')
             Invoke-Check 'ci-policy-regressions' 'node' @('--test', 'tests/ci-policy/check.test.mjs')
+            Invoke-Check 'contributor-regressions' 'node' @('--test', 'tests/node-policy/check.test.mjs', 'tests/staged-content/check.test.mjs')
         }
     }
 
@@ -90,15 +96,18 @@ try {
             . "$PSScriptRoot/tooling.ps1"
             $bash = Resolve-CheckBash
             if (-not $SkipWebPublish) {
+                # Blazor's build targets replace HTML asset placeholders. --no-build
+                # can publish the source index with an unusable script URL.
                 Invoke-Check 'web-publish' 'dotnet' (@(
                     'publish', 'src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj',
-                    '--configuration', 'Release', '--no-build', '--output', 'artifacts/web'
+                    '--configuration', 'Release', '--no-restore', '--output', 'artifacts/web'
                 ) + $msbuildArguments)
                 Invoke-Check 'web-configuration' $bash @('scripts/verify-web-publish.sh', 'artifacts/web/wwwroot')
             }
             $npm = if ($IsWindows) { 'npm.cmd' } else { 'npm' }
             Invoke-Check 'smoke-dependencies' $npm @('ci', '--prefix', 'tests/deploy-smoke')
             Invoke-Check 'smoke-syntax' 'node' @('--check', 'tests/deploy-smoke/smoke.mjs')
+            Invoke-Check 'browser-discovery' $npm @('run', 'test:pr', '--prefix', 'tests/deploy-smoke', '--', '--list')
             foreach ($suite in @('release-scripts', 'deploy-edge', 'deploy-topology', 'deploy-app', 'supply-chain')) {
                 Invoke-Check $suite $bash @("tests/$suite/run.sh")
             }
@@ -107,7 +116,7 @@ try {
     Write-Host "PASS $Mode checks"
 }
 catch {
-    Write-Error $_ -ErrorAction Continue
+    [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
 finally {

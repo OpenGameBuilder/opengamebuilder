@@ -2,7 +2,7 @@
   "name": "opengamebuilder-tooling",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": ">=22"
   },
   "scripts": {
     "format": "node scripts/check-content.mjs format --fix",

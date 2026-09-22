@@ -36,6 +36,11 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    groups:
+      playwright:
+        patterns:
+          - "playwright"
+          - "@playwright/test"
     cooldown:
       default-days: 7
 

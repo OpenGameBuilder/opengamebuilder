@@ -17,6 +17,12 @@ the production-health guard; isolated staging has no production dependency.
 
 The single source of truth for the version is `<VersionPrefix>` in
 `Directory.Build.props`. See [versioning.md](./versioning.md).
+Protected `main`, short-lived branches, draft PRs, squash merges, and merged-branch
+cleanup follow [the contribution branch policy](../../CONTRIBUTING.md#branches-and-release-notes).
+There is no permanent `develop` branch; `patch/vX.Y.Z` is reserved for the hotfix
+path below. CD Production remains the only owner of release tags and publication;
+its existing prepare/bump PRs own version changes. Changelog tools do not infer
+versions from commits, create tags, or publish releases.
 
 Each deployment records `releases/<release-id>/release-manifest.txt` with the resolved source commit,
 the immutable API image digest reference, and the SHA-256 of the published web
@@ -47,25 +53,74 @@ changes. Include breaking behavior and migration or configuration steps where
 needed; leave out mechanical dependency and formatting noise. Published releases
 before this changelog remain documented in GitHub Releases.
 
-Before dispatching a production release, review the entry against the selected
-source and version in `Directory.Build.props`, then replace `Unreleased` with that
-version and its planned release date in the release-source PR. A patch entry
-belongs on its patch branch and returns to `main` through the existing merge-back.
-A changelog heading records prepared notes, not proof that deployment succeeded;
-GitHub Releases records publication.
+The release maintainer prepares notes in a normal source PR using Node.js 22 or
+newer; Node.js 24 is the recommended LTS and CI baseline. Commands run from the
+repository root:
 
-The current workflow still generates GitHub Release notes from PRs; it does not
-read the changelog. After successful publication, the release maintainer copies
-the selected version's curated entry into the release body, retaining generated
-PR links as supplemental references or credits. Correct the entry here first
-when updating the published summary so there is one maintained account. This
-manual notes step does not change deployment validation, tag timing, version
-ownership, or the requirement for release authorization.
+1. Optionally generate drafting material from merged PRs with authenticated `gh`.
+   Replace the example previous tag with the preceding deployed release (omit
+   `--previous-tag` only for a first release). The checkout's HEAD must already
+   exist on GitHub; uncommitted changes are not included:
+
+   ```pwsh
+   node scripts/changelog.mjs draft --previous-tag v0.10.0 --output artifacts/release-draft.md
+   ```
+
+   This calls GitHub's [generate-notes API](https://docs.github.com/en/rest/releases/releases#generate-release-notes-content-for-a-release)
+   and writes a local file without creating a GitHub draft, tag, or release. An
+   existing output file is rejected; use a new filename for another draft.
+   [`.github/release.yml`](../../.github/release.yml) groups actual PR labels into
+   application, operations, contributor/documentation, and remaining changes.
+   `dependencies` and `internal` are excluded from this drafting aid. Review the
+   full comparison too: an excluded update can still need security or migration
+   guidance. Copy useful facts and PR references into `Unreleased`, remove noise,
+   and write the human-facing summary there. The generated draft is disposable.
+
+2. Review `Unreleased` against the selected source and `VersionPrefix`, then seal
+   it using the intended release date (replace this example date as appropriate):
+
+   ```pwsh
+   node scripts/changelog.mjs prepare --date 2026-09-22
+   node scripts/changelog.mjs check --release
+   ```
+
+   Preparation takes the version from `Directory.Build.props`, creates
+   `## X.Y.Z - YYYY-MM-DD`, and leaves a fresh empty `## Unreleased` for future
+   changes. It rejects an empty entry or an already prepared version without
+   overwriting history. Ordinary `check` validates the structure without requiring
+   the current version to be prepared; the content gate runs it on PRs.
+
+3. Review and merge the changelog PR before dispatching CD Production. A dated
+   heading records prepared notes, not proof of deployment; GitHub Releases records
+   publication. If the date or scope changes before release, edit that entry in
+   another PR. Do not run `prepare` a second time for the same version.
+
+Use third-level headings such as `Added`, `Changed`, `Fixed`, and `Removed` inside
+an entry, with explicit breaking changes and migration instructions where needed.
+Keep Markdown links simple: inline links or reference definitions within the entry.
+Publication binds repository-relative links to the selected source SHA, so they
+work from GitHub Releases. Do not rely on reference definitions in another entry.
+
+On a patch branch, start a fresh `Unreleased` if the older release lacks one, and
+include only that patch's changes. Prepare its exact `VersionPrefix` entry there.
+The existing merge-back returns the entry to `main`; resolve changelog conflicts
+by retaining both histories and keeping main's pending changes under `Unreleased`.
+
+Production validation rejects missing, duplicate, malformed, or empty version
+entries before deployment. After deployment and browser smoke pass,
+[`publish-release.sh`](../../scripts/publish-release.sh) selects the same entry
+from the resolved source commit and supplies it as the complete GitHub Release
+body. Generated PR notes are drafting input, not a second published summary.
+Reruns accept the matching tag and existing release without duplicating or
+overwriting them. Correct published wording in `CHANGELOG.md` first; any GitHub
+Release body update is a separate maintainer-authorized edit. No changelog command
+authorizes deployment or publication.
 
 ## Standard release (X.Y.0)
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the
-   post-release bump PR from the previous release).
+   post-release bump PR from the previous release). Merge its reviewed dated
+   changelog entry using the process above.
 2. Go to **Actions → 🚀 CD Production → Run workflow**. Select `main` in the
    branch picker and leave the separate `ref` input as `main`.
 3. The `production` environment requires reviewer approval — approve when ready.
@@ -77,7 +132,8 @@ ownership, or the requirement for release authorization.
 1. Go to **Actions → 🩹 Prepare Patch → Run workflow**. This creates
    `patch/vX.Y.(Z+1)` from the latest release tag and opens a PR that bumps the
    `<VersionPrefix>` on that branch. Merge the prepare PR.
-2. Add the fix to `patch/vX.Y.(Z+1)` via normal PRs targeted at that branch.
+2. Add the fix and its reviewed dated changelog entry to `patch/vX.Y.(Z+1)` via
+   normal PRs targeted at that branch.
 3. Go to **Actions → 🚀 CD Production → Run workflow**. Leave the branch picker
    on `main` (so the workflow file runs from main) and set `ref` to
    `patch/vX.Y.(Z+1)`.
@@ -88,8 +144,11 @@ ownership, or the requirement for release authorization.
 The workflow definition and shared validation action come from the dispatched
 `main` workflow commit; application files and release/deployment scripts come
 from the resolved protected source commit. Ensure patch branches contain
-compatible deployment and release code, including the `/api/about` source
-revision used by the browser smoke test. A patch release still uses `main` in
+compatible deployment and release code, including `.node-version`,
+`scripts/check-node.mjs`, the changelog tooling, `publish-release.sh`, and the
+`/api/about` source revision used by the browser smoke test. Backport that
+tooling before releasing a patch based on a tag that predates it. A patch release
+still uses `main` in
 the workflow branch picker.
 
 ## What the production workflow validates
@@ -102,6 +161,7 @@ version number itself (`Z == 0` → standard, `Z > 0` → patch) and checks:
 - For patch: ref is `patch/v<version>`, the version is the next patch in line,
   and that line is the latest deployed line
 - Any existing `vX.Y.Z` tag points at the same commit (idempotent reruns)
+- A nonempty, dated changelog entry exists for that exact version
 
 ## What happens on failure
 

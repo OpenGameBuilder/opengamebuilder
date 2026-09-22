@@ -74,6 +74,11 @@ jobs:
           ref: ${{ needs.resolve-source.outputs.protected-revision }}
           fetch-depth: 0
 
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
       - name: Validate
         id: validate
         env:
@@ -123,39 +128,17 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
       - name: Create tag and GitHub Release
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           TAG: ${{ needs.validate.outputs.tag }}
           SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
-          PREVIOUS_TAG: ${{ needs.validate.outputs.previous_tag }}
-        run: |
-          set -euo pipefail
-          git fetch --force --tags origin
-
-          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
-            existing_sha="$(git rev-list -n 1 "${TAG}")"
-            if [ "${existing_sha}" != "${SOURCE_SHA}" ]; then
-              echo "Tag ${TAG} already exists at ${existing_sha}, expected ${SOURCE_SHA}." >&2
-              exit 1
-            fi
-            echo "Tag ${TAG} already exists at the expected SHA."
-          else
-            git config user.name "OpenGameBuilder Release Bot"
-            git config user.email "release-bot@users.noreply.github.com"
-            git tag -a "${TAG}" "${SOURCE_SHA}" -m "Release ${TAG}"
-            git push origin "refs/tags/${TAG}"
-          fi
-
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "GitHub Release ${TAG} already exists."
-          else
-            args=(release create "${TAG}" --verify-tag --generate-notes --title "${TAG}")
-            if [ -n "${PREVIOUS_TAG}" ]; then
-              args+=(--notes-start-tag "${PREVIOUS_TAG}")
-            fi
-            gh "${args[@]}"
-          fi
+        run: bash ./scripts/publish-release.sh
 
       - name: Open follow-up PR
         env:

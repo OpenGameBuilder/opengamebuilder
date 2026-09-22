@@ -1,7 +1,12 @@
 {
   "private": true,
   "type": "module",
+  "scripts": {
+    "test:pr": "node node_modules/@playwright/test/cli.js test --config playwright.config.mjs",
+    "test:negative": "node negative-regressions.mjs"
+  },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "playwright": "1.63.0"
   }
 }

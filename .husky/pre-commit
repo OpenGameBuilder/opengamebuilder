@@ -3,4 +3,9 @@
 # shellcheck source=/dev/null
 . "$(dirname -- "$0")/_/husky.sh"
 
-dotnet husky run --group pre-commit
+if ! command -v node >/dev/null 2>&1; then
+  echo 'The optional commit hook needs Node.js. Select the recommended version in .node-version, then restart your terminal or editor so Git sees it on PATH.' >&2
+  exit 1
+fi
+
+node scripts/check-staged.mjs

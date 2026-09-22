@@ -1,20 +1,29 @@
 # First-party content checks
 
-Use Node.js 22 and PowerShell 7 from the repository root. Install the locked npm
-dependencies and checksum-pinned native tools once, then run the shared checks:
+Use PowerShell 7 and Node.js 22 or newer from the repository root. Node.js 24 is
+the recommended LTS and CI baseline; newer releases are allowed even when they
+have not yet become the CI baseline. Prepare the repo-local tools once, then run
+the shared checks:
 
 ```pwsh
-npm ci --ignore-scripts
-pwsh ./scripts/install-content-tools.ps1
+pwsh ./scripts/setup-content.ps1
 pwsh ./scripts/check.ps1 content
 ```
+
+The setup command runs the locked npm install and installs the checksum-pinned
+native tools under the repository. It does not install global packages, require
+a Docker daemon, or enable Git hooks. Re-run it after either content-tool manifest
+or lockfile changes. Documentation-only contributors can run the direct npm
+format and lint commands without the .NET SDK; the SDK is needed only to install
+or uninstall Husky.Net hooks or to build the rendered DocFX site. Once installed,
+the hook runs Node directly.
 
 The native installer supports Windows x64 and Linux x64. It downloads into ignored
 `artifacts/content-tools`, verifies both archive and executable SHA-256 hashes,
 and reuses an installation only when the executable still matches the manifest.
 `pwsh ./scripts/install-content-tools.ps1 -Verify` checks it without downloading.
-Windows uses upstream ShellCheck's x86 executable under WoW64. No global installs,
-Docker daemon, application service, browser, or deployment credentials are needed.
+Windows uses upstream ShellCheck's x86 executable under WoW64. No application
+service, browser, or deployment credentials are needed.
 
 `check.ps1 full` installs locked npm dependencies and includes these checks and
 their rejection fixtures alongside the existing solution and packaging checks.
@@ -61,11 +70,13 @@ extension for C#/Razor. Markdownlint reads the repository configuration. Use the
 checks, including shell formatting. Visual Studio users can invoke those commands
 from its PowerShell terminal; EditorConfig remains authoritative for C#.
 
-The existing opt-in Husky hook retains staged C# formatting and adds a content
-check when relevant files are staged. That content check verifies the working
-tree, including unstaged work; it never rewrites or stages content. Install the
-content prerequisites before opting into the hook. See
-[hook setup](../setup/development.md#formatting-warnings-and-optional-git-hooks).
+The opt-in Husky hook runs only the pinned Prettier against the staged bytes of
+first-party Markdown, JSON, YAML, CSS, and JavaScript files, using the formatting
+configuration in the current checkout. It never rewrites or stages files. C#,
+native shell, workflow, link, and full-tree checks run separately. Preview it with
+`node scripts/check-staged.mjs`; see
+[hook setup](../setup/development.md#formatting-warnings-and-optional-git-hooks)
+for the one-time npm and Husky.Net commands.
 
 ## Workflow compatibility and exceptions
 
@@ -85,6 +96,17 @@ library constant, the EXIT-trap callback, or deliberate glob matching. There is 
 repository-wide suppression of shell diagnostics.
 
 ## Recorded validation
+
+The contributor-tooling cleanup on 2026-09-22 passed setup, the development
+doctor, the installed commit hook, and the full Windows gate using the normal
+Node.js 24.18.0 installation, including all 72 .NET tests and 50 tooling tests.
+The content gate and those 50 tooling tests also passed on Node.js 22.23.2 and
+26.10.0. The six local browser checks passed on both Node.js 24 and 26. An
+isolated committed source snapshot passed hook installation and the rendered
+documentation gate. Staged-file fixtures verify partial staging, renames,
+exclusions, missing-tool remedies, and preservation of the index and working
+files. This is local Windows evidence; hosted CI and a fresh contributor's
+editor setup have not been exercised for this cleanup.
 
 On 2026-09-22, Windows x64 with Node.js 22.23.2 and PowerShell 7.6.5 passed the
 shared full check: locked restore, format verification, Release build with zero
@@ -132,8 +154,10 @@ Run the same report locally with `pwsh ./scripts/check.ps1 external-links`.
 
 ## Maintaining tool pins
 
-[package.json](../../package.json) and its lockfile pin npm tools; Dependabot
-checks the root tooling package weekly. The native
+[package.json](../../package.json) records the Node.js 22 compatibility minimum
+and pins npm tools with its lockfile; [`.node-version`](../../.node-version)
+selects Node.js 24 as the recommended CI baseline. Dependabot checks the root
+tooling package weekly. The native
 [tool manifest](../../scripts/content-tools.json) records exact versions, upstream
 release URLs, archive checksums, and executable checksums for each platform.
 `ostomachion` reviews native-tool releases monthly and whenever workflow syntax

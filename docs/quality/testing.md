@@ -75,9 +75,10 @@ pwsh ./scripts/check.ps1 full -Serial
 
 See [first-party content checks](content-checks.md) for the pinned tool setup,
 formatter ownership, offline link checks, and separate external-link reports.
-`content` runs that gate without requiring .NET or deployment tools. `full`
-includes it, its deliberate-defect regression tests, and the CI selection/gate
-regressions in [`tests/ci-policy`](../../tests/ci-policy/check.test.mjs).
+Run `pwsh ./scripts/setup-content.ps1` once before those checks. `content` runs
+that gate without requiring .NET or deployment tools. `full` includes it, its
+deliberate-defect regression tests, and the CI selection/gate regressions in
+[`tests/ci-policy`](../../tests/ci-policy/check.test.mjs).
 
 ### PR lanes and the required gate
 
@@ -89,10 +90,10 @@ lane. An empty range, any other path, patch-branch push, or manual run selects
 full validation. A failed comparison fails selection and the required gate;
 it cannot silently skip validation. The selector logs the paths and decision.
 
-| Selection     | Required validation                                                                                                                                                                                                                          |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Documentation | Ubuntu runs `check.ps1 content` and `check-docs.ps1`: source formatting, lint, workflow/shell checks, local Markdown links, and the DocFX site with rendered link/anchor and search checks. No application solution build or container runs. |
-| Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full` and `check-docs.ps1`, then builds and checks the API container.                                                 |
+| Selection     | Required validation                                                                                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation | Ubuntu runs `check.ps1 content` and `check-docs.ps1`: source formatting, lint, workflow/shell checks, local Markdown links, and the DocFX site with rendered link/anchor and search checks. No application solution build or container runs.        |
+| Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full`, `check-docs.ps1`, the published-browser harness in Chromium/Firefox/WebKit, then builds and checks the API container. |
 
 Both platforms restore and build the entire solution, including the AppHost,
 and run both test projects. Only the shipped API and Web Client have committed
@@ -103,7 +104,7 @@ The shared action installs the exact SDK in a fresh runner-temporary directory
 using [`DOTNET_INSTALL_DIR`](https://github.com/actions/setup-dotnet#environment-variables).
 This prevents preinstalled Visual Studio workload manifests from selecting an
 older WebAssembly pack and breaking locked restore despite a matching SDK version.
-Shell suites, frontend packaging, smoke-package checks, and Docker runtime checks
+Shell suites, frontend packaging, browser checks, and Docker runtime checks
 stay in the Linux lane. Deployment still uses the full shared action, with its
 separate required frontend packaging job. Neither path starts Aspire.
 
@@ -192,10 +193,11 @@ hosted runs above.
 
 `quick` is the normal solution gate: quick doctor checks, locked restore,
 format verification, Release build, and the current 72 tests. `full` includes
-that gate plus frontend Release publish and its portability guard, `npm ci` and
-the smoke-script syntax check, and all five existing Bash script suites. It
-requires Git for Windows/Git Bash, Git, Node.js 22/npm, and the Docker CLI with
-Compose support. It does not require a Docker daemon, deployment credentials,
+that gate plus frontend Release publish and its portability guard, `npm ci`,
+the deployment-smoke syntax check, PR browser-test discovery, and all five Bash
+script suites. It requires Git for Windows/Git Bash, Git, Node.js 22 or newer,
+npm, and the Docker CLI with Compose support. Node.js 24 is the recommended LTS
+and CI baseline. It does not require a Docker daemon, deployment credentials,
 services, or a browser.
 
 Use `-Serial` when Windows task-host or pipe contention affects validation. It
@@ -239,6 +241,16 @@ The release-script suite creates temporary local Git
 repositories, mocks GitHub CLI calls and Git pushes, and never publishes a
 branch, tag, or release. CI and deployment validation run it after the solution
 tests and upload its log on failure.
+
+The release suite needs Node.js 22 or newer and the root tooling dependencies
+(`npm ci --ignore-scripts`). It also runs [`tests/changelog`](../../tests/changelog/changelog.test.mjs)
+and checks standard/patch publication with the selected curated entry, revision-bound
+links, missing notes before mutation, tag-only recovery, completed reruns,
+conflicting tags, failed lookups/pushes, and existing draft releases. Workflow
+contract tests keep publication dependent on successful deployment and validation.
+These are local fixtures and parsed-workflow checks, not hosted publication evidence.
+The ordinary content gate validates changelog structure, including documentation-only
+PRs; production validation additionally requires the exact version's prepared entry.
 
 The host-edge apply script also has an isolated Bash test:
 
@@ -325,6 +337,74 @@ No test or AppHost lockfiles were regenerated. These checks verify that the
 shipped applications retain their lock guards while development graphs restore
 normally; they do not guarantee that every future Dependabot update succeeds.
 
+### Published-application browser checks
+
+The [Playwright Test harness](../../tests/deploy-smoke/playwright.config.mjs)
+runs in the Linux PR lane after the shared full check. It reuses that check's
+Release-published frontend, publishes the real API without rebuilding, and runs
+the three pinned engines. Browser failures fail the Linux lane and the required
+`build-test` gate. Documentation-only PRs keep their content-only lane.
+
+For a local run, use Node.js 22 or newer and the SDK from `global.json`; Node.js
+24 is the recommended baseline. From the repository root, build and publish the
+current source, then explicitly install the browser binaries and run the harness:
+
+```pwsh
+pwsh ./scripts/check.ps1 quick -Serial
+dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj --configuration Release --no-restore --output artifacts/web -m:1
+dotnet publish src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj --configuration Release --no-build --output artifacts/browser-api -m:1
+npm ci --prefix tests/deploy-smoke
+node tests/deploy-smoke/node_modules/playwright/cli.js install chromium firefox webkit
+npm run test:pr --prefix tests/deploy-smoke
+```
+
+On Linux, install the engines' OS dependencies explicitly with Playwright's
+`install --with-deps chromium firefox webkit`, as CI does. The test command does
+not install software. `check.ps1 full` checks harness discovery with `--list`
+without starting servers or browsers; the browser run remains a separate command.
+The frontend publish must run its incremental build targets: `--no-build` can
+leave Blazor's HTML asset placeholders unresolved. `--no-restore` reuses the
+locked restore while retaining those required targets.
+
+The harness serves a copy of the published frontend with a versioned release
+base path and forwards same-origin `/api/*` requests to the real published API.
+It supplies the checkout's source SHA through the API's existing `SOURCE_SHA`
+deployment input. That checks the expected revision response; it is not an
+independent binary-provenance check. Rebuild and republish after source changes.
+Playwright owns the local server lifecycle and refuses to reuse existing servers.
+This local proxy does not validate Caddy, TLS, SSH, or a public deployment.
+
+The harness uses one worker, forbids focused tests, and allows at most one retry.
+A pass on retry is reported as flaky and still fails the command. Deployment's
+six-attempt startup policy stays in `smoke.mjs` and does not apply to PR tests.
+Reports include exact browser, Playwright, OS, and source versions. The
+`ci-browser-<attempt>` artifact retains HTML/JSON results, server/test logs,
+failure screenshots, and traces for seven days, including reports from passing
+runs. Local results are under `artifacts/browser/`.
+
+No interactive application feature exists yet. Add a test of a meaningful action
+and its visible result with the first such feature; startup coverage does not
+complete that future acceptance. See [browser evidence](../frontend/browser-support.md)
+for recorded runs and manual coverage boundaries.
+
+For a focused check that the harness rejects broken deployments, run
+`npm run test:negative --prefix tests/deploy-smoke` after publishing and installing
+the engines. It injects four local faults: wrong `/api/about` routing, a broken
+release base path, missing CSS, and a page that cannot start the application.
+Each Chromium run must fail the intended assertion while retaining a successful
+`/api/alive` response. The runner checks structured results rather than accepting
+any nonzero exit, and retains each failure's log, report, screenshot, and trace
+under `artifacts/browser/negative/`. All four cases passed on 2026-09-22 using
+the [recorded local engine environment](../frontend/browser-support.md#recorded-local-engine-results).
+This deliberate-failure check is separate from the normal three-engine PR run.
+
+The implementation passed `check.ps1 full -Serial` on 2026-09-22: locked restore,
+C# format, a zero-warning Release build, all 72 .NET tests, the content gate and
+seven regression groups, fourteen CI-policy groups, fresh frontend publish and
+portability checks, package/discovery checks, and all five shell suites. The
+fresh publish then passed the six browser tests with no retries or flaky passes.
+The first hosted run of the new browser steps remains unverified.
+
 ### Browser-smoke dependency updates
 
 `pwsh ./scripts/check.ps1 browser` runs the existing
@@ -359,14 +439,17 @@ After merging configuration changes, check GitHub's Dependabot update-job list
 for that npm directory and inspect its first run for configuration errors.
 
 For an intentional Playwright update, use the exact-version command below,
-review the release notes and manifest/lockfile diff, then run `full` with Node.js 22. Dependency PRs receive the same required `build-test` validation.
+review the release notes and manifest/lockfile diff, then run `full` with Node.js
+22 or newer. Dependency PRs receive the same required `build-test` validation.
 
 ```pwsh
-npm install --save-dev --save-exact playwright@<version> --prefix tests/deploy-smoke
+npm install --save-dev --save-exact playwright@<version> @playwright/test@<version> --prefix tests/deploy-smoke
 ```
 
-Package installation and
-syntax checks do not establish compatibility with the updated Chromium build.
+Keep both packages at the same exact version; Dependabot groups them and doctor
+checks their manifest and lockfile pins. Reinstall all three engines and run the
+local harness after updates. Package installation, syntax, and discovery checks
+do not establish compatibility with the updated browser builds.
 Review the browser smoke result from an authorized staging deployment: the
 release URL and base path, successful `/api/about` request, expected source
 revision, API-backed heading, and absence of page errors. Record that workflow

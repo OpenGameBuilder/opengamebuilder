@@ -7,10 +7,12 @@ foundation plan is excluded from the site and navigation.
 
 ## Build and check
 
-Use the SDK from `global.json`, PowerShell 7, and Node.js 22. Install the
-[content prerequisites](../quality/content-checks.md), then run:
+Use the SDK from `global.json`, PowerShell 7, and Node.js 22 or newer. Node.js 24
+is the recommended LTS and CI baseline. Install the repo-local
+[content prerequisites](../quality/content-checks.md) once, then run:
 
 ```pwsh
+pwsh ./scripts/setup-content.ps1
 pwsh ./scripts/check-docs.ps1
 ```
 
@@ -18,7 +20,9 @@ The command restores the exact DocFX tool from `docs/.config/dotnet-tools.json`,
 builds with warnings as errors, checks rendered local links and anchors offline,
 and runs deliberate-defect checks. Output and logs are untracked under
 `artifacts/docs/`; no application, browser, or server starts during validation.
-The separate manifest does not restore Husky or install Git hooks.
+The separate manifest does not restore Husky or install Git hooks. Contributors
+who only run source-formatting and lint commands can do so without the .NET SDK;
+the rendered DocFX build requires it.
 
 To preview the checked output, explicitly start DocFX's local server:
 

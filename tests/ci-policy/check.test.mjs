@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   unlinkSync,
@@ -76,6 +77,23 @@ function write(directory, name, content = `${name}\n`) {
   const file = path.join(directory, name);
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, content);
+}
+
+function filesUnder(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(directory, entry.name);
+    return entry.isDirectory() ? filesUnder(file) : [file];
+  });
+}
+
+function findSetupNodeSteps(value, result = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) findSetupNodeSteps(item, result);
+  } else if (value && typeof value === "object") {
+    if (value.uses?.startsWith("actions/setup-node@")) result.push(value);
+    for (const item of Object.values(value)) findSetupNodeSteps(item, result);
+  }
+  return result;
 }
 
 function withGitRange(baseFiles, change, assertion) {
@@ -421,6 +439,60 @@ test("CI workflow keeps selection, lanes, and aggregate gate wired to the policy
   assert.equal(action.inputs.mode.default, "full");
 });
 
+test("published browser failures block the Linux lane and retain diagnostics", () => {
+  const workflow = parseYaml(
+    readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"),
+  );
+  const lane = workflow.jobs.linux;
+  const steps = lane.steps;
+  const validation = steps.findIndex(
+    (step) => step.uses === "./.github/actions/validate",
+  );
+  const publish = steps.findIndex((step) =>
+    step.run?.includes("artifacts/browser-api"),
+  );
+  const install = steps.findIndex((step) =>
+    step.run?.includes("install --with-deps chromium firefox webkit"),
+  );
+  const browser = steps.findIndex((step) =>
+    step.run?.includes("npm run test:pr --prefix tests/deploy-smoke"),
+  );
+  assert.ok(
+    validation >= 0 &&
+      publish > validation &&
+      install > publish &&
+      browser > install,
+  );
+  assert.notEqual(lane["continue-on-error"], true);
+  for (const index of [publish, install, browser]) {
+    assert.equal(
+      steps[index].if,
+      undefined,
+      "browser prerequisites and tests cannot be conditional",
+    );
+    assert.equal(steps[index]["continue-on-error"], undefined);
+    assert.equal(
+      steps[index].shell,
+      "bash",
+      "explicit Bash enables pipefail for retained logs",
+    );
+  }
+  const upload = steps
+    .slice(browser + 1)
+    .find(
+      (step) =>
+        step.uses?.startsWith("actions/upload-artifact@") &&
+        step.with.path.includes("artifacts/browser/"),
+    );
+  assert.ok(upload);
+  assert.equal(upload.if, "${{ always() && !cancelled() }}");
+  assert.equal(upload.with["retention-days"], 7);
+  assert.ok(workflow.jobs["build-test"].needs.includes("linux"));
+  assert.deepEqual(workflow.permissions, { contents: "read" });
+  assert.equal(lane.permissions, undefined);
+  assert.equal(lane.environment, undefined);
+});
+
 test("rendered documentation blocks both selected lanes and retains evidence", () => {
   const workflow = parseYaml(
     readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"),
@@ -458,7 +530,7 @@ test("rendered documentation blocks both selected lanes and retains evidence", (
   const node = action.runs.steps.find((step) =>
     step.uses?.startsWith("actions/setup-node@"),
   );
-  assert.equal(node.with["node-version"], "22");
+  assert.equal(node.with["node-version-file"], ".node-version");
   assert.equal(
     action.runs.steps.some(
       (step) =>
@@ -485,4 +557,33 @@ test("rendered documentation blocks both selected lanes and retains evidence", (
     "linux",
     "windows",
   ]);
+});
+
+test("setup-node references use the repository Node baseline", () => {
+  assert.equal(
+    readFileSync(path.join(root, ".node-version"), "utf8").trim(),
+    "24",
+  );
+
+  const yamlFiles = [
+    ...filesUnder(path.join(root, ".github/actions")),
+    ...filesUnder(path.join(root, ".github/workflows")),
+  ].filter((file) => /\.ya?ml$/u.test(file));
+  const references = yamlFiles.flatMap((file) =>
+    findSetupNodeSteps(parseYaml(readFileSync(file, "utf8"))).map((step) => ({
+      file,
+      step,
+    })),
+  );
+
+  assert.ok(references.length > 0);
+  for (const { file, step } of references) {
+    const relative = path.relative(root, file).replaceAll(path.sep, "/");
+    const expected =
+      relative === ".github/actions/validate/action.yml"
+        ? "${{ inputs.working-directory }}/.node-version"
+        : ".node-version";
+    assert.equal(step.with?.["node-version-file"], expected, relative);
+    assert.equal(step.with?.["node-version"], undefined, relative);
+  }
 });

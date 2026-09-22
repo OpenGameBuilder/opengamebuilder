@@ -1,0 +1,23 @@
+# Drafting input only; publication uses the reviewed CHANGELOG.md entry.
+# Categories use existing repository PR labels, not issue types.
+changelog:
+  exclude:
+    labels:
+      - dependencies
+      - internal
+  categories:
+    - title: Application changes
+      labels:
+        - ui/ux
+        - api
+        - db
+    - title: Deployment and operations
+      labels:
+        - devops
+    - title: Contributors and documentation
+      labels:
+        - dx
+        - documentation
+    - title: Other changes to review
+      labels:
+        - "*"

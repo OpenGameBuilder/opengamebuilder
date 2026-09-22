@@ -3,6 +3,7 @@
 set -euo pipefail
 
 source_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+node --test "${source_root}/tests/changelog/"*.test.mjs
 real_git="$(command -v git)"
 test_root="$(mktemp -d -t ogb-release-tests.XXXXXX)"
 cleanup() {
@@ -38,7 +39,25 @@ case "${1:-} ${2:-}" in
             echo 'mock GitHub release lookup failed' >&2
             exit 1
         fi
-        cat "$MOCK_RELEASES_FILE"
+        if [[ "$*" == *'.tagName == '* ]]; then
+            printf '%s' "${MOCK_PUBLISHED_STATE:-}"
+        else
+            cat "$MOCK_RELEASES_FILE"
+        fi
+        ;;
+    'release create')
+        while [ "$#" -gt 0 ]; do
+            if [ "$1" = --notes-file ]; then
+                cp "$2" "$MOCK_NOTES_FILE"
+                break
+            fi
+            shift
+        done
+        if [ "${MOCK_RELEASE_CREATE_FAIL:-0}" = 1 ]; then
+            echo 'mock GitHub release creation failed' >&2
+            exit 1
+        fi
+        echo 'https://example.invalid/mock-release/1'
         ;;
     'pr list')
         if [ "${MOCK_PR_LIST_FAIL:-0}" = 1 ]; then
@@ -91,20 +110,27 @@ new_fixture() {
   "$REAL_GIT" -C "$repo" config core.autocrlf false
   "$REAL_GIT" -C "$repo" remote add origin "$origin"
   write_props "$version"
-  "$REAL_GIT" -C "$repo" add Directory.Build.props
+  write_changelog "$version"
+  "$REAL_GIT" -C "$repo" add Directory.Build.props CHANGELOG.md
   "$REAL_GIT" -C "$repo" commit -qm base
   base_sha="$("$REAL_GIT" -C "$repo" rev-parse HEAD)"
   remote_ref refs/heads/main "$base_sha"
   MOCK_LOG="${fixture}/operations.log"
   MOCK_RELEASES_FILE="${fixture}/releases.txt"
+  MOCK_NOTES_FILE="${fixture}/published-notes.md"
   output="${fixture}/output.txt"
   gh_output_file="${fixture}/github-output.txt"
   : >"$MOCK_LOG"
   : >"$MOCK_RELEASES_FILE"
   : >"$gh_output_file"
-  export MOCK_LOG MOCK_RELEASES_FILE
+  export MOCK_LOG MOCK_RELEASES_FILE MOCK_NOTES_FILE
   unset MOCK_RELEASE_LIST_FAIL MOCK_PR_LIST_FAIL MOCK_PR_CREATE_FAIL MOCK_PR_NUMBER \
-    MOCK_PUSH_EXIT MOCK_REMOTE_LOOKUP_FAIL || true
+    MOCK_PUSH_EXIT MOCK_REMOTE_LOOKUP_FAIL MOCK_PUBLISHED_STATE MOCK_RELEASE_CREATE_FAIL || true
+}
+
+write_changelog() {
+  printf '# Changelog\n\n## Unreleased\n\n### Changed\n\n- Future work stays unpublished.\n\n## %s - 2026-09-22\n\n### Fixed\n\n- Selected release %s; see [migration](docs/setup/hosting.md#application-activation-and-rollback).\n' \
+    "$1" "$1" >"$repo/CHANGELOG.md"
 }
 
 write_props() {
@@ -123,7 +149,8 @@ tag_at() {
 }
 commit_props() {
   write_props "$1" "${2:-}"
-  "$REAL_GIT" -C "$repo" add Directory.Build.props
+  write_changelog "$1"
+  "$REAL_GIT" -C "$repo" add Directory.Build.props CHANGELOG.md
   "$REAL_GIT" -C "$repo" commit -qm "$1"
 }
 patch_branch() {
@@ -137,6 +164,10 @@ run_script() {
   if (cd "$repo" && "$@") >"$output" 2>&1; then status=0; else status=$?; fi
 }
 validate() { run_script env SOURCE_REF="$1" GITHUB_OUTPUT="$gh_output_file" bash "$source_root/scripts/validate-release.sh"; }
+publish() {
+  run_script env TAG="v$1" SOURCE_SHA="$2" GITHUB_REPOSITORY=OpenGameBuilder/opengamebuilder \
+    bash "$source_root/scripts/publish-release.sh"
+}
 post_standard() {
   run_script env KIND=standard VERSION="$1" TAG="v$1" NEXT_MAIN_VERSION="$2" \
     bash "$source_root/scripts/post-release.sh"
@@ -242,6 +273,106 @@ validate main
 assert_contains 'Failed to list GitHub Releases' "$output"
 pass 'failed GitHub release lookup'
 
+new_fixture notes_missing 1.10.0
+releases v1.9.0
+printf '# Changelog\n\n## Unreleased\n\n- Not reviewed for this release.\n' >"$repo/CHANGELOG.md"
+validate main
+[ "$status" != 0 ] || fail 'Missing version notes were accepted'
+assert_not_contains 'source_sha=' "$gh_output_file"
+assert_no_push
+publish 1.10.0 "$base_sha"
+[ "$status" != 0 ] || fail 'Publication accepted missing version notes'
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'unprepared notes stop validation and publication before mutations'
+
+new_fixture publish_standard 1.10.0
+publish 1.10.0 "$base_sha"
+assert_status 0
+assert_contains 'git push origin refs/tags/v1.10.0' "$MOCK_LOG"
+assert_contains 'gh release create v1.10.0 --verify-tag --title v1.10.0 --notes-file' "$MOCK_LOG"
+assert_not_contains '--generate-notes' "$MOCK_LOG"
+assert_contains 'Selected release 1.10.0' "$MOCK_NOTES_FILE"
+assert_contains "https://github.com/OpenGameBuilder/opengamebuilder/blob/$base_sha/docs/setup/hosting.md#application-activation-and-rollback" "$MOCK_NOTES_FILE"
+assert_not_contains 'Future work' "$MOCK_NOTES_FILE"
+assert_not_contains 'Unreleased' "$MOCK_NOTES_FILE"
+pass 'standard publication uses only reviewed notes and revision-bound links'
+
+# Persist the mocked successful push, then simulate a completed rerun.
+remote_ref refs/tags/v1.10.0 "$base_sha"
+: >"$MOCK_LOG"
+MOCK_PUBLISHED_STATE=published
+export MOCK_PUBLISHED_STATE
+publish 1.10.0 "$base_sha"
+assert_status 0
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'published release rerun creates no duplicate tag or release'
+
+new_fixture publish_patch 1.9.0
+tag_at v1.9.0 "$base_sha"
+patch_branch 1.9.1
+MOCK_RELEASE_CREATE_FAIL=1
+export MOCK_RELEASE_CREATE_FAIL
+publish 1.9.1 "$patch_sha"
+[ "$status" != 0 ] || fail 'Release creation failure was hidden'
+assert_contains 'Selected release 1.9.1' "$MOCK_NOTES_FILE"
+assert_not_contains 'Selected release 1.9.0' "$MOCK_NOTES_FILE"
+remote_ref refs/tags/v1.9.1 "$patch_sha"
+unset MOCK_RELEASE_CREATE_FAIL
+: >"$MOCK_LOG"
+publish 1.9.1 "$patch_sha"
+assert_status 0
+assert_no_push
+assert_contains 'gh release create v1.9.1' "$MOCK_LOG"
+pass 'patch publication and tag-only failure recovery'
+
+new_fixture publish_lookup_failure 1.10.0
+tag_at v1.10.0 "$base_sha"
+MOCK_RELEASE_LIST_FAIL=1
+export MOCK_RELEASE_LIST_FAIL
+publish 1.10.0 "$base_sha"
+[ "$status" != 0 ] || fail 'Failed publication lookup was treated as absence'
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'failed release lookup cannot create a duplicate'
+
+new_fixture publish_mismatch 1.10.0
+tag_at v1.10.0 "$base_sha"
+write_props 1.10.0 '<DifferentSource>true</DifferentSource>'
+"$REAL_GIT" -C "$repo" add Directory.Build.props
+"$REAL_GIT" -C "$repo" commit -qm different-source
+publish 1.10.0 "$("$REAL_GIT" -C "$repo" rev-parse HEAD)"
+[ "$status" != 0 ] || fail 'Publication accepted a mismatched tag'
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'publication rejects a tag at another source revision'
+
+new_fixture publish_wrong_checkout 1.10.0
+publish 1.10.0 0000000000000000000000000000000000000000
+[ "$status" != 0 ] || fail 'Publication accepted another checked-out revision'
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'publication requires the validated checkout'
+
+new_fixture publish_push_failure 1.10.0
+MOCK_PUSH_EXIT=1
+export MOCK_PUSH_EXIT
+publish 1.10.0 "$base_sha"
+[ "$status" != 0 ] || fail 'Failed tag push was hidden'
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'failed tag push stops release creation'
+
+new_fixture publish_draft 1.10.0
+tag_at v1.10.0 "$base_sha"
+MOCK_PUBLISHED_STATE=unpublished
+export MOCK_PUBLISHED_STATE
+publish 1.10.0 "$base_sha"
+[ "$status" != 0 ] || fail 'Existing draft was accepted as publication'
+assert_no_push
+assert_not_contains 'gh release create' "$MOCK_LOG"
+pass 'existing draft or prerelease needs explicit resolution'
+
 new_fixture standard_followup 1.9.0
 post_standard 1.9.0 1.10.0
 assert_status 0
@@ -299,6 +430,7 @@ assert_contains 'git push origin HEAD:refs/heads/chore/merge-v1.9.1-into-main' "
 assert_contains 'gh pr create --base main --head chore/merge-v1.9.1-into-main' "$MOCK_LOG"
 assert_contains '<PatchSetting>kept</PatchSetting>' "$repo/Directory.Build.props"
 assert_contains '<VersionPrefix>1.10.0</VersionPrefix>' "$repo/Directory.Build.props"
+assert_contains 'Selected release 1.9.1' "$repo/CHANGELOG.md"
 pass 'clean patch merge-back preserves props changes'
 
 new_fixture props_conflict 1.9.0

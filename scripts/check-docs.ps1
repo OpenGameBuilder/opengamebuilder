@@ -12,12 +12,16 @@ try {
         param([string] $Name, [string] $Command, [string[]] $Arguments)
         & $Command @Arguments 2>&1 | Tee-Object -FilePath "$repoRoot/artifacts/docs/$Name.log"
         if ($LASTEXITCODE -ne 0) {
-            throw "$Name failed (exit $LASTEXITCODE). See artifacts/docs/$Name.log."
+            Write-Host "Check stopped. Details: artifacts/docs/$Name.log."
+            exit $LASTEXITCODE
         }
     }
 
     Invoke-DocsCheck 'prerequisites' 'pwsh' @('-NoProfile', '-File', 'scripts/doctor.ps1', '-Scope', 'quick')
-    if ((& node --version) -notmatch '^v22\.') { throw 'Documentation checks require Node.js 22 on PATH.' }
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        throw 'Node.js is missing. Install the recommended version from .node-version, then restart your terminal or editor.'
+    }
+    Invoke-DocsCheck 'node-policy' 'node' @('scripts/check-node.mjs')
     & "$PSScriptRoot/install-content-tools.ps1" -Verify
 
     # Clear only this fixed generated directory so removed pages cannot survive.
@@ -45,7 +49,7 @@ try {
     Write-Host 'PASS documentation build, rendered links, search inventory, and regression checks'
 }
 catch {
-    Write-Error $_ -ErrorAction Continue
+    [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
 finally { Pop-Location }

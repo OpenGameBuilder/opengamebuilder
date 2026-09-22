@@ -36,6 +36,11 @@ initial foundation work.
    Check existing issues before starting, and propose larger changes before
    implementation as described in the contribution guide.
 
+The basic application gate uses only the pinned .NET SDK. Documentation and
+other first-party content changes use the separate, repo-local
+[content setup](docs/quality/content-checks.md); it does not require global npm
+packages or enable a Git hook.
+
 The [documentation index](docs/README.md) maps the application, operating guides,
 and browser/accessibility expectations.
 Browse the [published searchable documentation](https://opengamebuilder.github.io/opengamebuilder/)

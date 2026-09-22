@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version-file: .node-version
           package-manager-cache: false
       - name: Select checks for the complete change
         id: select
@@ -99,6 +99,32 @@ jobs:
         with:
           install-dotnet: "false"
 
+      - name: Publish the real API for browser checks
+        shell: bash
+        run: |
+          dotnet publish src/OpenGameBuilder.Api/OpenGameBuilder.Api.csproj \
+            --configuration Release --no-build --output artifacts/browser-api \
+            2>&1 | tee artifacts/validation/browser-api-publish.log
+
+      - name: Install pinned browser engines
+        shell: bash
+        run: node tests/deploy-smoke/node_modules/playwright/cli.js install --with-deps chromium firefox webkit
+
+      - name: Check the published application in three engines
+        shell: bash
+        run: npm run test:pr --prefix tests/deploy-smoke 2>&1 | tee artifacts/validation/browser-tests.log
+
+      - name: Upload browser results and diagnostics
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-browser-${{ github.run_attempt }}
+          path: |
+            artifacts/browser/
+            artifacts/validation/browser-*.log
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Build API image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -136,7 +162,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version-file: .node-version
           package-manager-cache: false
       - name: Require every selected lane to pass
         env:

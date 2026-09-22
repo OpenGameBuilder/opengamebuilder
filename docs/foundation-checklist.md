@@ -513,20 +513,20 @@ acceptance was performed.
 **Depends on:** step 2's packaging checks; this adds browser behavior, not another
 claim that syntax or publication proves rendering.
 
-- [ ] Add an `@playwright/test` harness that serves the Release-published frontend
+- [x] Add an `@playwright/test` harness that serves the Release-published frontend
       and real API locally with the intended same-origin API path and release base path.
       Reuse appropriate deployment assertions; require no SSH, registry write access,
       production secrets, or public deployment.
-- [ ] Run Chromium, Firefox, and WebKit checks for startup, API-backed content,
+- [x] Run Chromium, Firefox, and WebKit checks for startup, API-backed content,
       expected revision, routes/reload, assets, and unhandled page errors. Manage local
       server lifecycle in the harness and start with a small predictable worker count.
 - [ ] When an interactive feature exists, exercise a meaningful user action and
       assert its visible result. Add this with the feature rather than inventing an
       interaction for the current placeholder or postponing the startup/API harness.
-- [ ] Retain failure screenshots, traces, and a readable report. Forbid focused
+- [x] Retain failure screenshots, traces, and a readable report. Forbid focused
       tests; bound retries and surface flaky passes rather than treating retries as
       proof of health. Keep deployment retry policy separate from PR test policy.
-- [ ] Revise the permanent browser policy to distinguish checked current-stable
+- [x] Revise the permanent browser policy to distinguish checked current-stable
       targets from aspirational previous-version/device coverage. Record exact browser
       and OS versions; Playwright engines, branded browsers, emulation, and physical
       Safari/iOS checks are different evidence. Promise only coverage that is performed.
@@ -537,6 +537,25 @@ engine results are recorded; live hosting and manual accessibility remain separa
 Sources: [Playwright servers](https://playwright.dev/docs/test-webserver),
 [browser coverage](https://playwright.dev/docs/browsers),
 [accessibility checks](https://playwright.dev/docs/accessibility-testing).
+
+**Result (2026-09-22, local acceptance):** The
+[harness](../tests/deploy-smoke/playwright.config.mjs) passes six tests across
+Chromium, Firefox, and WebKit with one worker and no retries or flaky passes.
+[Four injected failures](../tests/deploy-smoke/negative-regressions.mjs) are
+rejected for wrong API routing, a broken base path, missing CSS, and an unusable
+frontend; each retains proof that `/api/alive` returned `200 Healthy`, plus
+screenshots, traces, and reports. The first run also caught unresolved Blazor
+asset placeholders from `publish --no-build`; the shared frontend publish now
+uses `--no-restore` so the required build targets execute.
+`check.ps1 full -Serial` passed, including all 72 .NET tests, content and CI-policy
+regressions, frontend packaging, and all five shell suites. A fresh publish also
+passed the six browser tests.
+[CI](../.github/workflows/ci.yml) requires the browser run through the Linux lane
+and existing `build-test` gate. [Permanent browser evidence](frontend/browser-support.md#recorded-local-engine-results)
+records the exact engine and Windows versions; the first hosted Ubuntu run,
+live-host acceptance, and manual accessibility remain unverified. The conditional
+user-action item stays open until an interactive feature exists, as described in
+[testing guidance](quality/testing.md#published-application-browser-checks).
 
 ### 17. Publish searchable documentation and checked examples
 
@@ -585,18 +604,18 @@ records the publication and browser evidence separately from local validation.
 
 ### 18. Clarify branches and make release notes useful
 
-- [ ] Document protected `main`, short-lived branches, draft PRs, squash merges,
+- [x] Document protected `main`, short-lived branches, draft PRs, squash merges,
       and deletion of merged branches in permanent contribution/release guidance.
       Reserve `patch/vX.Y.Z` for the existing released-hotfix path and its merge-back.
       Do not introduce a permanent `develop` branch without a demonstrated need.
-- [ ] Make `CHANGELOG.md` the canonical curated account of notable changes.
+- [x] Make `CHANGELOG.md` the canonical curated account of notable changes.
       Prepare a reviewed entry before tagging, covering observable changes, breaking
       behavior, and migration guidance; omit mechanical maintenance noise.
-- [ ] Feed the selected version's entry into the existing production release
+- [x] Feed the selected version's entry into the existing production release
       workflow after deployment validation. Use its existing generated PR notes as
       drafting material or supplemental references/credits, with `.github/release.yml`
       categories based on actual PR labels. Avoid two separately maintained summaries.
-- [ ] Keep one owner of version numbers, tags, and publication. Do not bolt
+- [x] Keep one owner of version numbers, tags, and publication. Do not bolt
       Release Please or semantic-release onto the current deploy/smoke/tag contract.
       Require descriptive PR titles; enforce commit grammar only if a chosen workflow
       actually uses it. Preserve idempotency and patch-flow regression coverage.
@@ -607,6 +626,30 @@ duplicate releases. Actual publication still requires release authorization.
 Sources: [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow),
 [Common Changelog](https://common-changelog.org/),
 [generated notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes).
+
+**Result (2026-09-22, local release rehearsal):** Permanent
+[branch guidance](../CONTRIBUTING.md#branches-and-release-notes) and the
+[release-note process](release/README.md#curated-release-notes) describe the normal
+and patch paths. GitHub inspection confirmed protected `main`, squash-only merges,
+and automatic deletion of merged branches. The changelog CLI generates disposable
+PR drafting material, prepares the current `VersionPrefix` entry with a date,
+and leaves a fresh `Unreleased` section. Draft categories use existing PR labels.
+The content gate checks structure; production validation requires the reviewed
+version entry before deployment. Publication uses that entry from the validated
+source with revision-bound links after the existing deploy/smoke gate.
+
+The isolated release suite rehearsed standard and patch entry selection,
+missing-note rejection before mutation, partial/completed reruns, tag/source
+conflicts, lookup/push failures, and existing follow-up/patch merge-back behavior.
+Workflow contract checks preserve publication timing and one release owner.
+Preparing and extracting a copy of the real changelog also passed without
+changing the working version or preparing an actual release. `check.ps1 full -Serial`
+passed the 72 .NET tests, content/CI checks, packaging, and all five shell suites.
+The final 16 changelog/workflow tests and content gate passed after the Markdown
+link fixes. The documentation gate passed on a committed local snapshot, with
+zero build warnings, 78 revision-bound source links, and four site regression
+groups. This is local/mocked acceptance; live generated-note API behavior and hosted publication await an
+authorized run. No deployment, tag push, or release publication was performed.
 
 ### 19. Align AI tooling and verify that it helps
 

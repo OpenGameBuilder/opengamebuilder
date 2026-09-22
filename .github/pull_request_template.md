@@ -43,5 +43,6 @@ Examples:
 - [ ] I have reviewed and understand the changes I am submitting, including any AI-assisted work.
 - [ ] I have run the relevant checks or explained why I could not.
 - [ ] I updated documentation where needed.
+- [ ] I recorded notable changes and migration steps in `CHANGELOG.md`, or this change needs no release note.
 - [ ] This pull request is focused and does not include unrelated changes.
 - [ ] This contribution does not copy, translate, port, adapt, or mechanically rewrite decompiled source code from the original MyGameBuilder Flash client or any other proprietary source.

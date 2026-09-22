@@ -60,6 +60,45 @@ function Test-Tool {
     else { Write-Check PASS "$Label $version" }
 }
 
+function Test-Node {
+    $node = Find-Tool node
+    if (-not $node) {
+        Write-Check FAIL 'Node.js is missing from PATH. Install Node.js 22+ (24 recommended), then restart the terminal and editor.'
+        return
+    }
+
+    $global:LASTEXITCODE = 0
+    $output = & $node (Join-Path $PSScriptRoot 'check-node.mjs') 2>&1
+    $message = (($output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ }) -join ' ')
+    if ($LASTEXITCODE -eq 0) { Write-Check PASS $message }
+    else { Write-Check FAIL $message }
+}
+
+function Test-NodePackages {
+    try {
+        $package = Get-Content -Raw (Join-Path $repoRoot 'package.json') | ConvertFrom-Json
+        $missing = @()
+        foreach ($dependency in $package.devDependencies.PSObject.Properties) {
+            $manifest = Join-Path $repoRoot "node_modules/$($dependency.Name)/package.json"
+            if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+                $missing += "$($dependency.Name) $($dependency.Value)"
+                continue
+            }
+            $installed = Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json
+            if ([string]$installed.version -ne [string]$dependency.Value) {
+                $missing += "$($dependency.Name) $($dependency.Value)"
+            }
+        }
+        if ($missing.Count -eq 0) { Write-Check PASS 'Pinned npm content packages are installed.' }
+        else {
+            Write-Check FAIL "Pinned npm content packages are missing or mismatched: $($missing -join ', '). Run 'npm ci --ignore-scripts'."
+        }
+    }
+    catch {
+        Write-Check FAIL "Cannot verify pinned npm content packages. Run 'npm ci --ignore-scripts'."
+    }
+}
+
 function Test-DotNetSdk {
     try { $globalJson = Get-Content -Raw (Join-Path $repoRoot 'global.json') | ConvertFrom-Json }
     catch {
@@ -128,52 +167,64 @@ function Test-Aspire {
 }
 
 function Show-ManifestPins {
-    param([switch] $RequirePlaywright)
-    try {
-        $tools = Get-Content -Raw (Join-Path $repoRoot '.config/dotnet-tools.json') | ConvertFrom-Json
-        $husky = [string]$tools.tools.husky.version
-        if ($husky) { Write-Check INFO "Husky manifest pin: $husky (opt-in; not restored by doctor)" }
-        else { Write-Check WARN 'The Husky pin is missing from .config/dotnet-tools.json.' }
+    param([switch] $Husky, [switch] $Playwright)
+    if ($Husky) {
+        try {
+            $tools = Get-Content -Raw (Join-Path $repoRoot '.config/dotnet-tools.json') | ConvertFrom-Json
+            $huskyPin = [string]$tools.tools.husky.version
+            if ($huskyPin) { Write-Check INFO "Husky manifest pin: $huskyPin (opt-in; not restored by doctor)" }
+            else { Write-Check WARN 'The Husky pin is missing from .config/dotnet-tools.json.' }
+        }
+        catch { Write-Check WARN 'Cannot read the Husky pin from .config/dotnet-tools.json.' }
     }
-    catch { Write-Check WARN 'Cannot read the Husky pin from .config/dotnet-tools.json.' }
 
-    try {
-        $package = Get-Content -Raw (Join-Path $repoRoot 'tests/deploy-smoke/package.json') | ConvertFrom-Json
-        $lock = Get-Content -Raw (Join-Path $repoRoot 'tests/deploy-smoke/package-lock.json') | ConvertFrom-Json -AsHashtable
-        $pin = [string]$package.devDependencies.playwright
-        $lockedPin = [string]$lock['packages']['']['devDependencies']['playwright']
-        $lockedVersion = [string]$lock['packages']['node_modules/playwright']['version']
-        if ($pin -match '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -and $pin -eq $lockedPin -and $pin -eq $lockedVersion) {
-            Write-Check INFO "Playwright manifest pin: $pin (not installed or restored by doctor)"
+    if ($Playwright) {
+        try {
+            $package = Get-Content -Raw (Join-Path $repoRoot 'tests/deploy-smoke/package.json') | ConvertFrom-Json
+            $lock = Get-Content -Raw (Join-Path $repoRoot 'tests/deploy-smoke/package-lock.json') | ConvertFrom-Json -AsHashtable
+            $pin = [string]$package.devDependencies.playwright
+            $lockedPin = [string]$lock['packages']['']['devDependencies']['playwright']
+            $lockedVersion = [string]$lock['packages']['node_modules/playwright']['version']
+            if ($pin -match '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -and $pin -eq $lockedPin -and $pin -eq $lockedVersion) {
+                Write-Check INFO "Playwright manifest pin: $pin (not installed or restored by doctor)"
+            }
+            else { Write-Check FAIL 'The Playwright manifest and lockfile need one matching exact version.' }
+            $testPin = [string]$package.devDependencies.'@playwright/test'
+            if ($testPin -eq $pin -and
+                $testPin -eq $lock['packages']['']['devDependencies']['@playwright/test'] -and
+                $testPin -eq $lock['packages']['node_modules/@playwright/test']['version']) {
+                Write-Check INFO "Playwright Test manifest pin: $testPin (matches the deployment browser library)"
+            }
+            else { Write-Check FAIL 'Playwright Test and Playwright must share one matching exact manifest and lockfile version.' }
         }
-        else {
-            Write-Check $(if ($RequirePlaywright) { 'FAIL' } else { 'WARN' }) 'The Playwright manifest and lockfile need one matching exact version.'
-        }
+        catch { Write-Check FAIL 'Cannot read the Playwright pins from tests/deploy-smoke.' }
     }
-    catch { Write-Check $(if ($RequirePlaywright) { 'FAIL' } else { 'WARN' }) 'Cannot read the Playwright pins from tests/deploy-smoke.' }
 }
 
 Write-Host "OpenGameBuilder doctor (scope: $Scope)"
 $powerShellVersion = $PSVersionTable.PSVersion.ToString()
 if ($PSVersionTable.PSVersion.Major -ge 7) { Write-Check PASS "PowerShell $powerShellVersion" }
 else { Write-Check FAIL "PowerShell $powerShellVersion is unsupported. Install PowerShell 7 and rerun with pwsh." }
-Show-ManifestPins -RequirePlaywright:($Scope -in @('full', 'browser'))
+Show-ManifestPins -Husky:($Scope -in @('full', 'development')) -Playwright:($Scope -in @('full', 'browser'))
 
 if ($Scope -in @('format', 'quick', 'full', 'development')) { Test-DotNetSdk }
 if ($Scope -in @('format', 'content', 'full', 'development')) {
     Test-Tool 'Git' 'git' 'Install Git (Git for Windows on Windows).' '^git version '
 }
 if ($Scope -in @('full', 'development')) { Test-Bash }
-if ($Scope -in @('format', 'content', 'full', 'browser')) {
-    Test-Tool 'Node.js' 'node' 'Install Node.js 22.' '^v?22(?:\.|$)'
-    Test-Tool 'npm' 'npm' 'Install npm with Node.js 22.' '^\d+\.'
+if ($Scope -in @('format', 'content', 'full', 'browser', 'development')) {
+    Test-Node
+    Test-Tool 'npm' 'npm' 'Install npm with Node.js 22+ (24 recommended).' '^\d+\.'
 }
-if ($Scope -in @('format', 'content', 'full')) {
+if ($Scope -in @('format', 'content', 'full', 'development')) {
+    Test-NodePackages
     try {
-        & (Join-Path $PSScriptRoot 'install-content-tools.ps1') -Verify
+        & (Join-Path $PSScriptRoot 'install-content-tools.ps1') -Verify *> $null
         Write-Check PASS 'Pinned content-tool executable checksums verified.'
     }
-    catch { Write-Check FAIL $_.Exception.Message }
+    catch {
+        Write-Check FAIL "Pinned content tools are missing, stale, or corrupt. Run 'pwsh ./scripts/install-content-tools.ps1'."
+    }
 }
 if ($Scope -eq 'full') { Test-DockerCompose }
 if ($Scope -eq 'development') { Test-Aspire }

@@ -115,6 +115,9 @@ else
 
 fi
 
+# Missing or unfinished notes must fail before deployment/environment approval.
+node "$(dirname "$0")/changelog.mjs" check --release
+
 gh_output "kind" "${kind}"
 gh_output "version" "${version}"
 gh_output "tag" "${tag}"

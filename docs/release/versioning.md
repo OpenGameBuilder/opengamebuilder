@@ -26,6 +26,12 @@ The version lives in `Directory.Build.props`:
 - `patch/vX.Y.Z` branches hold the exact version named in the branch.
   - `patch/v1.9.1` must have `<VersionPrefix>1.9.1</VersionPrefix>`.
 
+Normal work uses short-lived PR branches from protected `main`; there is no
+permanent `develop`. See [contribution guidance](../../CONTRIBUTING.md#branches-and-release-notes)
+for drafts, descriptive PR titles, squash merges, and branch cleanup. Changelog
+preparation reads `VersionPrefix`; it never chooses or bumps a version. The
+existing prepare-patch and post-release PRs remain responsible for version changes.
+
 ## Tags
 
 Release tags have the form `vX.Y.Z`. They are created exclusively by the
@@ -36,7 +42,7 @@ release tags manually.
 
 A release is only successful after, in order:
 
-1. Version validation passes
+1. Version and prepared changelog validation pass
 2. The release commit builds and tests pass
 3. The release commit deploys to production
 4. The production smoke test passes

@@ -108,6 +108,27 @@ Large pull requests are harder to review and more likely to stall. When possible
 
 Draft pull requests are welcome when you want early feedback.
 
+### Branches and release notes
+
+Start a short-lived branch from protected `main` and open a PR back to `main`.
+Use a descriptive name for the work and a descriptive PR title that explains the
+result; no commit-message grammar is required. Open a draft while the change is
+unfinished, then request review after the relevant checks pass. Merge approved
+PRs with **Squash and merge**. GitHub deletes merged source branches automatically;
+remove the corresponding local branch when it is no longer needed. There is no
+permanent `develop` branch.
+
+Reserve `patch/vX.Y.Z` for the [released-hotfix process](docs/release/README.md#patch-release-xyz-z--0).
+Create fix branches from that prepared patch branch and target their PRs at it.
+The production workflow opens the patch merge-back PR to `main`; review it to
+retain the fix and its changelog entry on both lines.
+
+For notable behavior changes, update `CHANGELOG.md` under `Unreleased` in the same
+PR. Describe the observable result, breaking behavior, and any migration or
+configuration steps. Omit mechanical maintenance noise. Patch notes describe only
+the fixes on the patch line. The [release-note tools](docs/release/README.md#curated-release-notes)
+help the release maintainer draft, prepare, and validate entries before dispatch.
+
 ## Significant Changes
 
 Discuss significant changes before implementation. This includes project

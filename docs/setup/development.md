@@ -59,10 +59,11 @@ pwsh ./scripts/check.ps1 quick
 ```
 
 `doctor.ps1` is a read-only prerequisite report. Its default `development`
-scope reports PowerShell, the SDK, Aspire CLI, Git, and Bash with their remedies;
-it does not install tools, trust certificates, start services, or open a browser.
-Use `-Scope quick`, `full`, `content`, `format`, `browser`, or `development` when checking a narrower
-workflow.
+scope reports the application prerequisites plus Node.js and content-tool
+readiness with their remedies; it does not install tools, trust certificates,
+start services, or open a browser. Use `-Scope quick` to check only the basic
+application gate, or `full`, `content`, `format`, `browser`, or `development` for
+the corresponding workflow.
 
 The normal solution gate is `pwsh ./scripts/check.ps1 quick`: it runs the quick
 doctor check, a solution restore with `--locked-mode`, C# formatting
@@ -72,14 +73,21 @@ AppHost do not opt into lockfiles and resolve dependencies normally.
 `check.ps1 format` verifies C# after the same restore and checks first-party
 content with Prettier and shfmt. To apply formatter changes deliberately, run
 `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
-Install the [content-checking prerequisites](../quality/content-checks.md) before
-using `format`, `content`, or `full`:
+The basic `quick` gate uses .NET tooling and does not require Node.js. Before
+using `format`, `content`, or `full`, install the
+[content-checking prerequisites](../quality/content-checks.md) once, then run the
+desired check:
 
 ```pwsh
-npm ci --ignore-scripts
-pwsh ./scripts/install-content-tools.ps1
+pwsh ./scripts/setup-content.ps1
 pwsh ./scripts/check.ps1 content
 ```
+
+Node.js 24 is the recommended LTS and CI baseline. Node.js 22 or newer is
+accepted for local tooling; newer releases are allowed even when they have not
+yet become the CI baseline. The setup installs locked dependencies and native
+tools inside the repository. It does not install global packages or enable Git
+hooks.
 
 The initial browser-debugging setup is an explicit, interactive operation:
 
@@ -323,20 +331,28 @@ The AppHost explicitly retains NuGet-restored orchestration dependencies and
 acknowledges only `ASPIRE010`, the advisory about optional CLI bundle delegation.
 This does not disable compiler warnings or change the local launch workflow.
 
-To opt into the existing Husky pre-commit hook, run these commands from the
+The optional pre-commit hook checks the exact staged bytes of first-party
+Markdown, JSON, YAML, CSS, and JavaScript files with the pinned Prettier, using
+the formatting configuration in the current checkout. It does not modify or
+stage files. C#, native shell, workflow, link, and full-tree checks run separately.
+The hook needs Node.js 22 or
+newer and the root npm dependencies. To opt in, run these commands from the
 repository root (Git for Windows supplies its `sh` interpreter):
 
 ```pwsh
+npm ci --ignore-scripts
 dotnet tool restore
 dotnet husky install
 ```
 
-The hook formats staged C# files using the same solution and formatting rules.
-For staged content files it also runs the shared first-party content check against
-the working tree, including unstaged work, without rewriting or staging content.
-Review any resulting changes before committing. If `HUSKY=0` is set in your
-terminal, remove that setting before opting in. To disable hook execution
-temporarily in PowerShell, set `$env:HUSKY = '0'`; use
+After installing the npm dependencies, preview the same staged check at any time
+with `node scripts/check-staged.mjs`.
+
+Documentation-only contributors can use the direct npm checks without a .NET
+SDK. The SDK is needed to install or uninstall Husky.Net hooks and to build the
+rendered DocFX site; the installed hook runs Node directly. If `HUSKY=0` is set in
+your terminal, remove that setting before opting in.
+To disable hook execution temporarily in PowerShell, set `$env:HUSKY = '0'`; use
 `Remove-Item Env:HUSKY` to re-enable it. To remove a previously installed Husky
 hook, run `dotnet husky uninstall`. None of these opt-in operations run during
 ordinary restore, build, test, or publish commands.
@@ -350,6 +366,10 @@ ordinary restore, build, test, or publish commands.
 - **Port in use or locked build output:** stop your existing debug session,
   watch tasks, or CLI-managed stack (`aspire stop`) before rebuilding. Do not
   terminate unrelated processes or start a second copy to work around a conflict.
+- **Node works in one terminal but is missing in an editor terminal:** close and
+  reopen the editor after installing Node so it inherits the normal user `PATH`,
+  then verify `node --version` there. Do not change machine-wide application or
+  service settings for repository tooling.
 - **Blazor breakpoint does not bind:** use Edge or Chrome, the
   `OpenGameBuilder.Web` profile, and the recommended debugger extensions. See
   [Microsoft's Blazor debugging guide](https://learn.microsoft.com/aspnet/core/blazor/debug?view=aspnetcore-10.0).
