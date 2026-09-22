@@ -410,8 +410,8 @@ Then perform a controlled acceptance check without deploying:
 2. On a temporary PR to `main`, deliberately break an existing test. Confirm the
    test fails, `build-test` is red, the failure artifact contains the assertion,
    and the merge box specifically identifies the failed required check as a
-   blocker for a non-bypass contributor. Exercise a failure in each required lane
-   separately. Confirm a cancelled required lane cannot yield a passing gate,
+   blocker for a non-bypass contributor. Use a platform-specific failure so the
+   other lane can still pass. Confirm a cancelled required lane cannot yield a passing gate,
    and inspect the job logs if cancellation prevents artifact upload.
    Do **not** merge the failing PR.
 3. Restore the assertion and push. Confirm the check passes. For a PR that does
