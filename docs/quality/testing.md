@@ -122,6 +122,48 @@ These tests exercise real temporary Git histories and lane-result combinations;
 they do not prove GitHub scheduling or merge enforcement. The hosted acceptance
 procedure is in [GitHub setup](../setup/github.md#ci-merge-gate).
 
+### Recorded platform CI acceptance
+
+The [clean hosted run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35748017596)
+at `1bb104c` passed both Windows and Linux lanes and the required `build-test`
+aggregate on 2026-09-22. Each platform passed locked restore, format verification,
+a Release solution build, and all 72 .NET tests. Linux also passed content and
+policy regressions, frontend packaging, all five shell suites, and the API image
+runtime/liveness check. The temporary failing test is absent from this revision.
+
+| Platform           | Runner image                  | Selected SDK |
+| ------------------ | ----------------------------- | ------------ |
+| Windows 10.0.26100 | `win25-vs2026 20260907.229.1` | 10.0.401     |
+| Ubuntu 24.04.5 LTS | `ubuntu24 20260907.300.1`     | 10.0.401     |
+
+On 2026-09-22, the [Windows restore failure](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35747546367)
+demonstrated that a failed required lane makes `build-test` fail even when Linux
+passes. The pinned SDK was 10.0.401, but the preinstalled Windows workload
+manifests requested WebAssembly pack 10.0.11 instead of the locked 10.0.12.
+The shared action now installs the SDK in a fresh temporary directory to avoid
+that machine-level input. Lockfiles were not regenerated to accept the mismatch.
+The seven-day Windows diagnostic artifact retained the restore error.
+
+The [documentation-only run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35747186192)
+passed content checks and `build-test` while both build lanes were skipped.
+Its [temporary PR](https://github.com/OpenGameBuilder/opengamebuilder/pull/118)
+targeted the implementation branch and was closed without merging.
+Thirteen local policy regression groups cover Git change selection, failures,
+cancellation, missing or unexpected results, and workflow wiring. Cancellation
+coverage is deterministic regression evidence, not a hosted cancellation rehearsal.
+
+GitHub's `main` rule still requires `build-test` from Actions app ID 15368;
+`gh pr checks 117 --required` reported the failed aggregate as required.
+The draft PR also reported `BLOCKED`; draft status is an additional independent
+merge blocker. These checks do not establish Visual Studio/VS Code F5 support,
+browser acceptance, deployment behavior, or a new non-bypass contributor rehearsal.
+
+Local Windows validation also passed restore, format, a zero-warning Release
+build, all 72 tests, the content gate and its seven regression groups, thirteen
+CI policy groups, frontend publish/portability, smoke-package installation/syntax,
+and all five isolated shell suites. This local evidence is separate from the
+hosted runs above.
+
 ### Shared command coverage and diagnostics
 
 `quick` is the normal solution gate: quick doctor checks, locked restore,

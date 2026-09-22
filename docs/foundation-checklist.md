@@ -475,19 +475,34 @@ services or deployments were started by this formatting verification.
 
 ### 15. Validate the supported platform and keep CI understandable
 
-- [ ] Add a Windows restore/format/Release-build/test lane alongside Linux. Keep
+- [x] Add a Windows restore/format/Release-build/test lane alongside Linux. Keep
       Linux shell/container checks in their suitable environment; do not multiply
       every job across an unnecessary OS matrix.
-- [ ] Use the commands from step 13, with focused document checks for document
+- [x] Use the commands from step 13, with focused document checks for document
       changes and full relevant checks for application/workflow changes. Path-based
       selection must not silently omit required validation or strand required checks.
-- [ ] Preserve the stable `build-test` gate. If it becomes an aggregate, explicitly
+- [x] Preserve the stable `build-test` gate. If it becomes an aggregate, explicitly
       verify every required dependency's result, including failure/cancellation cases.
       Retain actionable logs, reports, selected versions, and bounded artifact retention.
 
 **Acceptance:** real hosted Windows and Linux runs pass, a failed required lane
 prevents merging, and a documentation-only PR receives its intended checks.
 Record local results separately; Windows CI does not establish F5/debugger support.
+
+**Result (2026-09-22):** The [hosted Windows/Linux run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35748017596)
+passed both solution lanes (72 tests each), Linux full/container checks, and the
+stable aggregate. A real Windows restore failure was rejected by the required
+gate while Linux passed; an isolated SDK installation fixed the runner's older
+WebAssembly workload-manifest input without changing lockfiles. The
+[documentation-only run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35747186192)
+passed content and the aggregate with both build lanes skipped. Thirteen policy
+regression groups cover complete Git ranges, lane selection, failures,
+cancellation, missing results, and workflow wiring. Local solution, content,
+packaging, smoke-package, and all five shell-suite checks also passed.
+[Permanent acceptance evidence](quality/testing.md#recorded-platform-ci-acceptance)
+records the required-check inspection, diagnostic retention, and evidence limits;
+the temporary acceptance PR was closed unmerged. No deployment or editor
+acceptance was performed.
 
 ### 16. Exercise the published application in PRs
 
