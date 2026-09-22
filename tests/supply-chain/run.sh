@@ -52,6 +52,16 @@ grep -Fq 'directory: "/.github/actions/validate"' .github/dependabot.yml ||
   fail 'Dependabot does not monitor the composite validation action pins'
 echo 'PASS NuGet mapping inheritance is cleared and pin update automation remains enabled'
 
+# Require npm coverage for this package in the same update entry; an npm entry
+# elsewhere or the smoke directory under another ecosystem is not sufficient.
+awk '
+  /^  - package-ecosystem:/ { is_npm = ($3 == "\"npm\"") }
+  is_npm && /^    directory: "\/tests\/deploy-smoke"[[:space:]]*$/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' .github/dependabot.yml || fail 'Dependabot does not monitor npm dependencies in /tests/deploy-smoke'
+
+echo 'PASS Dependabot monitors browser-smoke npm dependencies'
+
 # Dependabot separates the Docker registry from the dependency name. Exercise
 # the configured glob against the same names it uses, not the full image URLs.
 mapfile -t api_image_patterns < <(awk '

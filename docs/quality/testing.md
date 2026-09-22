@@ -142,6 +142,27 @@ Deployment additionally runs a Chromium smoke test from `tests/deploy-smoke` tha
 loads the published frontend, observes its API request, and checks the expected
 source revision. That live test requires a deployed staging or production URL.
 
+### Browser-smoke dependency updates
+
+[Dependabot](../../.github/dependabot.yml) checks `/tests/deploy-smoke` weekly,
+using the repository's dependency-update cadence and cooldowns. Its npm entry
+targets the directory containing both `package.json` and `package-lock.json`, as
+described in [GitHub's configuration reference](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#directories-or-directory).
+After merging configuration changes, check GitHub's Dependabot update-job list
+for that npm directory and inspect its first run for configuration errors.
+
+For Playwright updates, review the release notes and the manifest/lockfile diff,
+then run the `npm ci` and syntax commands above with Node.js 22. Dependency PRs
+receive the same required `build-test` validation. Package installation and
+syntax checks do not establish compatibility with the updated Chromium build.
+Review the browser smoke result from an authorized staging deployment: the
+release URL and base path, successful `/api/about` request, expected source
+revision, API-backed heading, and absence of page errors. Record that workflow
+run separately from the package checks; if it has not run, browser acceptance
+remains unverified.
+
+### Supply-chain declarations
+
 Supply-chain declarations have an additional deterministic check:
 
 ```pwsh
@@ -151,6 +172,8 @@ Supply-chain declarations have an additional deterministic check:
 It rejects third-party Actions that are not full commit SHAs, mutable API base or
 edge image references, a missing explicit API user, deployment-time
 `ssh-keyscan`, inherited NuGet source mappings, or missing Dependabot ecosystems.
+The npm declaration must cover `/tests/deploy-smoke` in the same update entry;
+the check does not depend on a particular Playwright version.
 It also checks that the API-image group patterns match Dependabot's normalized
 dependency names (without their registry). CI loads the locally built API image and runs
 `scripts/verify-api-image.sh`; that Docker-backed check verifies the runtime user,

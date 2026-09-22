@@ -125,14 +125,25 @@ deployment or live browser acceptance was performed for this step.
 **Finding:** [Playwright is pinned](../tests/deploy-smoke/package.json), but
 [Dependabot](../.github/dependabot.yml) has no npm entry for this package.
 
-- [ ] Add version updates for `/tests/deploy-smoke` using the existing update cadence.
-- [ ] Extend the [supply-chain declaration check](../tests/supply-chain/run.sh) to
+- [x] Add version updates for `/tests/deploy-smoke` using the existing update cadence.
+- [x] Extend the [supply-chain declaration check](../tests/supply-chain/run.sh) to
   catch omission of this package without tying the check to a particular version.
-- [ ] Validate the package/lockfile and review browser-smoke behavior when updating
+- [x] Validate the package/lockfile and review browser-smoke behavior when updating
   Playwright; version-update configuration alone is not a browser acceptance test.
 
 **Acceptance:** the declaration check passes and Dependabot recognizes the npm
 directory after merge. Dependency updates receive the checks from step 2.
+
+**Result (2026-09-22):** Weekly npm updates now cover the smoke package with the
+existing dependency cooldowns. The declaration suite passes; isolated cases
+reject omitted coverage, the wrong directory or ecosystem, and coverage split
+across unrelated entries. Node 22 `npm ci` and syntax checks passed with
+Playwright 1.63.0 unchanged. Restore, format verification, Release build (zero
+warnings), and all 72 .NET tests passed. The existing smoke assertions were
+reviewed, and [maintenance guidance](quality/testing.md#browser-smoke-dependency-updates)
+records the package checks and browser evidence needed for future updates.
+Dependabot recognition of the npm directory remains unverified until merge;
+no deployment or live browser acceptance was performed for this step.
 
 ### 4. Correct operational documentation and unresolved host evidence
 
