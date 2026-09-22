@@ -23,6 +23,12 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 Push-Location $repoRoot
 try {
     New-Item -ItemType Directory -Force artifacts/validation | Out-Null
+    @(
+        "Operating system: $([System.Runtime.InteropServices.RuntimeInformation]::OSDescription)"
+        "OS architecture: $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+        if ($env:ImageOS) { "Runner image: $env:ImageOS $env:ImageVersion" }
+        "Check mode: $Mode; serial MSBuild: $Serial"
+    ) | Tee-Object -FilePath artifacts/validation/environment.log | Write-Host
 
     function Invoke-Check {
         param([string] $Name, [string] $Command, [string[]] $Arguments)
@@ -53,6 +59,7 @@ try {
         Invoke-Check 'content' 'node' $contentArguments
         if ($Mode -eq 'full') {
             Invoke-Check 'content-regressions' 'node' @('--test', 'tests/content-checks/check.test.mjs')
+            Invoke-Check 'ci-policy-regressions' 'node' @('--test', 'tests/ci-policy/check.test.mjs')
         }
     }
 

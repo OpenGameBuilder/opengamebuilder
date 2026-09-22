@@ -64,9 +64,8 @@ analysis or claiming this repository change fixed that managed workflow. See
 
 [CI](../../.github/workflows/ci.yml) and
 [deployment validation](../../.github/workflows/_deploy.yml) use the same
-[validation action](../../.github/actions/validate/action.yml), so restore,
-formatting verification, Release build, solution tests, and smoke-package checks
-cannot drift between the two paths. Start with the canonical local commands:
+[validation action](../../.github/actions/validate/action.yml) and canonical
+commands. Start with the local equivalents:
 
 ```pwsh
 pwsh ./scripts/check.ps1 quick
@@ -77,7 +76,49 @@ pwsh ./scripts/check.ps1 full -Serial
 See [first-party content checks](content-checks.md) for the pinned tool setup,
 formatter ownership, offline link checks, and separate external-link reports.
 `content` runs that gate without requiring .NET or deployment tools. `full`
-includes it and its deliberate-defect regression tests.
+includes it, its deliberate-defect regression tests, and the CI selection/gate
+regressions in [`tests/ci-policy`](../../tests/ci-policy/check.test.mjs).
+
+### PR lanes and the required gate
+
+CI starts for every PR, with no workflow-level path filter. Its selection job
+compares the full Git merge-base-to-head range with rename detection disabled,
+so both sides of a rename are checked. Only changes consisting entirely of
+Markdown files at the repository root or under `docs/` select the documentation
+lane. An empty range, any other path, patch-branch push, or manual run selects
+full validation. A failed comparison fails selection and the required gate;
+it cannot silently skip validation. The selector logs the paths and decision.
+
+| Selection     | Required validation                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation | Ubuntu runs `check.ps1 content`: first-party formatting, lint, workflow/shell checks, and all local Markdown links/anchors. Checking all documents catches backlinks broken by deletions or renames. No solution build or container runs. |
+| Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full`, then builds and checks the API container.                                                                   |
+
+Both platforms build the AppHost with their committed platform-specific locks.
+Shell suites, frontend packaging, smoke-package checks, and Docker runtime checks
+stay in the Linux lane. Deployment still uses the full shared action, with its
+separate required frontend packaging job. Neither path starts Aspire.
+
+The stable **`build-test`** check aggregates selection and all three possible
+lanes. Its `always()` job condition lets it evaluate failed or skipped dependencies,
+as described by [GitHub's job dependency rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs).
+It requires selection and every selected lane to report `success`, and each
+unselected lane to report `skipped`. Failure, cancellation, missing results, and
+unexpected skips fail the gate. Whole-run cancellation or runner loss may stop
+the gate itself; neither supplies a passing required check. Require `build-test`
+in branch protection, not the conditional lane names.
+
+Run the selector and aggregate regression checks independently with:
+
+```pwsh
+node --test tests/ci-policy/check.test.mjs
+```
+
+These tests exercise real temporary Git histories and lane-result combinations;
+they do not prove GitHub scheduling or merge enforcement. The hosted acceptance
+procedure is in [GitHub setup](../setup/github.md#ci-merge-gate).
+
+### Shared command coverage and diagnostics
 
 `quick` is the normal solution gate: quick doctor checks, locked restore,
 format verification, Release build, and the current 72 tests. `full` includes
@@ -91,7 +132,7 @@ Use `-Serial` when Windows task-host or pipe contention affects validation. It
 serializes restore, build, and publish work and disables MSBuild node reuse;
 the checks and their scope are otherwise unchanged.
 
-PR validation also publishes the frontend in Release using the completed build
+Full PR validation also publishes the frontend in Release using the completed build
 and runs [the portability guard](../../scripts/verify-web-publish.sh). Deployment
 disables this extra publish in the shared action because its required `package`
 job already publishes and checks the frontend before any deployment job runs.
@@ -104,11 +145,16 @@ acceptance. The deployment job installs its dependencies and Chromium on its own
 runner before activation. Live browser smoke runs after activation and can
 trigger recovery if it fails.
 
-A failing phase fails the job. Available console logs and a formatting report
+A failing phase fails its lane and the required gate. Available console logs and a formatting report
 are uploaded on failure and retained for seven days; assertion details are in
 `test.log`. The shared action also captures `web-publish.log`,
 `web-configuration.log`, `smoke-dependencies.log`, and `smoke-syntax.log` for
-the new checks when they run. The test command uses the repository's
+these checks when they run. `environment.log` records the OS, architecture,
+runner image when available, command mode, and serialization setting;
+`doctor.log` records selected SDK, PowerShell, and relevant tool versions.
+Artifacts are named per lane and run attempt. API image runtime failures retain
+`api-image.log` separately because that check follows the shared action. The
+test command uses the repository's
 Microsoft.Testing.Platform runner without adding a separate test-reporting dependency.
 
 The five Bash suites exercised by `full` are `release-scripts`, `deploy-edge`,
