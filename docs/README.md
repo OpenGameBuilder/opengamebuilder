@@ -5,7 +5,7 @@ application. The [public roadmap](https://github.com/orgs/OpenGameBuilder/projec
 tracks project work. There is no game runtime or editor yet; the first engine
 milestone's behavior and acceptance criteria remain to be agreed.
 
-These guides also build as a searchable site. See
+These guides are available as a [searchable site](https://opengamebuilder.github.io/opengamebuilder/). See
 [documentation maintenance](setup/documentation.md) for the build, PR preview,
 and publication procedure.
 

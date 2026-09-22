@@ -59,7 +59,7 @@ Dependabot entries cover `.github/workflows`, `.github/actions/validate`, and
 `.github/actions/docs`, so their pins continue to receive reviewable update PRs.
 The DocFX tool manifest under `docs/.config` has its own NuGet update entry.
 See [documentation publication](documentation.md#publication-and-hosted-acceptance)
-for the manual protected-`main` Pages workflow and its outstanding hosted acceptance.
+for the manual protected-`main` Pages workflow and recorded hosted acceptance.
 
 The shared PowerShell command checks native exit codes while retaining output.
 The API image check uses Bash with `-e -o pipefail`, so `tee` cannot hide failure.

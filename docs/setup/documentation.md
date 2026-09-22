@@ -66,9 +66,8 @@ repository links follow the selected commit without changing the Markdown.
 
 The full local repository check also passed: locked restore, format, a Release
 build with zero warnings, all 72 .NET tests, content and CI policy regressions,
-frontend packaging, and five shell suites. The new hosted PR checks, browser
-interaction with documentation search, and Pages deployment remain unverified.
-No service or browser was started for these local checks.
+frontend packaging, and five shell suites. No service or browser was started for
+these local checks. Hosted results are recorded separately below.
 
 ## Publication and hosted acceptance
 
@@ -79,7 +78,7 @@ content and site gates, and deploys that run's artifact through `github-pages`.
 Only the deployment job receives Pages write and OIDC permissions. Pull requests
 cannot publish and no push automatically publishes.
 
-Before the first authorized publication:
+For an authorized publication:
 
 1. Merge the reviewed implementation through the required PR checks.
 2. Select **GitHub Actions** as the repository's Pages source. Restrict the
@@ -102,9 +101,38 @@ site (HTTP 404). Later that day, Pages was configured to publish through GitHub
 Actions at <https://opengamebuilder.github.io/opengamebuilder/> with HTTPS
 enforced. The `github-pages` environment is restricted to `main`, requires review
 by `ostomachion`, permits that reviewer to approve their own deployment, and does
-not allow administrator bypass. No publication workflow has been dispatched.
-Hosted navigation, assets, search, and links remain unverified.
+not allow administrator bypass.
 This follows GitHub's [custom Pages workflow requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+
+### Recorded hosted acceptance
+
+On 2026-09-22, [PR #120](https://github.com/OpenGameBuilder/opengamebuilder/pull/120)
+passed [Windows and Linux CI](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35761930865),
+including the rendered-site gate in the Linux lane, and the required analysis
+checks. The sole-maintainer review exception described in
+[GitHub setup](github.md#deliberate-maintainer-exception) was used; this is not
+independent human approval.
+
+[Publication run 35762536862](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35762536862)
+rebuilt protected commit `3ebc79b066b02c7fcfd69e06d089a12d640c2e39`. Its checked
+artifact's `build-info.json` and relative/revision-specific links were inspected
+before the required environment review approved deployment. The run succeeded at
+the [published site](https://opengamebuilder.github.io/opengamebuilder/).
+
+The live site was exercised on Windows 11 in the connected Chromium browser
+(reported user agent: Chrome 153.0.0.0):
+
+| Check                         | Observed result                                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navigation                    | Setup, Contribute, Architecture, Testing, and Operations guides opened through site navigation and breadcrumbs.                                                                       |
+| Nested-page reload and assets | The documentation-maintenance page reloaded; its document, CSS, scripts, font, logo, and navigation resources returned HTTP 200.                                                      |
+| Search                        | `rollback` returned six results; the Hosting setup result opened its guide with the search query preserved.                                                                           |
+| Heading and source links      | The application activation/rollback heading link preserved the query and selected its fragment. Edit this page opened `docs/setup/hosting.md` on GitHub at the exact deployed commit. |
+| Browser diagnostics           | No console warnings/errors were recorded during the checks, and the observed reload had no failed resource requests.                                                                  |
+
+This is hosted documentation acceptance, not application deployment or broader
+cross-browser acceptance. The merge-triggered application staging run was
+cancelled before deployment; only the documentation workflow was approved.
 
 ## Checked examples and API reference
 

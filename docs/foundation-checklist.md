@@ -547,7 +547,7 @@ Sources: [Playwright servers](https://playwright.dev/docs/test-webserver),
 - [x] Add search and edit links, a PR site build, and checks of rendered local
       links/anchors. Use appropriate failing diagnostic severities for broken content.
       Keep external-link maintenance separate as described in step 14.
-- [ ] Configure publication from validated protected content when authorized,
+- [x] Configure publication from validated protected content when authorized,
       and verify the actual hosted navigation, assets, search, and links. Do not treat
       a successful local site build as publication acceptance.
 - [ ] Make the engine example from step 8 compile/run in CI and reuse its checked
@@ -561,7 +561,7 @@ generation do not block the first engine slice.
 Sources: [DocFX template](https://dotnet.github.io/docfx/docs/template.html),
 [.NET reference](https://dotnet.github.io/docfx/docs/dotnet-api-docs.html).
 
-**Result (2026-09-22, local acceptance):** DocFX 2.80.1 builds 27 existing-source
+**Result (2026-09-22, local and hosted acceptance):** DocFX 2.80.1 builds 27 existing-source
 pages with the modern template, task navigation, search, and original-source edit
 links. The temporary plan and agent instructions are excluded; generated output
 stays under ignored `artifacts/docs/site`. Repository-file links stay relative in
@@ -572,12 +572,16 @@ lanes run the gate and retain review artifacts. `check.ps1 full -Serial` also
 passed, including the 72 .NET tests, content and CI-policy regressions, frontend
 packaging, and five shell suites.
 
-The manual protected-`main` Pages workflow and guarded `github-pages` environment
-are configured, but the workflow has not been dispatched. Actual hosted acceptance
-remains pending. The first hosted run of the new PR checks is also unverified. The engine-example and
-filtered-reference item remains open because steps 7–8 have no implemented slice
-to compile or reuse. [Documentation maintenance](setup/documentation.md) records
-the permanent build, publication, evidence, and example-adoption procedures.
+The protected-`main` Pages workflow and guarded `github-pages` environment
+published commit `3ebc79b066b02c7fcfd69e06d089a12d640c2e39` through
+[run 35762536862](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35762536862),
+after [PR #120](https://github.com/OpenGameBuilder/opengamebuilder/pull/120) passed
+its hosted checks. Actual navigation, nested-page assets, search, heading links,
+and the revision-specific source link passed in Chromium 153 on Windows 11, with
+no recorded console errors. The engine-example and filtered-reference item stays
+open because steps 7–8 have no implemented slice to compile or reuse.
+[Documentation maintenance](setup/documentation.md#recorded-hosted-acceptance)
+records the publication and browser evidence separately from local validation.
 
 ### 18. Clarify branches and make release notes useful
 
