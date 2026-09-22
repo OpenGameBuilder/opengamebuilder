@@ -3,11 +3,11 @@
 OpenGameBuilder ships through GitHub Actions. There are exactly three release
 workflows you need to know about:
 
-| Workflow              | Trigger                                            | What it does                                                                |
-| --------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
-| 🛰️ **CD Staging**    | Every push to `main`, or manual dispatch from `main` | Build, test, deploy to staging, smoke test                                  |
+| Workflow             | Trigger                                                                 | What it does                                                                        |
+| -------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 🛰️ **CD Staging**    | Every push to `main`, or manual dispatch from `main`                    | Build, test, deploy to staging, smoke test                                          |
 | 🚀 **CD Production** | Manually dispatched **from `main`**, with a separate source `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
-| 🩹 **Prepare Patch** | Manually dispatched                                | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag   |
+| 🩹 **Prepare Patch** | Manually dispatched                                                     | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag           |
 
 Host infrastructure is separate: **🌐 CD Edge** updates the selected host's
 explicit edge profile, not an application release. Staging and production may

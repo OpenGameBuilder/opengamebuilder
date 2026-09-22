@@ -9,7 +9,7 @@ export EDGE_DIR="$test_root/active"
 export DOCKER_CALLS="$test_root/docker-calls"
 export PATH="$test_root/bin:$PATH"
 
-cat > "$test_root/bin/docker" <<'EOF'
+cat >"$test_root/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$DOCKER_CALLS"
 case "$*" in
@@ -28,15 +28,18 @@ esac
 EOF
 chmod +x "$test_root/bin/docker"
 
-fail() { echo "FAIL: $*" >&2; exit 1; }
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
 write_profile() {
   local default_config='example.com { respond "ok" }'
-  printf '# ogb-edge-profile: %s\n%s\n' "$2" "${3:-$default_config}" > "$1"
+  printf '# ogb-edge-profile: %s\n%s\n' "$2" "${3:-$default_config}" >"$1"
 }
 reset_fixture() {
   rm -f "$DOCKER_CALLS" "$EDGE_DIR/compose.yml" "$EDGE_DIR/Caddyfile"
   rm -rf "$test_root/staging" "$test_root/production"
-  printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2\n' > "$EDGE_DIR/compose.yml"
+  printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2\n' >"$EDGE_DIR/compose.yml"
   write_profile "$EDGE_DIR/Caddyfile" shared 'old.example.com { respond "old" }'
   cp "$EDGE_DIR/compose.yml" "$test_root/candidate/compose.yml"
   write_profile "$test_root/candidate/Caddyfile" shared 'new.example.com { respond "new" }'
@@ -52,7 +55,7 @@ assert_rejected_without_mutation() {
   shift
   cp "$EDGE_DIR/compose.yml" "$test_root/expected-compose.yml"
   cp "$EDGE_DIR/Caddyfile" "$test_root/expected-Caddyfile"
-  if "$@" > "$test_root/rejection.log" 2>&1; then fail 'unsafe edge operation was accepted'; fi
+  if "$@" >"$test_root/rejection.log" 2>&1; then fail 'unsafe edge operation was accepted'; fi
   grep -Fq "$expected_error" "$test_root/rejection.log" || fail "expected error: $expected_error"
   [[ ! -s "$DOCKER_CALLS" ]] || fail 'rejected profile operation called Docker'
   [[ ! -e "$test_root/staging" && ! -e "$test_root/production" ]] || fail 'rejected profile operation created application directories'
@@ -75,7 +78,7 @@ done
 echo 'PASS incomplete candidates do not touch Docker or application directories'
 
 reset_fixture
-printf 'unmarked.example.com { respond "old" }\n' > "$test_root/candidate/Caddyfile"
+printf 'unmarked.example.com { respond "old" }\n' >"$test_root/candidate/Caddyfile"
 assert_rejected_without_mutation 'Candidate Caddyfile requires an edge profile marker' run_apply
 for marker in \
   '# ogb-edge-profile: invalid' \
@@ -83,7 +86,7 @@ for marker in \
   '# ogb-edge-profile:shared' \
   $'# another comment\n# ogb-edge-profile: shared' \
   $'# ogb-edge-profile: shared\n# ogb-edge-profile: shared'; do
-  printf '%s\nexample.com { respond "ok" }\n' "$marker" > "$test_root/candidate/Caddyfile"
+  printf '%s\nexample.com { respond "ok" }\n' "$marker" >"$test_root/candidate/Caddyfile"
   assert_rejected_without_mutation 'Invalid edge profile marker' run_apply
 done
 echo 'PASS missing malformed misplaced and duplicate candidate markers are rejected'
@@ -128,7 +131,7 @@ grep -Fxq '# ogb-edge-profile: shared' "$EDGE_DIR/Caddyfile" || fail 'approved p
 echo 'PASS changing an installed profile requires explicit production-authorized migration'
 
 reset_fixture
-printf 'legacy.example.com { respond "old" }\n' > "$EDGE_DIR/Caddyfile"
+printf 'legacy.example.com { respond "old" }\n' >"$EDGE_DIR/Caddyfile"
 write_profile "$test_root/candidate/Caddyfile" staging
 assert_rejected_without_mutation 'Unmarked legacy edge can only adopt the shared profile through production' run_apply staging true
 write_profile "$test_root/candidate/Caddyfile" production
@@ -143,7 +146,7 @@ for marker in \
   $'# another comment\n# ogb-edge-profile: shared' \
   $'# ogb-edge-profile: shared\n# ogb-edge-profile: production'; do
   reset_fixture
-  printf '%s\nexample.com { respond "ok" }\n' "$marker" > "$EDGE_DIR/Caddyfile"
+  printf '%s\nexample.com { respond "ok" }\n' "$marker" >"$EDGE_DIR/Caddyfile"
   assert_rejected_without_mutation 'Invalid edge profile marker' run_apply production true
 done
 echo 'PASS malformed installed profiles cannot be overridden'
@@ -187,7 +190,7 @@ done
 echo 'PASS application preflight checks exact marked profile without Docker or mutations'
 
 reset_fixture
-printf 'legacy.example.com { respond "old" }\n' > "$EDGE_DIR/Caddyfile"
+printf 'legacy.example.com { respond "old" }\n' >"$EDGE_DIR/Caddyfile"
 run_verify shared >/dev/null
 assert_rejected_without_mutation 'Unmarked legacy edge is only valid for the shared profile' run_verify staging
 assert_rejected_without_mutation 'Unmarked legacy edge is only valid for the shared profile' run_verify production
@@ -199,13 +202,13 @@ for marker in \
   $'# another comment\n# ogb-edge-profile: shared' \
   $'# ogb-edge-profile: shared\n# ogb-edge-profile: shared'; do
   reset_fixture
-  printf '%s\nexample.com { respond "ok" }\n' "$marker" > "$EDGE_DIR/Caddyfile"
+  printf '%s\nexample.com { respond "ok" }\n' "$marker" >"$EDGE_DIR/Caddyfile"
   assert_rejected_without_mutation 'Invalid edge profile marker' run_verify shared
 done
 for missing_file in compose.yml Caddyfile; do
   reset_fixture
   rm "$EDGE_DIR/$missing_file"
-  if run_verify shared > "$test_root/rejection.log" 2>&1; then fail 'incomplete edge installation passed preflight'; fi
+  if run_verify shared >"$test_root/rejection.log" 2>&1; then fail 'incomplete edge installation passed preflight'; fi
   grep -Fq 'Edge installation requires compose.yml and Caddyfile' "$test_root/rejection.log" || fail 'preflight did not report incomplete installation'
   [[ ! -s "$DOCKER_CALLS" ]] || fail 'preflight called Docker for incomplete installation'
 done
@@ -263,14 +266,14 @@ assert_not_called 'up -d'
 echo 'PASS failed reload restores previous configuration'
 
 reset_fixture
-printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2.1\n' > "$test_root/candidate/compose.yml"
+printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2.1\n' >"$test_root/candidate/compose.yml"
 run_apply >/dev/null
 assert_called 'up -d'
 assert_called 'exec -T caddy caddy reload'
 echo 'PASS explicit Compose change updates the edge service'
 
 reset_fixture
-printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2.1\n' > "$test_root/candidate/compose.yml"
+printf 'name: ogb-edge\nservices:\n  caddy:\n    image: caddy:2.1\n' >"$test_root/candidate/compose.yml"
 export FAIL_UP=1
 if run_apply >/dev/null 2>&1; then fail 'failed Compose update was reported as success'; fi
 grep -Fxq '    image: caddy:2' "$EDGE_DIR/compose.yml" || fail 'failed Compose update did not restore active file'

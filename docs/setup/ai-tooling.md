@@ -34,10 +34,10 @@ All seven skills were introduced in application commit
 upstream pin. The following matching snapshots were reconstructed and verified
 on 2026-09-22 UTC; they establish content provenance, not the original install command.
 
-| Vendored content | Verified source | License and attribution |
-| --- | --- | --- |
-| Six Aspire skill directories, 36 files | [microsoft/aspire-skills at `35f41b0`](https://github.com/microsoft/aspire-skills/tree/35f41b013fb0e1cb7860c47ccc26d827ed5fba8b/skills) | [MIT, Microsoft Corporation](../licenses/aspire-skills-MIT.txt) |
-| `dotnet-inspect/SKILL.md` | `DotnetInspectSkillFileContent` in [Aspire CLI 13.4.2 at `d7d0b67`](https://github.com/microsoft/aspire/blob/d7d0b6759ce4b936c76bc4775814d27db560dd6d/src/Aspire.Cli/Agents/CommonAgentApplicators.cs) | [.NET Foundation and Contributors, MIT](../licenses/aspire-MIT.txt); original skill by Richard Lander |
+| Vendored content                       | Verified source                                                                                                                                                                                        | License and attribution                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Six Aspire skill directories, 36 files | [microsoft/aspire-skills at `35f41b0`](https://github.com/microsoft/aspire-skills/tree/35f41b013fb0e1cb7860c47ccc26d827ed5fba8b/skills)                                                                | [MIT, Microsoft Corporation](../licenses/aspire-skills-MIT.txt)                                       |
+| `dotnet-inspect/SKILL.md`              | `DotnetInspectSkillFileContent` in [Aspire CLI 13.4.2 at `d7d0b67`](https://github.com/microsoft/aspire/blob/d7d0b6759ce4b936c76bc4775814d27db560dd6d/src/Aspire.Cli/Agents/CommonAgentApplicators.cs) | [.NET Foundation and Contributors, MIT](../licenses/aspire-MIT.txt); original skill by Richard Lander |
 
 The original dotnet-inspect skill is from
 [richlander/dotnet-inspect v0.5.0](https://github.com/richlander/dotnet-inspect/blob/0fe16f7ffc8a1ece0c9a8607ebae0db1cbb65d20/skills/dotnet-inspect/SKILL.md),

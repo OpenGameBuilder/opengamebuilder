@@ -9,12 +9,12 @@ rules for the current small project; it does not appoint additional maintainers.
 GitHub inspection on 2026-09-22 UTC confirmed `ostomachion` as the sole organization
 owner and the only application collaborator with write/admin access.
 
-| Area | Current responsibility and handoff |
-| --- | --- |
-| Project decisions, repository access, and releases | `ostomachion`; see [governance](https://github.com/OpenGameBuilder/.github/blob/main/GOVERNANCE.md) and [GitHub setup](../setup/github.md#deployment-authority-and-recovery). |
-| Hosting and application recovery | `ostomachion` is the documented release/recovery operator; use [hosting recovery](../setup/hosting.md#application-activation-and-rollback). A working rollback procedure does not establish backup operator access. |
-| Domains, DNS, and renewals | No separate operator or recovery handoff is recorded. `ostomachion` owns arranging and privately documenting that handoff before delegating operations; registrar/account access has not been verified here. |
-| Historical archive | Managed in the separate [archive repository](https://github.com/OpenGameBuilder/mygamebuilder-archive). Application permissions do not confer ownership of archived material. |
+| Area                                               | Current responsibility and handoff                                                                                                                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project decisions, repository access, and releases | `ostomachion`; see [governance](https://github.com/OpenGameBuilder/.github/blob/main/GOVERNANCE.md) and [GitHub setup](../setup/github.md#deployment-authority-and-recovery).                                       |
+| Hosting and application recovery                   | `ostomachion` is the documented release/recovery operator; use [hosting recovery](../setup/hosting.md#application-activation-and-rollback). A working rollback procedure does not establish backup operator access. |
+| Domains, DNS, and renewals                         | No separate operator or recovery handoff is recorded. `ostomachion` owns arranging and privately documenting that handoff before delegating operations; registrar/account access has not been verified here.        |
+| Historical archive                                 | Managed in the separate [archive repository](https://github.com/OpenGameBuilder/mygamebuilder-archive). Application permissions do not confer ownership of archived material.                                       |
 
 There is no agreed backup maintainer or independent private reporting contact
 recorded. Both remain deferred, owned by `ostomachion`: before wider participation

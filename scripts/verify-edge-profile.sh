@@ -8,7 +8,7 @@ if [[ "$expected_profile" != shared && "$expected_profile" != staging && "$expec
   echo "Expected edge profile shared staging or production." >&2
   exit 1
 fi
-if (( $# != 2 )); then
+if (($# != 2)); then
   echo "Usage: verify-edge-profile.sh <edge-dir> <expected-profile>" >&2
   exit 1
 fi

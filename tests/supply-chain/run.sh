@@ -4,7 +4,10 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-fail() { echo "FAIL: $*" >&2; exit 1; }
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
 
 action_count=0
 version_comment_pattern='#[[:space:]]+v[0-9]'
@@ -25,7 +28,7 @@ while read -r directive image_ref remainder; do
   [[ "$image_ref" == scratch ]] && continue
   [[ "$image_ref" =~ @sha256:[0-9a-f]{64}$ ]] || fail "Dockerfile base image is not pinned by digest: $image_ref"
   ((base_count += 1))
-done < src/OpenGameBuilder.Api/Dockerfile
+done <src/OpenGameBuilder.Api/Dockerfile
 ((base_count > 0)) || fail 'no Dockerfile base images were checked'
 grep -Eq '^[[:space:]]+image:[[:space:]]+[^[:space:]@]+@sha256:[0-9a-f]{64}$' deploy/edge/compose.yml ||
   fail 'edge image is not pinned by digest'
@@ -72,7 +75,10 @@ mapfile -t api_image_patterns < <(awk '
 for dependency in dotnet/sdk dotnet/aspnet; do
   matched=false
   for pattern in "${api_image_patterns[@]}"; do
-    if [[ "$dependency" == $pattern ]]; then matched=true; break; fi
+    if [[ "$dependency" == $pattern ]]; then
+      matched=true
+      break
+    fi
   done
   [[ "$matched" == true ]] || fail "Dependabot API image group does not match ${dependency}"
 done

@@ -13,9 +13,7 @@
         "--verbosity",
         "minimal"
       ],
-      "include": [
-        "**/*.cs"
-      ]
+      "include": ["**/*.cs"]
     }
   ]
 }

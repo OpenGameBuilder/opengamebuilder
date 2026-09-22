@@ -7,18 +7,18 @@ milestone's behavior and acceptance criteria remain to be agreed.
 
 ## Working on the application
 
-| Task | Read |
-| --- | --- |
-| Install tools, run locally, or debug | [Development setup](setup/development.md) |
-| Choose a task or propose a change | [Contributing](../CONTRIBUTING.md) and [open issues](https://github.com/OpenGameBuilder/opengamebuilder/issues) |
-| Understand the current HTTP surface and health checks | [API](backend/api.md) |
-| Run tests and understand their limits | [Testing](quality/testing.md) |
-| Maintain agent instructions and vendored skills | [AI tooling maintenance](setup/ai-tooling.md) and [AI policy](../AI_POLICY.md) |
-| Check browser and accessibility expectations | [Browser support](frontend/browser-support.md) |
-| Host, deploy, or recover a release | [Hosting](setup/hosting.md), [GitHub setup](setup/github.md), and [SSH host-key verification](setup/deployment-host-key.md) |
-| Prepare a release or patch | [Release process](release/README.md), [changelog](../CHANGELOG.md), and [versioning](release/versioning.md) |
-| Ask a question or report privately | [Support](../SUPPORT.md) and [security](../SECURITY.md) |
-| Check responsibilities or bring in historical material | [Practical stewardship](community/stewardship.md) |
+| Task                                                   | Read                                                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Install tools, run locally, or debug                   | [Development setup](setup/development.md)                                                                                   |
+| Choose a task or propose a change                      | [Contributing](../CONTRIBUTING.md) and [open issues](https://github.com/OpenGameBuilder/opengamebuilder/issues)             |
+| Understand the current HTTP surface and health checks  | [API](backend/api.md)                                                                                                       |
+| Run tests and understand their limits                  | [Testing](quality/testing.md)                                                                                               |
+| Maintain agent instructions and vendored skills        | [AI tooling maintenance](setup/ai-tooling.md) and [AI policy](../AI_POLICY.md)                                              |
+| Check browser and accessibility expectations           | [Browser support](frontend/browser-support.md)                                                                              |
+| Host, deploy, or recover a release                     | [Hosting](setup/hosting.md), [GitHub setup](setup/github.md), and [SSH host-key verification](setup/deployment-host-key.md) |
+| Prepare a release or patch                             | [Release process](release/README.md), [changelog](../CHANGELOG.md), and [versioning](release/versioning.md)                 |
+| Ask a question or report privately                     | [Support](../SUPPORT.md) and [security](../SECURITY.md)                                                                     |
+| Check responsibilities or bring in historical material | [Practical stewardship](community/stewardship.md)                                                                           |
 
 ## Repository map
 

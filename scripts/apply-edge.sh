@@ -15,7 +15,7 @@ if [[ "$allow_profile_change" != true && "$allow_profile_change" != false ]]; th
   echo "Expected allow-profile-change to be true or false." >&2
   exit 1
 fi
-if (( $# > 3 )); then
+if (($# > 3)); then
   echo "Usage: apply-edge.sh <candidate-dir> <deployment-environment> [allow-profile-change=false]" >&2
   exit 1
 fi
@@ -95,8 +95,8 @@ docker run --rm --entrypoint caddy \
 # Create only this profile's web roots as the deploying user, before Docker can
 # create missing bind-mount directories as root during first-time edge setup.
 case "$candidate_profile" in
-  shared) edge_environments=(staging production) ;;
-  staging|production) edge_environments=("$candidate_profile") ;;
+shared) edge_environments=(staging production) ;;
+staging | production) edge_environments=("$candidate_profile") ;;
 esac
 for environment in "${edge_environments[@]}"; do
   mkdir -p "${edge_dir}/../${environment}/web"

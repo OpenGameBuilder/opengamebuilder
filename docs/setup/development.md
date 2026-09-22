@@ -28,6 +28,7 @@ browser-certificate support on those platforms.
   ```
 
   Reopen the terminal after installation if `aspire` is not on `PATH`.
+
 - Microsoft Edge or Google Chrome for Blazor WebAssembly debugging.
 - For Visual Studio: **[Visual Studio 2026](https://visualstudio.microsoft.com/vs/)**
   (Community is fine), with **ASP.NET and web development**. The repository's
@@ -155,13 +156,13 @@ For a background session instead, use `aspire start`, `aspire wait api`,
 
 ### Expected endpoints and success check
 
-| Endpoint | Purpose |
-| --- | --- |
-| `https://localhost:7001` | Frontend; the home heading shows `OpenGameBuilder <version> (Development)` after loading |
-| `https://localhost:7000/api/about` | Application name, version, and API environment JSON |
-| `https://localhost:7000/api/alive` | API liveness |
-| `https://localhost:7000/scalar` | Interactive API documentation (Development only) |
-| `https://localhost:17170` | Aspire dashboard with the default HTTPS profile; use the login URL printed by the launcher |
+| Endpoint                           | Purpose                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `https://localhost:7001`           | Frontend; the home heading shows `OpenGameBuilder <version> (Development)` after loading   |
+| `https://localhost:7000/api/about` | Application name, version, and API environment JSON                                        |
+| `https://localhost:7000/api/alive` | API liveness                                                                               |
+| `https://localhost:7000/scalar`    | Interactive API documentation (Development only)                                           |
+| `https://localhost:17170`          | Aspire dashboard with the default HTTPS profile; use the login URL printed by the launcher |
 
 HTTP bindings also exist at `http://localhost:5000` (API) and
 `http://localhost:5001` (web); use **HTTPS** for this workflow. The AppHost profile
@@ -280,12 +281,12 @@ opened without copied editor state or build outputs. The host was Windows 11
 (build 26200), with .NET SDK 10.0.401, Aspire CLI 13.4.2, and an already trusted
 development certificate. No Docker or production credentials were needed.
 
-| Check | Result |
-| --- | --- |
-| Solution validation in the working checkout | Restore, format verification, Release build (zero warnings), and all 72 tests passed; frontend Release publish and the portability guard also passed. |
-| Visual Studio Insiders 18.11.12210.170, shared Aspire profile | F5 built and started the fresh clone; Aspire reported both resources healthy. A browser request hit `AboutController.Get`, and continuing displayed `OpenGameBuilder 0.11.0 (Development)` in Chrome 153.0.8010.53. |
-| VS Code 1.138.0, Launch All (API + Web) | F5 started both projects. Reloading the launched Edge page hit `AboutController.Get` in VS Code; the frontend displayed the Development heading. |
-| Remaining editor acceptance | The frontend `Home.OnInitializedAsync` breakpoint was not hit in the externally opened Visual Studio Chrome tab. Full Blazor breakpoint verification in each editor's debugger-owned browser remains open; neither API debugging nor the heading alone proves it. |
+| Check                                                         | Result                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Solution validation in the working checkout                   | Restore, format verification, Release build (zero warnings), and all 72 tests passed; frontend Release publish and the portability guard also passed.                                                                                                             |
+| Visual Studio Insiders 18.11.12210.170, shared Aspire profile | F5 built and started the fresh clone; Aspire reported both resources healthy. A browser request hit `AboutController.Get`, and continuing displayed `OpenGameBuilder 0.11.0 (Development)` in Chrome 153.0.8010.53.                                               |
+| VS Code 1.138.0, Launch All (API + Web)                       | F5 started both projects. Reloading the launched Edge page hit `AboutController.Get` in VS Code; the frontend displayed the Development heading.                                                                                                                  |
+| Remaining editor acceptance                                   | The frontend `Home.OnInitializedAsync` breakpoint was not hit in the externally opened Visual Studio Chrome tab. Full Blazor breakpoint verification in each editor's debugger-owned browser remains open; neither API debugging nor the heading alone proves it. |
 
 The fresh clone's initial CLI restore hit a local NuGet scratch-lock access error;
 Visual Studio subsequently restored and built it successfully. This records a

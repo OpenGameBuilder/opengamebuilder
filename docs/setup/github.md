@@ -56,15 +56,15 @@ Do not log credentials or sensitive response bodies.
 
 Every runner job has an explicit timeout:
 
-| Runner job | Timeout (minutes) |
-| --- | --- |
-| CI `build-test`; each CodeQL analysis | 30 |
-| Deployment `build-test` | 20 |
-| Deployment `package` | 25 |
-| Deployment `deploy`, including browser setup, activation, smoke, and recovery | 45 |
-| Production release validation/publication; patch preparation | 10 |
-| Source resolution; main-dispatch guards; edge migration authorization | 5 |
-| Edge validation and apply | 15 |
+| Runner job                                                                    | Timeout (minutes) |
+| ----------------------------------------------------------------------------- | ----------------- |
+| CI `build-test`; each CodeQL analysis                                         | 30                |
+| Deployment `build-test`                                                       | 20                |
+| Deployment `package`                                                          | 25                |
+| Deployment `deploy`, including browser setup, activation, smoke, and recovery | 45                |
+| Production release validation/publication; patch preparation                  | 10                |
+| Source resolution; main-dispatch guards; edge migration authorization         | 5                 |
+| Edge validation and apply                                                     | 15                |
 
 Reusable workflow callers use the timeouts on their called jobs. Browser smoke
 has no separate job or workflow step timeout. These are upper bounds, not targets.
@@ -79,14 +79,14 @@ the following active repository rulesets. Branch rules target **`main` and
 rules: the GraphQL collection was empty, and the authenticated `main` protection
 endpoint returned "Branch not protected" (404). Rulesets still protect that branch.
 
-| Ruleset | Requirements | Bypass |
-| --- | --- | --- |
-| [Main and patch merge gate (16765458)](https://github.com/OpenGameBuilder/opengamebuilder/rules/16765458) | `build-test` from GitHub Actions (`15368`), up-to-date branches, CodeQL, code quality, no deletion or force push | None, including administrators and the release bot |
-| [Main linear history (23469610)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23469610) | Linear history on `main` | None |
-| [Main and patch human review (23468686)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468686) | One approval, stale-review dismissal, latest-push approval, resolved conversations, squash-only merges | Organization administrators, **PR-only**, as explained below |
-| [Protected branch creation (23468683)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468683) | Restrict creation of protected branches | Release App, always mode, **creation only** |
-| [Release tag creation (23468685)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468685) | Restrict creation of release tags | Release App, always mode, **creation only** |
-| [Release tag immutability (16754313)](https://github.com/OpenGameBuilder/opengamebuilder/rules/16754313) | No tag updates, deletion, or force pushes | None, including administrators and the release bot |
+| Ruleset                                                                                                     | Requirements                                                                                                     | Bypass                                                       |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [Main and patch merge gate (16765458)](https://github.com/OpenGameBuilder/opengamebuilder/rules/16765458)   | `build-test` from GitHub Actions (`15368`), up-to-date branches, CodeQL, code quality, no deletion or force push | None, including administrators and the release bot           |
+| [Main linear history (23469610)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23469610)         | Linear history on `main`                                                                                         | None                                                         |
+| [Main and patch human review (23468686)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468686) | One approval, stale-review dismissal, latest-push approval, resolved conversations, squash-only merges           | Organization administrators, **PR-only**, as explained below |
+| [Protected branch creation (23468683)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468683)   | Restrict creation of protected branches                                                                          | Release App, always mode, **creation only**                  |
+| [Release tag creation (23468685)](https://github.com/OpenGameBuilder/opengamebuilder/rules/23468685)        | Restrict creation of release tags                                                                                | Release App, always mode, **creation only**                  |
+| [Release tag immutability (16754313)](https://github.com/OpenGameBuilder/opengamebuilder/rules/16754313)    | No tag updates, deletion, or force pushes                                                                        | None, including administrators and the release bot           |
 
 The review rule also requires an extra approval for unattributed Copilot PRs.
 Automated review is not human approval. No code-owner requirement is configured
@@ -186,12 +186,12 @@ source or entering a deployment environment. [GitHub's environment
 rule reference](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)
 explains this distinction.
 
-| Workflow run ref | Source input | Environment result without admin bypass | Source check on merged `main` |
-| --- | --- | --- | --- |
-| `main` | `main` | Production allowed, then reviewer approval | Protected `main` SHA |
-| `main` | `patch/vX.Y.Z` | Production allowed, then reviewer approval | Protected matching patch SHA |
-| `patch/vX.Y.Z` or a tag | Any | Workflow guard fails; production also denies | Not run |
-| `main` | Tag, arbitrary SHA, or unprotected branch | Environment permits the dispatch ref | Source resolver rejects the input |
+| Workflow run ref        | Source input                              | Environment result without admin bypass      | Source check on merged `main`     |
+| ----------------------- | ----------------------------------------- | -------------------------------------------- | --------------------------------- |
+| `main`                  | `main`                                    | Production allowed, then reviewer approval   | Protected `main` SHA              |
+| `main`                  | `patch/vX.Y.Z`                            | Production allowed, then reviewer approval   | Protected matching patch SHA      |
+| `patch/vX.Y.Z` or a tag | Any                                       | Workflow guard fails; production also denies | Not run                           |
+| `main`                  | Tag, arbitrary SHA, or unprotected branch | Environment permits the dispatch ref         | Source resolver rejects the input |
 
 Staging runs on a push to `main` or a manual dispatch from `main`; the workflow
 guard and environment policy reject other dispatch refs in the normal path. The
@@ -336,11 +336,11 @@ These are historical acceptance checks, not the current test count or a fresh
 inspection of every repository setting. Current local commands and evidence
 boundaries are in [testing guidance](../quality/testing.md).
 
-| Check | Evidence | What it establishes |
-| --- | --- | --- |
-| Required CI rejects a behavior failure on `main` and `patch/v*` | Deliberately failing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996043271) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996046998) | `build-test` failed, diagnostic artifacts contained the assertion, and both PRs were blocked |
-| Corrected validation baseline passes on both branch families | Passing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998082400) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998087065) | Tests and API image build passed; CodeQL and code-quality checks passed without suppressing alerts |
-| Release App can prepare a patch without bypassing the PR gate | [Prepare Patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742), [PR #84](https://github.com/OpenGameBuilder/opengamebuilder/pull/84), and [its CI run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002166207) | Branch/PR creation succeeded; review remained required and NU1903 blocked the old dependency baseline |
+| Check                                                           | Evidence                                                                                                                                                                                                                                                              | What it establishes                                                                                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Required CI rejects a behavior failure on `main` and `patch/v*` | Deliberately failing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996043271) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34996046998)                                                             | `build-test` failed, diagnostic artifacts contained the assertion, and both PRs were blocked          |
+| Corrected validation baseline passes on both branch families    | Passing [main run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998082400) and [patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/34998087065)                                                                          | Tests and API image build passed; CodeQL and code-quality checks passed without suppressing alerts    |
+| Release App can prepare a patch without bypassing the PR gate   | [Prepare Patch run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742), [PR #84](https://github.com/OpenGameBuilder/opengamebuilder/pull/84), and [its CI run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002166207) | Branch/PR creation succeeded; review remained required and NU1903 blocked the old dependency baseline |
 
 The baseline was published through [PR #82](https://github.com/OpenGameBuilder/opengamebuilder/pull/82).
 Temporary [patch PR #83](https://github.com/OpenGameBuilder/opengamebuilder/pull/83)

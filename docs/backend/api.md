@@ -5,13 +5,13 @@ checks. There are no game, editor, account, database, or blob-storage endpoints.
 Use [development setup](../setup/development.md) to run the API locally over
 HTTPS; the default API origin is `https://localhost:7000`.
 
-| Endpoint | Availability | Behavior |
-| --- | --- | --- |
-| `GET /api/about` | All environments | Application name, informational version, API environment, and source revision |
-| `GET /api/alive` | All environments | Plain-text liveness status from checks tagged `live` |
-| `/health` | Development only, on the API origin | Readiness result from all registered health checks |
-| `/alive` | Development only, on the API origin | Liveness result from checks tagged `live` |
-| `/openapi/v1.json` and `/scalar` | Development only | OpenAPI description and interactive API documentation |
+| Endpoint                         | Availability                        | Behavior                                                                      |
+| -------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
+| `GET /api/about`                 | All environments                    | Application name, informational version, API environment, and source revision |
+| `GET /api/alive`                 | All environments                    | Plain-text liveness status from checks tagged `live`                          |
+| `/health`                        | Development only, on the API origin | Readiness result from all registered health checks                            |
+| `/alive`                         | Development only, on the API origin | Liveness result from checks tagged `live`                                     |
+| `/openapi/v1.json` and `/scalar` | Development only                    | OpenAPI description and interactive API documentation                         |
 
 `/api/about` uses the [AboutResponse contract](../../src/OpenGameBuilder.Api.Contracts/About/AboutResponse.cs).
 Its JSON properties are `applicationName`, `version`, `apiEnvironmentName`, and

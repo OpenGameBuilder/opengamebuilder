@@ -26,7 +26,7 @@ fi
 
 boot_scripts=("$web_root"/_framework/dotnet.*.js)
 if [ "${#boot_scripts[@]}" -eq 0 ] ||
-   ! grep -q '"applicationEnvironment": "Production"' "${boot_scripts[@]}"; then
+  ! grep -q '"applicationEnvironment": "Production"' "${boot_scripts[@]}"; then
   echo 'Published WASM bootstrap does not select Production.' >&2
   exit 1
 fi

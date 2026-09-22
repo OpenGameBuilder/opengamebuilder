@@ -8,10 +8,10 @@ launcher; application hosting uses `deploy/staging` and `deploy/production`.
 Each server runs **one host-local Caddy edge**, explicitly configured through
 the `EDGE_PROFILE` variable on its GitHub deployment environment:
 
-| Layout | Staging environment's `EDGE_PROFILE` | Production environment's `EDGE_PROFILE` |
-| --- | --- | --- |
-| Both applications on one server (current layout) | `shared` | `shared` |
-| Separate servers | `staging` | `production` |
+| Layout                                           | Staging environment's `EDGE_PROFILE` | Production environment's `EDGE_PROFILE` |
+| ------------------------------------------------ | ------------------------------------ | --------------------------------------- |
+| Both applications on one server (current layout) | `shared`                             | `shared`                                |
+| Separate servers                                 | `staging`                            | `production`                            |
 
 There is no default. Missing, unknown, or mismatched profiles fail closed.
 `shared` is an intentional configuration, not an inferred relationship between
@@ -212,12 +212,12 @@ administrator**. As of the **2026-09-22** documentation check, the following
 items remain unverified; no SSH session or host change was performed for this
 check. Record dated, redacted results here when completed.
 
-| Remaining check | Owner | Required evidence |
-| --- | --- | --- |
-| Original SSH host-key trust source for each environment | `ostomachion` (deployment administrator) | Confirm whether each pin came from an authenticated independent channel or an established trusted SSH connection, using the [host-key guide](deployment-host-key.md). Successful strict SSH alone does not establish how the first key was authenticated. |
-| Current installed profile and running Caddy digest | `ostomachion` (host administrator) | Capture the marker and running container image reference with the read-only commands above; compare with the intended profile and the pinned image in the reviewed `deploy/edge/compose.yml`. A successful past edge apply is not a fresh host inspection. |
-| Competing native Caddy boot and listener state | `ostomachion` (host administrator) | Record `systemctl is-enabled/is-active caddy` and port-owner output. The native service must be disabled/inactive or absent, and the Docker edge must own 80/443. Remediation, if needed, is a separately authorized operation. |
-| Application acceptance after shared-profile adoption | `ostomachion` (deployment operator) | Record the next authorized staging browser smoke and production application check after edge run `35681866962`. Its host-local `/health` checks establish edge readiness only; the latest inspected staging browser run preceded the edge apply. |
+| Remaining check                                         | Owner                                    | Required evidence                                                                                                                                                                                                                                          |
+| ------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original SSH host-key trust source for each environment | `ostomachion` (deployment administrator) | Confirm whether each pin came from an authenticated independent channel or an established trusted SSH connection, using the [host-key guide](deployment-host-key.md). Successful strict SSH alone does not establish how the first key was authenticated.  |
+| Current installed profile and running Caddy digest      | `ostomachion` (host administrator)       | Capture the marker and running container image reference with the read-only commands above; compare with the intended profile and the pinned image in the reviewed `deploy/edge/compose.yml`. A successful past edge apply is not a fresh host inspection. |
+| Competing native Caddy boot and listener state          | `ostomachion` (host administrator)       | Record `systemctl is-enabled/is-active caddy` and port-owner output. The native service must be disabled/inactive or absent, and the Docker edge must own 80/443. Remediation, if needed, is a separately authorized operation.                            |
+| Application acceptance after shared-profile adoption    | `ostomachion` (deployment operator)      | Record the next authorized staging browser smoke and production application check after edge run `35681866962`. Its host-local `/health` checks establish edge readiness only; the latest inspected staging browser run preceded the edge apply.           |
 
 Separate-host migration and backup-operator readiness are not established by
 shared-host acceptance. Follow the migration procedure only when that move is

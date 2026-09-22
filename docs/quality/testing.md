@@ -7,9 +7,9 @@ See [developer setup](../setup/development.md) for SDK prerequisites.
 
 ## Project boundaries
 
-| Project | Responsibility |
-| --- | --- |
-| `tests\OpenGameBuilder.Api.Tests` | In-process HTTP integration tests of the real API, including a real API-client round trip |
+| Project                                  | Responsibility                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `tests\OpenGameBuilder.Api.Tests`        | In-process HTTP integration tests of the real API, including a real API-client round trip     |
 | `tests\OpenGameBuilder.Api.Client.Tests` | Client registration, configuration, JSON contracts, HTTP/transport failures, and cancellation |
 
 The existing deployment smoke below checks published frontend startup and a
@@ -219,8 +219,7 @@ After merging configuration changes, check GitHub's Dependabot update-job list
 for that npm directory and inspect its first run for configuration errors.
 
 For an intentional Playwright update, use the exact-version command below,
-review the release notes and manifest/lockfile diff, then run `full` with Node.js
-22. Dependency PRs receive the same required `build-test` validation.
+review the release notes and manifest/lockfile diff, then run `full` with Node.js 22. Dependency PRs receive the same required `build-test` validation.
 
 ```pwsh
 npm install --save-dev --save-exact playwright@<version> --prefix tests/deploy-smoke

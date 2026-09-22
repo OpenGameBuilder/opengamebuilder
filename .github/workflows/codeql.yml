@@ -2,11 +2,11 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main", "patch/v*" ]
+    branches: ["main", "patch/v*"]
   pull_request:
-    branches: [ "main", "patch/v*" ]
+    branches: ["main", "patch/v*"]
   schedule:
-    - cron: '38 8 * * 2'
+    - cron: "38 8 * * 2"
 
 # Cancel superseded in-progress runs so the PR diff check compares against the
 # latest commit's analysis instead of a stale or incomplete run.
@@ -34,44 +34,44 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: actions
-          build-mode: none
-        - language: csharp
-          # Trace the real project build, including Razor source generators.
-          # No-build extraction uses a synthetic Razor compilation that can log
-          # compiler failures even while reporting a successful analysis.
-          build-mode: manual
+          - language: actions
+            build-mode: none
+          - language: csharp
+            # Trace the real project build, including Razor source generators.
+            # No-build extraction uses a synthetic Razor compilation that can log
+            # compiler failures even while reporting a successful analysis.
+            build-mode: manual
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        persist-credentials: false
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-    - name: Set up .NET
-      if: matrix.language == 'csharp'
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-      with:
-        global-json-file: global.json
-        cache: false
+      - name: Set up .NET
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: false
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-        # Do not persist dependencies restored while executing pull-request code.
-        dependency-caching: false
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # Do not persist dependencies restored while executing pull-request code.
+          dependency-caching: false
 
-    - name: Build C# for CodeQL
-      if: matrix.build-mode == 'manual'
-      shell: bash
-      run: |
-        dotnet --version
-        dotnet restore opengamebuilder.slnx --locked-mode
-        dotnet build opengamebuilder.slnx --configuration Release --no-restore --no-incremental
+      - name: Build C# for CodeQL
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          dotnet --version
+          dotnet restore opengamebuilder.slnx --locked-mode
+          dotnet build opengamebuilder.slnx --configuration Release --no-restore --no-incremental
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: "/language:${{matrix.language}}"

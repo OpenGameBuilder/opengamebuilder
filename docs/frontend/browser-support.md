@@ -26,12 +26,12 @@ For each target, check the latest two stable major versions available when the
 feature is accepted. Record exact browser and operating-system versions; do not
 mark a target tested based on another browser's result.
 
-| Platform | Target browsers | Recorded status |
-| --- | --- | --- |
-| Windows | Chrome, Edge, Firefox | Unverified |
-| macOS | Safari | Unverified |
-| Android | Chrome | Unverified |
-| iOS | Safari | Unverified |
+| Platform | Target browsers       | Recorded status |
+| -------- | --------------------- | --------------- |
+| Windows  | Chrome, Edge, Firefox | Unverified      |
+| macOS    | Safari                | Unverified      |
+| Android  | Chrome                | Unverified      |
+| iOS      | Safari                | Unverified      |
 
 The desktop targets cover the complete implemented workflow. Mobile checks cover
 loading, navigation, readable layout, and touch operation of available controls;
@@ -73,14 +73,14 @@ for the feature's loading, success, expected failure, and invalid-response state
 as described in [testing guidance](../quality/testing.md). Record manual checks
 separately from automated results.
 
-| Check | Procedure and required result |
-| --- | --- |
-| Startup and API | In each browser target, load and reload the published page, follow a route, and verify the expected API-backed content without unhandled page errors. |
-| Keyboard | On desktop, complete every implemented workflow using Tab, Shift+Tab, Enter, Space, and the controls' documented keys. Every action must be reachable, focus visible and ordered, and no control may trap focus. Provide a keyboard alternative for any editor action that otherwise requires dragging. |
-| Focus | Navigate between routes, including not-found; open and close any dialogs or menus. Verify a useful destination receives focus, dismissal returns focus to the invoking control, and asynchronous updates do not steal focus. |
-| Loading and failures | Throttle loading, interrupt the API request, and supply an invalid response in a controlled test. Verify loading and errors are understandable and announced, recovery is reachable with keyboard and touch, and retry or reload restores a usable state. Check the unhandled-error controls too. |
-| Screen reader | Check Windows with NVDA and Chrome, Edge, and Firefox; macOS and iOS with VoiceOver and Safari; Android with TalkBack and Chrome. Verify headings, control names and states, loading/error announcements, navigation, and the available workflow. |
-| Mobile layout and touch | On Android and iOS devices, check portrait and landscape layouts, navigation, and available controls. Verify essential content and actions remain reachable without accidental activation; record any explicitly unsupported editor operations. |
+| Check                   | Procedure and required result                                                                                                                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Startup and API         | In each browser target, load and reload the published page, follow a route, and verify the expected API-backed content without unhandled page errors.                                                                                                                                                   |
+| Keyboard                | On desktop, complete every implemented workflow using Tab, Shift+Tab, Enter, Space, and the controls' documented keys. Every action must be reachable, focus visible and ordered, and no control may trap focus. Provide a keyboard alternative for any editor action that otherwise requires dragging. |
+| Focus                   | Navigate between routes, including not-found; open and close any dialogs or menus. Verify a useful destination receives focus, dismissal returns focus to the invoking control, and asynchronous updates do not steal focus.                                                                            |
+| Loading and failures    | Throttle loading, interrupt the API request, and supply an invalid response in a controlled test. Verify loading and errors are understandable and announced, recovery is reachable with keyboard and touch, and retry or reload restores a usable state. Check the unhandled-error controls too.       |
+| Screen reader           | Check Windows with NVDA and Chrome, Edge, and Firefox; macOS and iOS with VoiceOver and Safari; Android with TalkBack and Chrome. Verify headings, control names and states, loading/error announcements, navigation, and the available workflow.                                                       |
+| Mobile layout and touch | On Android and iOS devices, check portrait and landscape layouts, navigation, and available controls. Verify essential content and actions remain reachable without accidental activation; record any explicitly unsupported editor operations.                                                         |
 
 For each result, record the date, revision or release, URL, browser and OS versions,
 device/input method, screen-reader version when used, steps, and pass/fail or
