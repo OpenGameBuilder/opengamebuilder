@@ -3,11 +3,11 @@
 OpenGameBuilder ships through GitHub Actions. There are exactly three release
 workflows you need to know about:
 
-| Workflow              | Trigger                                            | What it does                                                                |
-| --------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
-| 🛰️ **CD Staging**    | Every push to `main`                               | Build, test, deploy to staging, smoke test                                  |
-| 🚀 **CD Production** | Manually dispatched (usually from `main`) with a `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
-| 🩹 **Prepare Patch** | Manually dispatched                                | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag   |
+| Workflow             | Trigger                                                                 | What it does                                                                        |
+| -------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 🛰️ **CD Staging**    | Every push to `main`, or manual dispatch from `main`                    | Build, test, deploy to staging, smoke test                                          |
+| 🚀 **CD Production** | Manually dispatched **from `main`**, with a separate source `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
+| 🩹 **Prepare Patch** | Manually dispatched                                                     | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag           |
 
 Host infrastructure is separate: **🌐 CD Edge** updates the selected host's
 explicit edge profile, not an application release. Staging and production may
@@ -29,14 +29,45 @@ manifest and workflow artifact when identifying an installed release. The host's
 [hosting setup](../setup/hosting.md#application-activation-and-rollback). The
 browser smoke check follows the activated page, observes its `/api/about` call,
 and compares the running API's source revision with the selected protected
-commit. The section 14 staging rollback rehearsal passed on 2026-09-20; the
-[checklist records the live evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
+commit. The [hosting guide records deployment and recovery evidence](../setup/hosting.md#recorded-deployment-evidence).
+
+For **CD Production**, the Actions branch picker must be **`main`**: it selects
+the workflow definition and the run ref checked by the production environment.
+The separate `ref` input selects application source: protected `main` for a
+standard release or protected `patch/vX.Y.Z` for a patch. The resolver fixes that
+source to a commit; tags, arbitrary SHAs, and unprotected branches are rejected.
+The workflow rejects non-`main` dispatches before source resolution. See
+[deployment authority](../setup/github.md#deployment-authority-and-recovery).
+
+## Curated release notes
+
+[`CHANGELOG.md`](../../CHANGELOG.md) is the curated account of notable changes.
+Keep an `Unreleased` section for observable application, contributor, and operator
+changes. Include breaking behavior and migration or configuration steps where
+needed; leave out mechanical dependency and formatting noise. Published releases
+before this changelog remain documented in GitHub Releases.
+
+Before dispatching a production release, review the entry against the selected
+source and version in `Directory.Build.props`, then replace `Unreleased` with that
+version and its planned release date in the release-source PR. A patch entry
+belongs on its patch branch and returns to `main` through the existing merge-back.
+A changelog heading records prepared notes, not proof that deployment succeeded;
+GitHub Releases records publication.
+
+The current workflow still generates GitHub Release notes from PRs; it does not
+read the changelog. After successful publication, the release maintainer copies
+the selected version's curated entry into the release body, retaining generated
+PR links as supplemental references or credits. Correct the entry here first
+when updating the published summary so there is one maintained account. This
+manual notes step does not change deployment validation, tag timing, version
+ownership, or the requirement for release authorization.
 
 ## Standard release (X.Y.0)
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the
    post-release bump PR from the previous release).
-2. Go to **Actions → 🚀 CD Production → Run workflow**. Leave `ref` as `main`.
+2. Go to **Actions → 🚀 CD Production → Run workflow**. Select `main` in the
+   branch picker and leave the separate `ref` input as `main`.
 3. The `production` environment requires reviewer approval — approve when ready.
 4. On success the workflow tags `vX.Y.0`, creates the GitHub Release, and opens
    `chore: bump version to X.(Y+1).0` against `main`. Merge that PR.
@@ -54,15 +85,16 @@ commit. The section 14 staging rollback rehearsal passed on 2026-09-20; the
 5. On success the workflow tags `vX.Y.(Z+1)`, creates the GitHub Release, and
    opens `chore: merge vX.Y.(Z+1) into main`. Review and merge that PR.
 
-> **Note:** CD Production runs the workflow file from the branch it is
-> dispatched on (usually `main`), but it checks out the specified `ref` before
-> running validation and release scripts. Ensure patch branches contain
-> compatible deployment and release code for their release run, including the
-> `/api/about` source revision used by the browser smoke test.
+The workflow definition and shared validation action come from the dispatched
+`main` workflow commit; application files and release/deployment scripts come
+from the resolved protected source commit. Ensure patch branches contain
+compatible deployment and release code, including the `/api/about` source
+revision used by the browser smoke test. A patch release still uses `main` in
+the workflow branch picker.
 
 ## What the production workflow validates
 
-It detects whether the dispatched ref is a standard or patch release from the
+It detects whether the selected source is a standard or patch release from the
 version number itself (`Z == 0` → standard, `Z > 0` → patch) and checks:
 
 - Version in `Directory.Build.props` is plain `X.Y.Z`
@@ -75,8 +107,11 @@ version number itself (`Z == 0` → standard, `Z > 0` → patch) and checks:
 
 The tag, GitHub Release, and follow-up PR are only created **after** a
 successful production deploy and smoke test. If activation or smoke testing
-fails, the workflow attempts to restore the previous web/API pair. Inspect the
-rollback job result and the host's `current` and `previous` files before rerunning.
+fails, the deployment job attempts recovery in its rollback step. An upgrade
+restores the previous web/API pair; a failed first deployment returns to the
+defined undeployed state. Inspect that step's result and the host's `current`,
+`previous`, `pending`, and candidate `predecessor` records before rerunning; see
+[the recovery procedure](../setup/hosting.md#application-activation-and-rollback).
 
 If deployment and smoke testing succeed but tag creation, GitHub Release
 creation, or the follow-up PR fails, production is already running the new pair.

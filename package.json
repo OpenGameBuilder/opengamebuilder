@@ -1,0 +1,17 @@
+{
+  "name": "opengamebuilder-tooling",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "format": "node scripts/check-content.mjs format --fix",
+    "format:check": "node scripts/check-content.mjs format",
+    "lint": "node scripts/check-content.mjs all",
+    "links:external": "node scripts/check-content.mjs external-links"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "0.23.3",
+    "prettier": "3.9.8"
+  }
+}

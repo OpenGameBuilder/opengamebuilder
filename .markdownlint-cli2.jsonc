@@ -1,0 +1,11 @@
+{
+  "ignores": [
+    "**/bin/**",
+    "**/obj/**",
+    "**/node_modules/**",
+    "artifacts/**",
+    ".agents/skills/**",
+    ".git/**",
+    ".vs/**",
+  ],
+}

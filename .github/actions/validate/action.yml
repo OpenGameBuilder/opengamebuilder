@@ -1,5 +1,5 @@
 name: Validate solution
-description: Shared restore, formatting, Release build, and test gate for CI and deployment.
+description: Shared solution, frontend packaging, and smoke-package validation for CI and deployment.
 
 inputs:
   checkout-ref:
@@ -13,6 +13,10 @@ inputs:
   artifact-name:
     description: Unique name for this job's failure diagnostics.
     required: true
+  publish-web:
+    description: Publish and verify the frontend; disable only when the caller has a separate required packaging job.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -29,72 +33,22 @@ runs:
       with:
         global-json-file: ${{ inputs.working-directory }}/global.json
 
-    - name: Prepare validation diagnostics
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: mkdir -p artifacts/validation
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: "22"
+        package-manager-cache: false
 
-    - name: Restore
-      shell: bash
+    - name: Install pinned content tools
+      shell: pwsh
       working-directory: ${{ inputs.working-directory }}
-      run: dotnet restore opengamebuilder.slnx 2>&1 | tee artifacts/validation/restore.log
+      run: ./scripts/install-content-tools.ps1
 
-    - name: Verify formatting
-      shell: bash
+    - name: Run shared full check
+      shell: pwsh
       working-directory: ${{ inputs.working-directory }}
-      run: >
-        dotnet format opengamebuilder.slnx --verify-no-changes --no-restore
-        --report artifacts/validation/format.json
-        2>&1 | tee artifacts/validation/format.log
-
-    - name: Build
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: >
-        dotnet build opengamebuilder.slnx --configuration Release --no-restore
-        2>&1 | tee artifacts/validation/build.log
-
-    - name: Test
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: >
-        dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
-        2>&1 | tee artifacts/validation/test.log
-
-    - name: Test release scripts without external writes
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -o pipefail
-        bash tests/release-scripts/run.sh 2>&1 | tee artifacts/validation/release-scripts.log
-
-    - name: Test edge deployment without Docker or SSH
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -o pipefail
-        bash tests/deploy-edge/run.sh 2>&1 | tee artifacts/validation/deploy-edge.log
-
-    - name: Test shared and separate host configuration without a Docker daemon
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -o pipefail
-        bash tests/deploy-topology/run.sh 2>&1 | tee artifacts/validation/deploy-topology.log
-
-    - name: Test application rollback without Docker or SSH
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -o pipefail
-        bash tests/deploy-app/run.sh 2>&1 | tee artifacts/validation/deploy-app.log
-
-    - name: Verify supply-chain pins
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -o pipefail
-        bash tests/supply-chain/run.sh 2>&1 | tee artifacts/validation/supply-chain.log
+      env:
+        PUBLISH_WEB: ${{ inputs.publish-web }}
+      run: ./scripts/check.ps1 full -SkipWebPublish:($env:PUBLISH_WEB -eq 'false')
 
     - name: Upload validation failure diagnostics
       if: ${{ failure() && !cancelled() }}

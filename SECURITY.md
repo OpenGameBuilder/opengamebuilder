@@ -6,13 +6,13 @@ OpenGameBuilder is in active development.
 
 Until stable releases are established, security support applies to:
 
-| Version or branch | Supported |
-| --- | --- |
-| Current `main` branch | Yes |
-| Current public production deployment | Yes |
-| Current public staging deployment | Yes, for security reports |
-| Older commits, branches, forks, or local deployments | No, unless maintainers say otherwise |
-| Archived MyGameBuilder material outside this repository | No |
+| Version or branch                                       | Supported                            |
+| ------------------------------------------------------- | ------------------------------------ |
+| Current `main` branch                                   | Yes                                  |
+| Current public production deployment                    | Yes                                  |
+| Current public staging deployment                       | Yes, for security reports            |
+| Older commits, branches, forks, or local deployments    | No, unless maintainers say otherwise |
+| Archived MyGameBuilder material outside this repository | No                                   |
 
 Once OpenGameBuilder has stable public releases, this section will be updated to describe which release lines receive security fixes.
 

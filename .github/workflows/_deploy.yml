@@ -69,6 +69,8 @@ jobs:
           checkout-ref: ${{ needs.resolve-source.outputs.protected-revision }}
           working-directory: deployment-source
           artifact-name: ${{ inputs.environment-slug }}-validation
+          # The required package job below publishes and verifies the deployable frontend.
+          publish-web: "false"
 
   package:
     name: Package portable web client
@@ -95,11 +97,10 @@ jobs:
           cache: false
 
       - name: Publish web client
-        run: >
-          dotnet publish
-          src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj
-          --configuration Release
-          --output ./artifacts/web
+        run: |
+          dotnet --version
+          dotnet publish src/OpenGameBuilder.Web.Client/OpenGameBuilder.Web.Client.csproj \
+            --configuration Release -p:RestoreLockedMode=true --output ./artifacts/web
 
       - name: Locate web publish output
         run: |
@@ -293,13 +294,13 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install browser smoke dependencies
         run: |
           npm ci --prefix tests/deploy-smoke
           cd tests/deploy-smoke
-          npx playwright install --with-deps chromium
+          node node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Transfer candidate release
         env:
@@ -358,7 +359,7 @@ jobs:
             echo "Repository variable '${{ inputs.smoke-test-url-var }}' is not set." >&2
             exit 1
           fi
-          node tests/deploy-smoke/smoke.mjs
+          pwsh -NoProfile -File scripts/check.ps1 browser
 
       - name: Rehearse staging rollback after a successful browser check
         if: ${{ inputs.environment-slug == 'staging' && inputs.rehearse-rollback }}

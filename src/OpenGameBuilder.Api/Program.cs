@@ -5,13 +5,9 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add .NET Aspire service defaults (OpenTelemetry, health checks, service discovery, resilient HTTP).
 builder.AddServiceDefaults();
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 if (!builder.Environment.IsDevelopment())
 {
@@ -59,7 +55,6 @@ app.UseForwardedHeaders();
 // endpoints in development only.
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

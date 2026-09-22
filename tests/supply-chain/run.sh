@@ -4,7 +4,10 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-fail() { echo "FAIL: $*" >&2; exit 1; }
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
 
 action_count=0
 version_comment_pattern='#[[:space:]]+v[0-9]'
@@ -20,17 +23,19 @@ done < <(grep -RhE --include='*.yml' --include='*.yaml' '^[[:space:]]*(- )?uses:
 echo "PASS ${action_count} third-party action references use reviewed commit SHAs"
 
 base_count=0
-while read -r directive image_ref remainder; do
+while read -r directive image_ref _remainder; do
   [[ "$directive" == FROM ]] || continue
   [[ "$image_ref" == scratch ]] && continue
   [[ "$image_ref" =~ @sha256:[0-9a-f]{64}$ ]] || fail "Dockerfile base image is not pinned by digest: $image_ref"
   ((base_count += 1))
-done < src/OpenGameBuilder.Api/Dockerfile
+done <src/OpenGameBuilder.Api/Dockerfile
 ((base_count > 0)) || fail 'no Dockerfile base images were checked'
 grep -Eq '^[[:space:]]+image:[[:space:]]+[^[:space:]@]+@sha256:[0-9a-f]{64}$' deploy/edge/compose.yml ||
   fail 'edge image is not pinned by digest'
 echo "PASS ${base_count} API base images and the edge image use immutable digests"
 
+# Match the Dockerfile variable reference without expanding it in this test.
+# shellcheck disable=SC2016
 grep -Fq 'USER $APP_UID' src/OpenGameBuilder.Api/Dockerfile || fail 'API image lacks an explicit non-root user'
 if grep -R -n -F 'ssh-keyscan' .github/workflows; then
   fail 'deployment workflow still learns SSH trust with ssh-keyscan'
@@ -52,6 +57,16 @@ grep -Fq 'directory: "/.github/actions/validate"' .github/dependabot.yml ||
   fail 'Dependabot does not monitor the composite validation action pins'
 echo 'PASS NuGet mapping inheritance is cleared and pin update automation remains enabled'
 
+# Require npm coverage for this package in the same update entry; an npm entry
+# elsewhere or the smoke directory under another ecosystem is not sufficient.
+awk '
+  /^  - package-ecosystem:/ { is_npm = ($3 == "\"npm\"") }
+  is_npm && /^    directory: "\/tests\/deploy-smoke"[[:space:]]*$/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' .github/dependabot.yml || fail 'Dependabot does not monitor npm dependencies in /tests/deploy-smoke'
+
+echo 'PASS Dependabot monitors browser-smoke npm dependencies'
+
 # Dependabot separates the Docker registry from the dependency name. Exercise
 # the configured glob against the same names it uses, not the full image URLs.
 mapfile -t api_image_patterns < <(awk '
@@ -62,7 +77,12 @@ mapfile -t api_image_patterns < <(awk '
 for dependency in dotnet/sdk dotnet/aspnet; do
   matched=false
   for pattern in "${api_image_patterns[@]}"; do
-    if [[ "$dependency" == $pattern ]]; then matched=true; break; fi
+    # Dependabot patterns intentionally match globs, not literal strings.
+    # shellcheck disable=SC2053
+    if [[ "$dependency" == $pattern ]]; then
+      matched=true
+      break
+    fi
   done
   [[ "$matched" == true ]] || fail "Dependabot API image group does not match ${dependency}"
 done

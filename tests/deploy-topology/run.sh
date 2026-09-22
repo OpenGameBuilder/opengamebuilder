@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# These assertions match literal workflow expressions and shell source text.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -7,7 +9,10 @@ trap 'rm -rf -- "$test_root"' EXIT
 resolver="$repo_root/scripts/resolve-edge-profile.sh"
 renderer="$repo_root/scripts/render-edge.sh"
 
-fail() { echo "FAIL: $*" >&2; exit 1; }
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
 assert_contains() { grep -Fq -- "$2" "$1" || fail "$1 is missing $2"; }
 assert_absent() { if grep -Fq -- "$2" "$1"; then fail "$1 unexpectedly contains $2"; fi; }
 assert_rejected() { if "$@" >/dev/null 2>&1; then fail "unexpectedly accepted: $*"; fi; }
@@ -36,7 +41,7 @@ echo 'PASS edge topology is explicit and must match the deployment environment'
 # checked independently of shell quoting.
 mkdir -p "$test_root/bin"
 export CURL_CALLS="$test_root/curl-calls"
-cat > "$test_root/bin/curl" <<'EOF'
+cat >"$test_root/bin/curl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" >> "$CURL_CALLS"
 printf '%s' "${CURL_RESPONSE:-}"
@@ -61,20 +66,20 @@ for environment in production staging; do
   export CURL_RESPONSE="ok $environment" CURL_EXIT_CODE=0
   rm -f "$CURL_CALLS"
   bash "$health_checker" "$environment" "https://$hostname/" >/dev/null
-  mapfile -t curl_arguments < "$CURL_CALLS"
+  mapfile -t curl_arguments <"$CURL_CALLS"
   resolve_count=0
   noproxy_count=0
   for ((index = 0; index < ${#curl_arguments[@]}; index++)); do
     case "${curl_arguments[$index]}" in
-      --noproxy)
-        ((noproxy_count += 1))
-        [[ "${curl_arguments[$((index + 1))]:-}" == '*' ]] || fail 'health probe can use an external proxy'
-        ;;
-      --resolve)
-        ((resolve_count += 1))
-        [[ "${curl_arguments[$((index + 1))]:-}" == "$hostname:443:127.0.0.1" ]] || fail 'health probe does not target the deployed host'
-        ;;
-      --location|--location-trusted|-L|--insecure|-k) fail 'health probe follows redirects or bypasses TLS validation' ;;
+    --noproxy)
+      ((noproxy_count += 1))
+      [[ "${curl_arguments[$((index + 1))]:-}" == '*' ]] || fail 'health probe can use an external proxy'
+      ;;
+    --resolve)
+      ((resolve_count += 1))
+      [[ "${curl_arguments[$((index + 1))]:-}" == "$hostname:443:127.0.0.1" ]] || fail 'health probe does not target the deployed host'
+      ;;
+    --location | --location-trusted | -L | --insecure | -k) fail 'health probe follows redirects or bypasses TLS validation' ;;
     esac
   done
   [[ "$resolve_count" == 1 ]] || fail 'health probe must specify exactly one host-local resolution'
@@ -102,7 +107,7 @@ awk '
   /- name: Check selected edge routes on the deployed host$/ { selected = 1; next }
   selected && /- name:/ { exit }
   selected { print }
-' "$repo_root/.github/workflows/cd-edge.yml" > "$test_root/edge-health-step"
+' "$repo_root/.github/workflows/cd-edge.yml" >"$test_root/edge-health-step"
 assert_contains "$test_root/edge-health-step" 'EDGE_ENVIRONMENTS: ${{ steps.target.outputs.environments }}'
 assert_contains "$test_root/edge-health-step" 'for environment in $EDGE_ENVIRONMENTS; do'
 assert_contains "$test_root/edge-health-step" 'ssh deployment bash -s -- "$environment" "$url" < scripts/check-edge-health.sh'
@@ -113,7 +118,7 @@ for job in authorize-profile-change apply; do
     $0 == "  " job ":" { selected = 1; next }
     selected && /^  [a-zA-Z0-9_-]+:/ { exit }
     selected { print }
-  ' "$repo_root/.github/workflows/cd-edge.yml" > "$test_root/$job-job"
+  ' "$repo_root/.github/workflows/cd-edge.yml" >"$test_root/$job-job"
 done
 assert_contains "$test_root/authorize-profile-change-job" 'if: ${{ inputs.allow-profile-change }}'
 assert_contains "$test_root/authorize-profile-change-job" 'environment: production'

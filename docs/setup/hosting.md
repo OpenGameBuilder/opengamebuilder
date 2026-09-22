@@ -8,10 +8,10 @@ launcher; application hosting uses `deploy/staging` and `deploy/production`.
 Each server runs **one host-local Caddy edge**, explicitly configured through
 the `EDGE_PROFILE` variable on its GitHub deployment environment:
 
-| Layout | Staging environment's `EDGE_PROFILE` | Production environment's `EDGE_PROFILE` |
-| --- | --- | --- |
-| Both applications on one server (current layout) | `shared` | `shared` |
-| Separate servers | `staging` | `production` |
+| Layout                                           | Staging environment's `EDGE_PROFILE` | Production environment's `EDGE_PROFILE` |
+| ------------------------------------------------ | ------------------------------------ | --------------------------------------- |
+| Both applications on one server (current layout) | `shared`                             | `shared`                                |
+| Separate servers                                 | `staging`                            | `production`                            |
 
 There is no default. Missing, unknown, or mismatched profiles fail closed.
 `shared` is an intentional configuration, not an inferred relationship between
@@ -103,20 +103,25 @@ deployments queue instead of cancelling an in-flight deployment. Production
 profile is `shared`**. Isolated staging neither requires production's URL nor
 depends on production being available.
 
-### Adopt explicit profiles on the current server
+### Shared-profile adoption
 
-Before merging this workflow change, set the environment variable
-`EDGE_PROFILE=shared` in **both** GitHub environments under **Settings >
-Environments > staging/production > Environment variables**. Keep their existing
-SSH secrets and verified host-key entries. These are configuration changes, not
-an instruction to recreate the server or reset a password.
+The explicit-profile workflow is merged. Read-only GitHub inspection on
+**2026-09-22** confirmed `EDGE_PROFILE=shared` in both environments and a
+successful CD Edge run using the production environment and shared profile; see the
+[recorded evidence](#recorded-deployment-evidence). This replaces the earlier
+pre-merge setup instructions. Current host state and application acceptance
+after that edge run still need the checks [listed below](#outstanding-host-verification).
 
-After merge, run **CD Edge** from `main`, select `production`, leave
-`allow-profile-change` off, and approve it. This adopts the existing shared
-layout while preserving the Compose project and certificate-volume names.
-The old unmarked shared layout remains recognizable by application preflight
-during this one-time adoption. Confirm the host-local HTTPS checks and the next
-staging application's browser check pass.
+For a host still using the unmarked legacy shared layout, the deployment
+administrator first confirms `EDGE_PROFILE=shared` in both environments under
+**Settings > Environments > staging/production > Environment variables** and
+confirms each environment's SSH host/key configuration. With deployment
+authorization, dispatch **CD Edge** from `main`, select `production`, leave
+`allow-profile-change` off, and approve it. This adopts the shared marker while
+preserving the Compose project and certificate-volume names. Application
+preflight accepts the legacy shared layout during adoption. Record the edge
+run, both host-local HTTPS checks, and subsequent application smoke evidence;
+merging the workflow alone does not complete adoption.
 
 ### Later: move staging to its own server
 
@@ -169,6 +174,7 @@ systemctl is-active caddy
 ss -ltnp '( sport = :80 or sport = :443 )'
 docker ps --all --filter name=ogb- --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 docker inspect --format '{{.Name}} image={{.Config.Image}} status={{.State.Status}} restarts={{.RestartCount}}' ogb-edge-caddy-1
+head -n 1 /srv/opengamebuilder/edge/Caddyfile
 docker logs --since 2h --tail 150 ogb-edge-caddy-1 2>&1
 # Choose an application actually deployed on this host; repeat for the other
 # only if this is a shared host.
@@ -199,6 +205,25 @@ approve it. A Compose image change can briefly interrupt the sites on that host.
 Verify the running image reference matches `deploy/edge/compose.yml` and that
 the selected host's edge checks and its deployed applications' smoke tests pass.
 
+### Outstanding host verification
+
+The remaining evidence belongs to **`ostomachion`, the deployment and host
+administrator**. As of the **2026-09-22** documentation check, the following
+items remain unverified; no SSH session or host change was performed for this
+check. Record dated, redacted results here when completed.
+
+| Remaining check                                         | Owner                                    | Required evidence                                                                                                                                                                                                                                          |
+| ------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original SSH host-key trust source for each environment | `ostomachion` (deployment administrator) | Confirm whether each pin came from an authenticated independent channel or an established trusted SSH connection, using the [host-key guide](deployment-host-key.md). Successful strict SSH alone does not establish how the first key was authenticated.  |
+| Current installed profile and running Caddy digest      | `ostomachion` (host administrator)       | Capture the marker and running container image reference with the read-only commands above; compare with the intended profile and the pinned image in the reviewed `deploy/edge/compose.yml`. A successful past edge apply is not a fresh host inspection. |
+| Competing native Caddy boot and listener state          | `ostomachion` (host administrator)       | Record `systemctl is-enabled/is-active caddy` and port-owner output. The native service must be disabled/inactive or absent, and the Docker edge must own 80/443. Remediation, if needed, is a separately authorized operation.                            |
+| Application acceptance after shared-profile adoption    | `ostomachion` (deployment operator)      | Record the next authorized staging browser smoke and production application check after edge run `35681866962`. Its host-local `/health` checks establish edge readiness only; the latest inspected staging browser run preceded the edge apply.           |
+
+Separate-host migration and backup-operator readiness are not established by
+shared-host acceptance. Follow the migration procedure only when that move is
+authorized; operator continuity remains tracked in
+[practical stewardship](../community/stewardship.md).
+
 ## Application artifacts
 
 After source validation, the package job produces one Release web archive.
@@ -227,11 +252,12 @@ maps the concrete `index.html` URL to the home page. Loaded pages continue to
 request their own release's assets, and the prior web directory remains
 available. The first deployment with this layout copies the
 old in-place web files into a `legacy-*` release and retains its original root
-assets when a prior `release-manifest.txt` exists. A first deployment without
-that manifest records `previous release: none`; it has no managed rollback
-target until a subsequent successful release retains this one. Do not infer
-rollback readiness from a successful first release or create a release solely
-to manufacture a predecessor.
+assets when a prior `release-manifest.txt` exists. For an initial deployment,
+there is no current or previous release, root manifest, or root index. The
+candidate's `releases/<release-id>/predecessor` records `none`; an upgrade records
+the exact `releases/<previous-id>` path instead. This record is written before
+the `pending` marker and before starting the API. Recovery never interprets a
+missing `previous` file as evidence of an initial deployment.
 
 `scripts/deploy-app.sh` checks the archive checksum, stages the new files,
 records the previous release, pulls and starts the API by its digest reference,
@@ -240,8 +266,28 @@ the root page. The deploy job uses a browser to follow that page,
 observe the frontend's `/api/about` request, and compare the API's source revision
 with the protected commit being deployed. It also checks that the page renders
 the returned application name and version. A failed activation or browser check
-invokes `rollback` and restarts the recorded previous API image without rebuilding
-it. A successful browser check clears the pending marker with `finalize`.
+invokes `rollback`. For an upgrade, it validates the previous release against the
+candidate's predecessor record and restarts that API image without rebuilding it.
+A missing or corrupt expected predecessor fails recovery and retains `pending`
+for operator investigation. A successful browser check clears the pending marker
+with `finalize`.
+
+For a pending initial deployment, rollback captures available container logs in
+`releases/<release-id>/recovery.log`, then uses the candidate's Compose files to
+stop and remove its API container, including one partially started by a failed
+activation. It removes the root index and compression sidecars, `current`, and
+the root release manifest. This is the defined undeployed state: no running
+application API or active root page. The shared edge remains in place. Incoming
+files, candidate metadata, recovery logs, and versioned web assets are retained;
+retained assets may still be reached directly by their release URLs.
+
+Recovery clears `pending` only after cleanup succeeds. If stopping the API or
+removing active files fails, inspect the error and recovery log, correct the
+cause, and repeat rollback for the same pending release. New activations remain
+blocked until recovery succeeds. Retry deployment with a new release ID (a new
+workflow run or attempt), since failed candidates are retained. After a first
+release is finalized, it has no previous release to restore; a later successful
+upgrade establishes that rollback target.
 
 For a controlled staging rehearsal after a successful normal rollout, dispatch
 **CD Staging** from `main` with **rehearse-rollback** enabled. It first passes
@@ -250,29 +296,31 @@ must restore `previous`. This run is expected to be red, so inspect the recovery
 step and independently verify the public page and `/api/about` afterward. Leave
 the input off for normal staging updates.
 
-Inspect `current`, `previous`, `pending`, and the manifests before manual
-recovery. From a deployment checkout with SSH access, the same
-rollback command is:
+Inspect `current`, `previous`, `pending`, the pending candidate's `predecessor`,
+and the manifests before manual recovery. From a deployment checkout with SSH
+access, recover a pending activation with its exact release ID:
 
 ```bash
 ssh -i <deployment-key> <deploy-user>@<deploy-host> \
-  bash -s -- rollback /srv/opengamebuilder/staging < scripts/deploy-app.sh
+  bash -s -- rollback /srv/opengamebuilder/staging <pending-release-id> < scripts/deploy-app.sh
 ```
 
-Use `production` in place of `staging` for production. The rollback script reads
-the previous manifest and Compose file, restarts its cached image by digest,
-restores its index, and updates `current`. Verify the public page and `/api/about` after it
-returns; inspect Docker and Caddy logs if it cannot restart the old image. Do not
-delete a release directory while old browser sessions may still request its
-assets. Coordinate manual recovery with the environment's deployment queue.
+Use `production` in place of `staging` for production. Without a pending
+activation, omit the release ID to restore the retained previous release. For
+an upgrade rollback, verify the public page and `/api/about` after it returns;
+for initial-deployment recovery, verify the API is stopped and the active root
+files are absent. If predecessor state is missing or damaged, investigate and
+repair it from verified release records; do not delete `pending` or invent `none`
+to bypass recovery. Do not delete a release directory while old browser sessions
+may still request its assets. Coordinate manual recovery with the environment's
+deployment queue.
 
 The Compose service is replaced before the root web redirect switches. During
 that short interval, an already loaded page can call the new API, so API changes
 must remain compatible with the retained frontend until its clients have aged
 out. This mechanism provides an atomic web switch and a recoverable pair; it is
-not a zero-downtime atomic swap of the API and web processes. The section 14
-staging failure and rollback rehearsal passed on 2026-09-20; see the
-[checklist evidence](../foundation-checklist.md#14-make-rollout-atomic-and-rollback-explicit).
+not a zero-downtime atomic swap of the API and web processes. See the
+[recorded deployment evidence](#recorded-deployment-evidence) for rehearsal results.
 
 To recover an edge change, fix the candidate on `main` and dispatch **CD Edge**
 for the affected host again. For an urgent host-side recovery, use the last known-good edge
@@ -280,3 +328,35 @@ files retained in the host's `.rollback.*` directory after a failed activation,
 validate them with `caddy validate`, and reload Caddy. Do not restart or
 recreate Caddy for a Caddyfile-only correction. Coordinate host-side changes
 with any active edge workflow so its next write does not overwrite the repair.
+
+## Recorded deployment evidence
+
+Read-only GitHub inspection on **2026-09-22** confirmed that
+[PR #113](https://github.com/OpenGameBuilder/opengamebuilder/pull/113) merged at
+`e164922c19213ae1ca2936554cca3970269cfac6`, and both environment `EDGE_PROFILE`
+values are `shared`. [CD Edge run 35681866962](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35681866962)
+at that commit selected production credentials and the shared profile. Its apply
+step recreated and started Caddy, and both selected host-local edge checks passed
+at **03:27 UTC on 2026-09-22**. This establishes recorded shared-profile adoption,
+not just a merged configuration change.
+
+The [staging run at the same commit](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35681727268)
+passed profile preflight and browser smoke by **03:06 UTC**, before that edge
+apply. It does not establish application acceptance after adoption. The
+[outstanding checks](#outstanding-host-verification) retain that follow-up and
+current-host/key-provenance gaps with their owner.
+
+The [successful staging rollout](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542650898)
+and [2026-09-20 rollback rehearsal](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542855238)
+record activation and recovery of an existing installation. The rehearsal
+deliberately failed after browser acceptance and restored the prior release
+without rebuilding; its red status is intentional. It did not exercise recovery
+of a failed initial deployment with no predecessor. That recovery path has
+local mocked regression coverage, but no live rehearsal is recorded here.
+
+The [production v0.10.0 release](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35674772060)
+and [subsequent staging rollout](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35675216560)
+record later application acceptance. These historical runs do not establish
+current host state, original SSH-key provenance, separate-host migration, or a
+backup operator's readiness. Use the procedures above for current operations
+and record new live verification separately from local checks.

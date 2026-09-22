@@ -10,9 +10,12 @@ fi
 
 profile="$1"
 case "$profile" in
-  shared) environments=(production staging) ;;
-  staging|production) environments=("$profile") ;;
-  *) echo "Unknown edge profile '$profile'; expected shared, staging, or production." >&2; exit 1 ;;
+shared) environments=(production staging) ;;
+staging | production) environments=("$profile") ;;
+*)
+  echo "Unknown edge profile '$profile'; expected shared, staging, or production." >&2
+  exit 1
+  ;;
 esac
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -33,12 +36,12 @@ done
 
 # Retain relative mounts so the result can be transferred to a different host
 # and applied with that host's permanent edge directory as its project directory.
-printf '# ogb-edge-profile: %s\n' "$profile" > "$temporary_dir/compose.yml"
-"${compose[@]}" config --no-path-resolution >> "$temporary_dir/compose.yml"
-printf '# ogb-edge-profile: %s\n' "$profile" > "$temporary_dir/Caddyfile"
+printf '# ogb-edge-profile: %s\n' "$profile" >"$temporary_dir/compose.yml"
+"${compose[@]}" config --no-path-resolution >>"$temporary_dir/compose.yml"
+printf '# ogb-edge-profile: %s\n' "$profile" >"$temporary_dir/Caddyfile"
 for environment in "${environments[@]}"; do
-  printf '\n' >> "$temporary_dir/Caddyfile"
-  cat "$source_dir/Caddyfile.$environment" >> "$temporary_dir/Caddyfile"
+  printf '\n' >>"$temporary_dir/Caddyfile"
+  cat "$source_dir/Caddyfile.$environment" >>"$temporary_dir/Caddyfile"
 done
 
 mv -- "$temporary_dir/compose.yml" "$candidate_dir/compose.yml"

@@ -12,6 +12,8 @@ docker run --rm --entrypoint sh "$image" -c '
 
 probe_network="ogb-api-probe-$$"
 container_id=''
+# Invoked by the EXIT trap below, including failed image checks.
+# shellcheck disable=SC2329
 cleanup() {
   if [[ -n "$container_id" ]]; then
     docker stop "$container_id" >/dev/null 2>&1 || true
@@ -36,7 +38,7 @@ container_id="$(docker run --rm -d \
   "$image")"
 port="$(docker port "$container_id" 8080/tcp | sed -n '1s/.*://p')"
 test -n "$port"
-for attempt in {1..30}; do
+for _attempt in {1..30}; do
   if response="$(curl --fail --silent \
     --header 'X-Forwarded-Proto: https' \
     "http://127.0.0.1:${port}/api/alive")" && [[ "$response" == 'Healthy' ]]; then

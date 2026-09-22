@@ -1,7 +1,6 @@
 name: Enhancement
 description: Suggest an improvement to something that already exists.
-labels: ["needs triage"]
-type: enhancement
+type: Enhancement
 
 body:
   - type: markdown
@@ -11,7 +10,7 @@ body:
 
         Use this form for improvements to existing behavior, UI, UX, developer experience, documentation, tooling, or project workflow.
 
-        For entirely new capabilities, use the Feature Request form instead. If the idea is broad or exploratory, the Discord server may be a better fit.
+        For entirely new capabilities, use the Feature Request form instead. For broad or exploratory ideas, start a [GitHub Discussion](https://github.com/OpenGameBuilder/opengamebuilder/discussions).
 
         Please do not include private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
 

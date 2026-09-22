@@ -1,15 +1,14 @@
 name: Feature Request
-description: Suggest an improvement or new feature.
-labels: ["needs triage"]
-type: feature
+description: Propose a new capability.
+type: Feature
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting an improvement.
+        Thanks for suggesting a new capability.
 
-        Use this form for specific feature requests. If the idea is broad or exploratory, the Discord server may be a better fit.
+        Use this form for specific new capabilities. For improvements to existing behavior, use the Enhancement form. For broad or exploratory ideas, start a [GitHub Discussion](https://github.com/OpenGameBuilder/opengamebuilder/discussions).
 
         Please do not include private information, security vulnerability details, sensitive material, archived game dumps, original proprietary assets, or decompiled source code.
 
@@ -27,7 +26,7 @@ body:
     id: summary
     attributes:
       label: What would you like to see?
-      description: Briefly describe the feature or improvement.
+      description: Briefly describe the new capability.
     validations:
       required: true
 

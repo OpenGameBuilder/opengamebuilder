@@ -3,6 +3,8 @@
     "ms-dotnettools.csdevkit",
     "ms-dotnettools.blazorwasm-companion",
     "EditorConfig.EditorConfig",
+    "esbenp.prettier-vscode",
+    "DavidAnson.vscode-markdownlint",
     "streetsidesoftware.code-spell-checker"
   ]
 }

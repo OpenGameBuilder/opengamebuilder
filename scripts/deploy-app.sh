@@ -7,7 +7,10 @@ command_name="${1:-}"
 app_dir="${2:-}"
 release_id="${3:-}"
 
-die() { echo "deploy-app: $*" >&2; exit 1; }
+die() {
+  echo "deploy-app: $*" >&2
+  exit 1
+}
 [[ "$command_name" == activate || "$command_name" == rollback || "$command_name" == finalize ]] || die 'expected activate, rollback or finalize'
 [[ -d "$app_dir" ]] || die 'application directory is missing'
 environment="$(basename "$app_dir")"
@@ -28,18 +31,28 @@ manifest_value() {
 }
 
 release_path() {
-  local link="$1" target
+  local link="$1" target release_manifest
   [[ -f "$link" ]] || die "missing release pointer: $link"
   target="$(cat "$link")"
   [[ "$target" =~ ^releases/[a-zA-Z0-9][a-zA-Z0-9.-]{0,100}$ ]] || die "invalid release pointer: $link"
   [[ -f "$app_dir/$target/release-manifest.txt" ]] || die "release manifest is missing: $target"
+  [[ -f "$app_dir/$target/compose.yml" && -f "$app_dir/$target/.env" && -f "$web_dir/$target/index.html" ]] || die "release files are missing: $target"
+  release_manifest="$app_dir/$target/release-manifest.txt"
+  [[ "$(manifest_value "$release_manifest" SOURCE_SHA)" =~ ^[0-9a-f]{40}$ ]] || die "invalid release source SHA: $target"
+  [[ "$(manifest_value "$release_manifest" API_IMAGE)" =~ ^ghcr\.io/[a-z0-9_./-]+@sha256:[0-9a-f]{64}$ ]] || die "invalid release API image: $target"
+  [[ "$(manifest_value "$release_manifest" WEB_SHA256)" =~ ^[0-9a-f]{64}$ ]] || die "invalid release web checksum: $target"
+  # In-place installations predate RELEASE_ID; their preserved legacy manifests
+  # still identify the original source, image digest and web checksum.
+  if [[ "$target" != releases/legacy-* ]]; then
+    [[ "$(manifest_value "$release_manifest" RELEASE_ID)" == "${target#releases/}" ]] || die "release id differs from pointer: $target"
+  fi
   printf '%s' "$app_dir/$target"
 }
 
 point_to() {
   local name="$1" id="$2" temp
   temp="$app_dir/.${name}.$$"
-  printf 'releases/%s\n' "$id" > "$temp"
+  printf 'releases/%s\n' "$id" >"$temp"
   mv -f "$temp" "$app_dir/$name"
 }
 
@@ -48,7 +61,7 @@ write_index() {
   if [[ "$id" == legacy-* ]]; then
     cp "$web_dir/releases/$id/index.html" "$temp"
   else
-    cat > "$temp" <<EOF
+    cat >"$temp" <<EOF
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="0; url=/releases/$id/index.html">
 <title>OpenGameBuilder</title></head><body>
@@ -83,11 +96,49 @@ restore_release() {
 }
 
 if [[ "$command_name" == rollback ]]; then
-  if [[ -n "$release_id" ]]; then
-    [[ -f "$app_dir/pending" ]] || { echo 'No pending activation to recover.'; exit 0; }
-    [[ "$(cat "$app_dir/pending")" == "$release_id" ]] || die 'pending release differs from requested rollback'
+  pending=""
+  if [[ -e "$app_dir/pending" || -L "$app_dir/pending" ]]; then
+    [[ -f "$app_dir/pending" ]] || die 'invalid pending activation'
+    pending="$(cat "$app_dir/pending")"
+    [[ "$pending" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]{0,100}$ ]] || die 'invalid pending release id'
   fi
-  previous="$(release_path "$app_dir/previous")"
+  if [[ -n "$release_id" ]]; then
+    [[ -n "$pending" ]] || {
+      echo 'No pending activation to recover.'
+      exit 0
+    }
+    [[ "$pending" == "$release_id" ]] || die 'pending release differs from requested rollback'
+  fi
+  if [[ -n "$pending" ]]; then
+    candidate="$release_dir/$pending"
+    [[ -f "$candidate/predecessor" ]] || die 'pending activation lacks predecessor state; manual recovery required'
+    predecessor="$(cat "$candidate/predecessor")"
+    if [[ "$predecessor" == none ]]; then
+      [[ ! -e "$app_dir/previous" && ! -L "$app_dir/previous" ]] || die 'initial activation has an unexpected previous release'
+      if [[ -e "$app_dir/current" || -L "$app_dir/current" ]]; then
+        [[ -f "$app_dir/current" && "$(cat "$app_dir/current")" == "releases/$pending" ]] || die 'current release differs from initial activation'
+      fi
+      [[ -f "$candidate/compose.yml" && -f "$candidate/.env" ]] || die 'initial activation lacks Compose files; manual recovery required'
+      # A failed up may still have started a container. Stop/remove the candidate
+      # before removing its active entry points; the external edge is untouched.
+      if ! docker compose --env-file "$candidate/.env" -f "$candidate/compose.yml" logs --no-color >>"$candidate/recovery.log" 2>&1; then
+        echo 'Could not capture initial API logs; continuing recovery.' >&2
+      fi
+      docker compose --env-file "$candidate/.env" -f "$candidate/compose.yml" down >>"$candidate/recovery.log" 2>&1 || die "failed to stop initial API; pending retained; inspect $candidate/recovery.log"
+      rm -f "$web_dir/index.html" "$web_dir/index.html.br" "$web_dir/index.html.gz" "$web_dir/index.html.zst" \
+        "$app_dir/current" "$app_dir/release-manifest.txt"
+      # Keep the immutable candidate and incoming files for diagnosis and assets.
+      # Clear pending last so a failed cleanup can be retried with the same ID.
+      rm "$app_dir/pending"
+      echo "Recovered initial deployment $pending to undeployed state; candidate files retained."
+      exit 0
+    fi
+    [[ "$predecessor" =~ ^releases/[a-zA-Z0-9][a-zA-Z0-9.-]{0,100}$ ]] || die 'invalid predecessor state'
+    previous="$(release_path "$app_dir/previous")"
+    [[ "$previous" == "$app_dir/$predecessor" ]] || die 'previous release differs from recorded predecessor'
+  else
+    previous="$(release_path "$app_dir/previous")"
+  fi
   restore_release "$previous"
   rm "$app_dir/previous"
   rm -f "$app_dir/pending"
@@ -102,6 +153,8 @@ if [[ "$command_name" == finalize ]]; then
   echo "Finalized $release_id"
   exit 0
 fi
+
+[[ ! -e "$app_dir/pending" && ! -L "$app_dir/pending" ]] || die 'another activation requires recovery'
 
 incoming="$app_dir/incoming/$release_id"
 manifest="$incoming/release-manifest.txt"
@@ -138,7 +191,7 @@ mkdir "$temp_release" "$temp_web"
 cp "$manifest" "$temp_release/release-manifest.txt"
 cp "$incoming/compose.yml" "$temp_release/compose.yml"
 printf 'API_IMAGE=%s\nSOURCE_SHA=%s\nTRUSTED_PROXY_NETWORKS=%s\n' \
-  "$api_image" "$source_sha" "$trusted_proxy_networks" > "$temp_release/.env"
+  "$api_image" "$source_sha" "$trusted_proxy_networks" >"$temp_release/.env"
 tar -xzf "$incoming/web-release.tar.gz" -C "$temp_web"
 [[ -f "$temp_web/index.html" ]] || die 'web archive lacks index.html'
 grep -Fq "<base href=\"/releases/$release_id/\"" "$temp_web/index.html" || die 'web base path does not match release id'
@@ -148,7 +201,7 @@ mv "$temp_release" "$candidate"
 mv "$temp_web" "$candidate_web"
 
 # The first rollout preserves the in-place installation as a rollback target.
-if [[ ! -f "$app_dir/current" && -f "$app_dir/release-manifest.txt" ]]; then
+if [[ ! -e "$app_dir/current" && ! -L "$app_dir/current" && -f "$app_dir/release-manifest.txt" ]]; then
   legacy_sha="$(manifest_value "$app_dir/release-manifest.txt" SOURCE_SHA)"
   [[ "$legacy_sha" =~ ^[0-9a-f]{40}$ ]] || die 'invalid legacy source SHA'
   legacy_id="legacy-${legacy_sha:0:12}"
@@ -162,14 +215,23 @@ if [[ ! -f "$app_dir/current" && -f "$app_dir/release-manifest.txt" ]]; then
 fi
 
 old=""
-if [[ -f "$app_dir/current" ]]; then
+if [[ -e "$app_dir/current" || -L "$app_dir/current" ]]; then
   old="$(release_path "$app_dir/current")"
 fi
-[[ ! -e "$app_dir/pending" ]] || die 'another activation requires recovery'
-if [[ -n "$old" ]]; then point_to previous "$(basename "$old")"; fi
-printf '%s\n' "$release_id" > "$app_dir/pending"
+if [[ -n "$old" ]]; then
+  point_to previous "$(basename "$old")"
+  printf 'releases/%s\n' "$(basename "$old")" >"$candidate/predecessor"
+else
+  [[ ! -e "$app_dir/previous" && ! -L "$app_dir/previous" ]] || die 'no current release but previous exists; manual recovery required'
+  [[ ! -e "$app_dir/release-manifest.txt" && ! -L "$app_dir/release-manifest.txt" ]] || die 'unmanaged release manifest exists; manual recovery required'
+  [[ ! -e "$web_dir/index.html" && ! -L "$web_dir/index.html" ]] || die 'unmanaged root index exists; manual recovery required'
+  printf 'none\n' >"$candidate/predecessor"
+fi
+# Publish pending only after its recovery state is complete, before starting API.
+printf '%s\n' "$release_id" >"$app_dir/.pending.$$"
+mv -f "$app_dir/.pending.$$" "$app_dir/pending"
 if ! start_release "$candidate" true; then
-  die 'new API failed; recovery will restore the recorded previous release'
+  die 'new API failed; run rollback to recover the recorded deployment state'
 fi
 
 write_index "$release_id"

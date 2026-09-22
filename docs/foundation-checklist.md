@@ -1,453 +1,716 @@
 # Foundation checklist
 
-Work through these steps in order within each phase. Prefer one focused pull request
-per numbered step; split a step further when needed. Check items off only after the
-acceptance check passes. Paths are relative to the repository root.
-
-Track current work here, with completed steps marked done and deferred steps
-given a concrete trigger. Check dependency advisories and GitHub settings against
-the current repository.
-
-## Phase 1: Establish a foundation for engine development
-
-### 1. Establish the current dependency and toolchain baseline
-
-(done)
-
-### 2. Include the developer launcher in build validation
-
-(done)
-
-### 3. Repair the documented development workflow
-
-- [ ] Follow `docs\setup\development.md` from a fresh checkout in Visual Studio
-  and VS Code, verifying F5 launching and debugger attachment.
-
-**Acceptance:** both editor workflows work as documented, and the frontend loads
-application information from the local API without undocumented steps or
-production credentials.
-
-### 4. Make formatting and build policy consistent
-
-(done)
-
-### 5. Establish API and client behavior tests
-
-(done)
-
-### 6. Establish frontend failure handling and a smoke test
-
-**Deferred until the first functional frontend feature.** The current page is a
-placeholder; add the following with that feature rather than introducing test
-projects or browser infrastructure now.
-
-- [ ] Define the expected UI for loading, success, network failure, and invalid
-  API responses. Handle expected failures explicitly without hiding unexpected
-  errors behind broad catch blocks.
-- [ ] Add component tests for those states and a published-app browser smoke test
-  that verifies a real frontend-to-API request.
-- [ ] Preserve useful diagnostic logging without exposing sensitive response data.
-
-**Acceptance:** the smoke test fails if the API URL is wrong or the frontend cannot
-start, even when the API's liveness endpoint is healthy.
-
-### 7. Make CI an effective merge gate
-
-- [x] Keep the same build/test/format checks in pull-request CI and deployment
-  validation. Add useful failure artifacts and explicit workflow timeouts.
-- [x] Inspect both rulesets and legacy branch protection. Require the actual
-  stable build/test job, not only CodeQL, code-quality checks, or review.
-- [x] Align protected branches with `main` and `patch/v*`. Ensure the intended
-  CodeQL checks run for patch PRs too.
-- [x] Verify human approval, stale-review dismissal, and release-tag protection.
-  Document any deliberate maintainer or release-bot bypasses.
-
-**Acceptance:** a failing test blocks merging a representative PR. A patch branch
-receives the intended protections and runnable checks without blocking the
-release bot's narrowly authorized work.
-
-**Verified (2026-09-15):** shared validation, failure artifacts, workflow timeouts,
-and patch CodeQL triggers are implemented. Authenticated inspection confirmed
-there are no legacy protection rules. Live rules now require `build-test` from
-GitHub Actions on `main` and `patch/v*`, with no CI bypass. Release-App bypasses
-are creation-only; tags cannot be changed or deleted even by the bot.
-
-The only maintainer is the sole eligible reviewer, so a documented PR-only
-exception is retained in a separate human-review ruleset, not in the CI gate.
-Remove that exception when a second trusted reviewer can review maintainer PRs.
-Local formatting, builds, all 62 tests, and failure-exit propagation passed.
-Failing-test merge blocking was verified on PRs #82 and #83, including uploaded
-assertion diagnostics. The deliberate test was removed. The aggregate CodeQL
-gate caught selectable-source action execution; protected source resolution and
-trusted action loading address that boundary. Both main and patch validation
-then passed all 62 tests, the Docker build, code-quality analysis, and aggregate
-CodeQL with zero open alerts. Temporary verification refs were cleaned up.
-
-After the owner approved Workflows write permission,
-[Prepare Patch run 35002126742](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35002126742)
-successfully created the protected patch branch and bot-authored PR #84. The PR
-still required human review and CI; its inherited old-release dependency failed
-NuGet Audit, correctly blocking merging rather than bypassing the gate.
-The verification PR and both new refs were cleaned up without merging, deploying,
-or creating a release. Section 7 is complete; [GitHub setup](setup/github.md)
-records the live rules, deliberate exceptions, current-baseline passing checks,
-and bot acceptance evidence.
-
-### 8. Write useful repository-specific AI instructions
-
-- [x] Document a short project map and dependency boundaries in `AGENTS.md`, with
-  prerequisites, exact validation commands, and links to authoritative policies.
-- [x] Explain that Aspire is the local launcher while production currently uses
-  Compose. Require explicit authorization for deployments, releases, credentials,
-  and destructive operations; documentation-only work should not start services.
-- [x] Add thin Copilot-specific guidance only where needed for tool support, or
-  correct documentation claiming those files already exist. Avoid duplicated rules.
-- [x] Document the Aspire executable required by `.mcp.json` and how contributors
-  install and verify it without making AI tools mandatory.
-
-**Acceptance:** a fresh local agent can perform a small code/test change using the
-instructions, without guessing commands or accessing deployment credentials.
-
-**Verified (2026-09-19):** `AGENTS.md` now maps the solution's dependency
-boundaries, names the local validation gate, and points to the authoritative setup,
-testing, policy, hosting, and CI documentation. It documents `aspire` as the
-executable used by `.mcp.json`, with the matching 13.4.2 install and verification
-commands. The installed executable reported 13.4.2. Aspire is explicitly scoped
-to local orchestration; production Compose, releases, credentials, deployments,
-and destructive operations require authorization. `CONTRIBUTING.md` now identifies
-`AGENTS.md` as the existing repository guidance instead of implying uncommitted
-Copilot instruction files exist.
-
-### 9. Record the engine boundary and first milestone
-
-- [ ] Write a short architecture/repository map: API, contracts, API client,
-  frontend, AppHost, service defaults, and the separate archive repository.
-- [ ] Choose the first compatibility goal and its non-goals: playback, import,
-  editor behavior, or one narrowly defined combination.
-- [ ] Define a small, independently created fixture and observable acceptance
-  criteria for the first engine milestone.
-- [ ] Keep game logic testable without Blazor, HTTP, or a database. Introduce
-  boundaries for rendering, input, time, and randomness with actual engine work,
-  not as empty projects or generic infrastructure.
-
-**Acceptance:** the next engine task is small enough to implement and test without
-first adding a new architectural framework.
-
-### Gate: return to engine implementation
-
-- [ ] Steps 1-5 and 7-9 pass their acceptance checks. Section 6 accompanies the
-  first functional frontend feature.
-- [ ] Local setup works, meaningful tests run, CI enforces them, and agent
-  instructions match reality.
-- [ ] Resume the scoped engine milestone. Do not wait for every community or
-  documentation refinement below.
-
-Complete Phase 2 before relying on further public deployments. If deployments
-continue during engine work, bring those steps forward rather than accepting the
-known release risks.
-
-## Phase 2: Make deployment and releases dependable
-
-### 10. Test and repair release-script behavior
-
-- [x] Fix `scripts\validate-release.sh` returning failure after successful patch
-  validation because its final optional-output condition is false.
-- [x] Support documented reruns when a patch tag/release already exists at the
-  expected commit. Continue rejecting mismatched tags and invalid version progressions.
-- [x] Avoid resolving all of `Directory.Build.props` with `--ours` in
-  `scripts\post-release.sh`; preserve non-version changes or require manual resolution.
-- [x] Add isolated tests for standard and patch releases, tag conflicts, reruns,
-  failed GitHub calls, follow-up PR handling, and merge-back conflicts.
-
-**Acceptance:** the valid-next-patch and already-published-patch cases both pass.
-Tests mock external operations and never push branches, tags, or releases.
-If simplifying the release workflow instead, remove superseded paths and update
-`docs\release` so there is only one supported process.
-
-**Verified locally (2026-09-19):** 20 isolated Bash cases passed with GitHub
-operations and pushes mocked, including valid-next and already-published patch
-releases. A conflicting props merge-back now stops for manual resolution without
-pushing. The test suite is part of shared CI/deployment validation; no actual
-release or deployment was run. Restore, formatting verification, Release build,
-and all 62 solution tests passed (the documented ASPIRE010 build warning remains).
-
-### 11. Align deployment permissions with the release process
-
-- [x] Audit environment branch/tag restrictions against the actual workflow.
-  Distinguish the branch dispatching the workflow from the source SHA it checks out;
-  do not blindly replace every environment selector with `patch/*`.
-- [x] Verify production approval, release-bot permissions, protected-tag creation,
-  and narrowly scoped environment secrets.
-- [x] Record who can deploy and recover a release in `docs\setup\github.md`.
-
-**Acceptance:** approved standard and patch workflows are allowed, unintended
-dispatch paths are rejected, and normal pull-request validation receives no
-production credentials.
-
-**Verified (2026-09-20):** authenticated read-back found production approval by
-`ostomachion`, self-review and administrator bypass enabled, environment-scoped
-deployment secrets, repository-scoped release-bot tokens, and creation-only bot
-tag permission. The stale production `release/**/*` tag selector and staging
-`release/**/*` branch selector were removed; both environments now allow only
-the `main` dispatch branch. Both CD workflows on merged `main` reject non-`main`
-dispatches before source selection. A [live invalid-source run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531224662)
-rejected a tag input at the protected-source resolver; validation, production
-deployment, and publication were skipped. A second
-[non-`main` dispatch](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531484408)
-failed at the first workflow guard, with all downstream jobs skipped. The
-first merge-triggered
-[staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531071912)
-passed source resolution and build/test but failed before syncing files or
-restarting services: its environment secrets were empty in the reusable workflow
-after `secrets: inherit` was removed. The merged fix restored the caller handoff
-and added a credential-presence check before image publication. Its
-[staging run](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35531733842)
-passed source resolution, build/test, credential check, image publication, SSH,
-file sync, service restart, and the API liveness smoke test at commit
-`65cf767afd587ce5ea72368df8d888c69bd0a7e7`.
-[GitHub setup](setup/github.md#deployment-authority-and-recovery) records the
-dispatch/source distinction, actual operator and recovery limits, and the
-read-only permission audit. The signed-in organization Actions settings page
-reported no organization secrets; the audit CLI token still receives 403 for
-that API inventory. Normal PR CI references no deployment environment or
-production credentials. The protected `main`/patch source paths are configured
-for standard and patch releases, but no positive production release, patch
-deployment, tag, or GitHub Release was performed for this permission audit.
-Administrator bypass is retained for sole-operator emergency recovery, not
-routine releases; while enabled, the `main`-only selector is not an absolute
-barrier to an administrator forcing a waiting job.
-
-### 12. Isolate shared-edge changes from application deployments
-
-- [x] Stop routine staging/application deployments from recreating the shared
-  production Caddy service.
-- [x] Validate a candidate Caddy configuration before activating it; use a
-  graceful reload when configuration changes.
-- [x] Coordinate operations that modify shared edge files or services across
-  staging and production. Avoid cancelling an in-flight mutation midway through.
-
-**Acceptance:** deploy staging while checking production availability. An invalid
-candidate edge configuration is rejected without replacing the working configuration.
-
-**Implemented locally (2026-09-20):** application deployments no longer sync or
-recreate shared Caddy. The `main`-only, production-approved shared-edge workflow
-serializes edge updates without cancellation. Its apply script validates a staged
-candidate before touching active files, reloads Caddy for Caddyfile-only changes,
-and restores prior files after a failed reload. The isolated Docker-mock suite
-passed invalid-candidate, reload, rollback, Compose-update, and first-setup cases.
-Staging now probes production API liveness before and after its deployment.
-Live staging deployment and production availability read-back remain to be
-verified after the protected workflow change is merged; no edge or application
-deployment was run for this local implementation.
-
-**Host independence follow-up:** deployment environments explicitly select a
-`shared`, `staging`, or `production` edge profile. Each host owns its own network,
-proxy, and certificate volumes; an isolated profile contains no routes or web
-mounts for the other environment. Only shared staging deployments probe
-production availability. Profile changes require explicit production approval,
-and application preflight checks the installed profile before transferring a
-release. See [hosting setup](setup/hosting.md#host-edge-changes) for adoption and
-future separation. Local regression/configuration validation does not establish
-live separate-host acceptance; no host migration is performed by this change.
-
-### 13. Make builds portable and promote identifiable artifacts
-
-- [x] Prefer deployed frontend requests to the current origin's `/api` rather than
-  hardcoded official hosts. Keep an explicit local development override.
-- [x] Verify forks and self-hosted Release builds cannot accidentally call the
-  official API. Do not introduce API subdomains without a concrete requirement.
-- [x] Reduce duplicated endpoint/port configuration. Support parallel worktrees
-  when practical; otherwise document the fixed-port limitation.
-- [x] Build frontend and API artifacts once where practical and promote the
-  tested pair. Address environment-specific frontend publishing before claiming
-  that the same artifact is promoted unchanged.
-- [x] Record image digests, frontend artifact identity, and source revision.
-  Do not rely on a mutable commit-named image tag or version string alone.
-
-**Acceptance:** the same tested release can be identified unambiguously and hosted
-on an alternate hostname without rebuilding just to change its API hostname.
-
-**Implemented locally (2026-09-20):** Release web builds use the hosting origin
-and retain only a Development localhost override; staging and production no longer
-publish different API URLs. The packaging job follows source validation and builds
-the frontend archive once; after environment approval, deployment verifies that
-archive, builds the API image once, and records its digest reference, the archive
-checksum, and source revision on the host. Fixed development ports are documented
-as a single-stack limitation. Local build/publish and workflow structure checks
-validate the package contract; live deployment and alternate-host browser behavior
-remain unverified until a controlled deployment. Staging and production workflow
-runs still package separately; each run's manifest identifies its actual pair.
-
-### 14. Make rollout atomic and rollback explicit
-
-- [x] Replace in-place frontend `rsync --delete` with versioned release directories
-  and an atomic activation step.
-- [x] Retain the previous compatible frontend/API pair and document rollback.
-  Account for clients still requesting assets from an older loaded page.
-- [x] Extend smoke tests to verify the expected revision and a frontend-to-API
-  interaction, not only `/api/alive` or Caddy's static `/health`.
-- [x] Document failure recovery in `docs\setup\hosting.md` and `docs\release`,
-  including a deploy succeeding before tag or follow-up PR creation fails.
-
-**Acceptance:** rehearse deployment failure and rollback in staging. Recover the
-previous working release without rebuilding it or guessing which image it used.
-
-**Accepted in staging (2026-09-20):** [normal run 35542650898](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542650898)
-passed build/test, activation, and Chromium smoke against source revision
-`14e7582d01059f0408be501504a5689e53a74f36`. The controlled
-[rollback rehearsal 35542855238](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35542855238)
-activated a new release, passed the same browser check, then failed on purpose.
-Its recovery step restored release `35542650898-1-14e7582d0105` using the
-recorded prior image digest without rebuilding. The rehearsal run is red by
-design. Independent HTTPS checks afterward found the root page pointing to the
-restored release, `/api/about` returning the expected revision, both versioned
-web directories serving, and production `/api/alive` healthy. See the
-[hosting recovery procedure](setup/hosting.md#application-activation-and-rollback)
-and [release failure guidance](release/README.md#what-happens-on-failure).
-
-### 15. Harden the existing hosting and supply chain
-
-- [x] Pin Actions to reviewed commit SHAs and deployed container images to digests.
-  Keep Dependabot/update automation capable of maintaining those pins.
-- [ ] Verify the deployment SSH host key through a trusted channel and pin it,
-  rather than trusting a fresh `ssh-keyscan` result during each deployment.
-- [x] Run the API container as an explicit non-root user and verify permissions.
-- [x] Configure trusted forwarded headers for Caddy before middleware relying on
-  request scheme or client IP. Test HTTPS redirects; do not trust arbitrary proxies.
-- [x] Recheck NuGet configuration inheritance on a clean machine. Explicitly clear
-  inherited source mappings for the single-feed setup, or document and adopt
-  reviewed source-specific mappings. Do not treat a global wildcard as namespace
-  isolation between feeds.
-
-**Acceptance:** image startup, proxy behavior, restore, dependency updates, and
-deployment still work with the hardened configuration and least required privileges.
-
-**Implemented locally (2026-09-21):** third-party Actions and base/edge images
-are immutable while the existing Dependabot ecosystems remain enabled. A local
-image build and runtime probe confirmed that the API starts with a nonzero UID,
-can read its assembly, cannot write `/app`, and returns its liveness response; CI
-repeats that probe. The API
-trusts one forwarded hop only from the deployed `ogb-edge` network, with redirect
-and spoofing coverage. An isolated empty-cache restore passes with inherited
-package sources and mappings cleared. Deployment now requires a pinned
-`DEPLOY_KNOWN_HOSTS` environment variable and never learns trust with
-`ssh-keyscan`. Keep the SSH item and live acceptance open until an administrator
-verifies and records the key through an existing trusted SSH connection or an
-independent authenticated channel, configures both environments, CI passes, and
-a merged staging deployment passes. Follow the
-[host-key setup guide](setup/deployment-host-key.md) for commands and trust limits.
-
-**Live application evidence (2026-09-22 UTC):** the
-[staging retry](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35673447966/attempts/2)
-and [production v0.10.0 release](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35674772060)
-passed the image permission/liveness probe, strict pinned-host SSH connections,
-activation, browser revision checks, and finalization. The automatic version
-bump and [staging rollout of 0.11.0](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35675216560)
-also passed. These prove that the configured pins work, not independently how
-the administrator authenticated the original host key. Keep that trust-source
-confirmation explicit. The running Caddy digest and native-service boot state
-still need [host verification](setup/hosting.md#host-caddy-conflicts-and-read-only-verification);
-application deployments do not apply edge-image changes.
-
-## Phase 3: Prepare to welcome community contributors
-
-### 16. Replace the placeholder README with a contributor front door
-
-- [ ] Describe what works today, the first milestone, non-goals, and project status.
-- [ ] Link working setup, contribution, testing, support, roadmap, and license
-  information before emphasizing deployment badges.
-- [ ] Explain the distinction between this implementation, the archive repository,
-  and the original MyGameBuilder; do not imply official continuation.
-
-**Acceptance:** an unfamiliar contributor can identify a useful task and reach the
-run instructions from the README without asking a maintainer.
-
-### 17. Make public support and issue intake usable
-
-- [ ] Make GitHub Discussions the discoverable default for exploratory questions.
-  Keep the reunion Discord private if desired, but not a prerequisite for contributing.
-- [ ] Link directly to the authoritative organization-wide Code of Conduct and
-  governance documents from `CONTRIBUTING.md` and `SUPPORT.md`.
-- [ ] Add question and private-security-reporting links to the issue chooser.
-- [ ] Create or replace the missing `needs triage` label used by templates and
-  Dependabot. Remove the compatibility form's TODO option.
-- [ ] Simplify overlapping enhancement/feature forms if they do not help triage.
-  Make the issue labels/types and contributor guidance agree.
-
-**Acceptance:** a newcomer can ask a question, report a bug, propose a change,
-and find private reporting instructions without access to private chat.
-
-### 18. Create a small, genuinely actionable contributor backlog
-
-- [ ] Prepare a few `good first issue` and `help wanted` tasks with acceptance
-  criteria, likely files, validation steps, and a willing maintainer contact.
-- [ ] Include non-code opportunities such as accessibility testing, documentation,
-  independently written behavior examples, and UI feedback.
-- [ ] Record consequential decisions in public issues, discussions, or short
-  architecture notes rather than only in Discord.
-
-**Acceptance:** someone new can take a bounded task without first designing a
-database layer, deployment system, or entire engine.
-
-### 19. Consolidate documentation and define browser expectations
-
-- [ ] Remove empty Markdown placeholders or turn the intended work into issues.
-  Keep only useful setup, architecture, testing, hosting, and compatibility documents.
-- [ ] Add a concise documentation index and repair broken local links.
-- [ ] Correct stale claims, including the statement that health checks are absent.
-  Move general learning resources to the shared location planned by the project,
-  retaining useful links rather than duplicating a reference library.
-- [ ] Fill `docs\frontend\browser-support.md` with a tested support policy.
-  Explain that `.browserslistrc` alone neither implements nor verifies compatibility.
-- [ ] Include keyboard operation, focus, accessible loading/errors, and a concrete
-  supported-browser smoke matrix for the editor as it develops.
-
-**Acceptance:** referenced documents contain real instructions; local links resolve;
-the claimed browser/accessibility baseline has recorded checks.
-
-### 20. Finish AI tooling maintenance and simplify policy
-
-- [ ] Record vendored skills' upstream source/revision, applicable licenses and
-  attribution, update/regeneration procedure, and local-edit policy.
-- [ ] Trim unused skill coverage where useful, or explicitly distinguish generic
-  cloud/deployment capabilities from approved repository workflows.
-- [ ] Shorten repetitive sections of `AI_POLICY.md` without weakening human
-  accountability, disclosure, privacy, or proprietary-material restrictions.
-- [ ] If using cloud coding agents, add a minimal reproducible setup workflow and
-  validate it on their actual runner. Keep production secrets out of that environment.
-  Otherwise record cloud-agent setup as not applicable.
-
-**Acceptance:** local and any supported cloud agents use the same documented
-checks. A maintainer can update the skills deliberately, with provenance preserved.
-
-### 21. Establish practical stewardship and project continuity
-
-- [ ] Keep lightweight governance, but identify a backup maintainer and document
-  repository, hosting, domain, release, and recovery responsibilities.
-- [ ] Provide an alternate private reporting route for concerns involving the
-  primary contact. Confirm private vulnerability reporting remains enabled.
-- [ ] Add `CODEOWNERS` when real area owners exist; do not create fictional ownership
-  or an approval requirement nobody can satisfy.
-- [ ] Document rights/provenance checks for historical games, submissions, assets,
-  and fixtures: source, permitted use, attribution, privacy review, creator requests,
-  and removal handling. Do not imply Apache-2.0 grants rights to original material.
-- [ ] Keep archive ownership separate and use independently created fixtures for
-  implementation tests.
-
-**Acceptance:** contributors know who decides and who can help; someone other than
-the primary maintainer has an agreed recovery role; material is not imported merely
-because it is technically accessible.
-
-## Final gate: open the project to wider participation
-
-- [ ] Phases 2 and 3 are complete, or genuinely inapplicable items have an explicit
-  explanation and owner for any future trigger.
-- [ ] The scoped engine milestone from step 9 works with independently created data.
-- [ ] A person unfamiliar with the repo successfully follows setup and completes a
-  small contribution through the actual review/check process.
-- [ ] Public deployment has a rehearsed recovery path and community reporting works.
-
-Stop foundation work here. Do not add microservices, generic repositories, mediator
-pipelines, event buses, Kubernetes, a large committee structure, or a coverage target
-merely to look mature. Improve these foundations further when engine or community
-work demonstrates a specific need.
+This is a temporary implementation plan, to be deleted when the foundation work
+is complete. Other repository files must not link to it or depend on its step
+numbers. Put lasting procedures, decisions, support promises, and acceptance
+evidence in the appropriate permanent guide or issue as each step is completed.
+
+The plan combines the audit of `1bdc1c4` with the community-infrastructure review
+on 2026-09-22. The application is still an API/frontend shell; the first engine
+milestone has not been selected. Recommendations below are planned changes, not
+claims that the tools, settings, or support coverage already exist.
+
+Prefer one focused PR per step, splitting implementation from human or hosted
+acceptance when necessary. Check off work only after its acceptance check passes.
+Record a short result and evidence link, not a running history. An unchecked item
+is planned work, not a claim that this documentation change implemented it.
+
+Step numbers are stable identifiers for work already in progress. Use this
+delivery order; the first engine slice need not wait for the entire checklist:
+
+| When                                | Work                                                                                                                                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Now                                 | Operational and documentation repairs (1-6), repeatable commands and formatting (13-14), AI tooling alignment (19), targeted security enforcement (20), maintained-deployment monitoring (22) |
+| Before inviting wider contributions | Windows CI and browser smoke (15-16), useful starter work and contributor rehearsal (9-10), documented branching rules (18)                                                                   |
+| Alongside the first engine slice    | Behavior and implementation (7-8), searchable/executable documentation (17), curated release notes (18)                                                                                       |
+| When the stated need exists         | Feature accessibility (11), release maintenance (12), richer engine checks (21), persistent-data recovery (22), distributed packages (23)                                                     |
+| Finish                              | Preserve durable outcomes, transfer genuinely future work, and delete this file (24)                                                                                                          |
+
+Do not leave this plan open indefinitely for hypothetical features. A future item
+may be explicitly deferred to a durable issue with its owner, trigger, and
+acceptance criteria; deferral is not implementation and must not be marked as a
+passing check. Step 24 defines completion and deletion.
+
+## Baseline to preserve
+
+- Keep the Contracts, API Client, API, Web Client, ServiceDefaults, and local
+  AppHost boundaries. They separate real responsibilities without an engine framework.
+- Keep central package/build settings, public-behavior tests, the shared validation
+  action, and the protected `build-test` merge gate. The audit confirmed no bypass
+  for that gate; the sole-maintainer review exception is separate.
+- Keep immutable action/image references, pinned SSH trust, the non-root API,
+  versioned release identities, and separation of edge and application deployment.
+- Keep the archive separate and use independently created implementation fixtures.
+  Preserve the existing source-material, privacy, and licensing policies.
+
+**Audit validation:** restore, format verification, Release build with no warnings,
+72 .NET tests, all five release/deployment shell suites, frontend Release publish,
+and the published-configuration guard passed. Relative Markdown file targets
+resolved. A separate mocked first-deployment failure exposed the recovery defect
+in step 1 despite those passing suites. The audit did not start services, deploy,
+or establish fresh-editor, browser, or live-host acceptance.
+
+Use [development setup](setup/development.md) and [testing guidance](quality/testing.md)
+for validation commands. Code changes need the normal solution gate and relevant
+script checks; documentation-only changes need link, reference, and diff checks.
+Workflow changes also need their actual hosted checks before hosted success is claimed.
+Deployments, releases, credential handling, and destructive operations still need
+explicit authorization under [AGENTS.md](../AGENTS.md).
+
+## Phase 1: Close operational gaps
+
+Address these before relying on fresh-host deployment or expanding deployment
+capabilities. They do not require adding new hosting infrastructure.
+
+### 1. Recover a failed first deployment
+
+**Finding:** [activation](../scripts/deploy-app.sh) writes `pending` even without a
+predecessor. Rollback requires `previous`, fails when it is absent, and leaves
+subsequent activations blocked. Existing tests always seed a legacy installation.
+
+- [x] Add explicit transaction state for an initial deployment. Distinguish a
+      legitimately absent predecessor from a missing or corrupt expected predecessor.
+- [x] On initial failure, stop any partially started candidate and restore a
+      defined undeployed state. Clear `pending` only after successful recovery;
+      preserve useful diagnostics. Do not just ignore a missing `previous` file.
+- [x] Extend [deployment tests](../tests/deploy-app/run.sh) for first-start failure,
+      first-deployment smoke failure after activation, successful retry, and failed
+      cleanup. Preserve existing upgrade and rollback behavior.
+- [x] Document initial-deployment recovery in [hosting](setup/hosting.md).
+
+**Acceptance:** mocked failure/recovery/retry scenarios pass without SSH or Docker
+services. An expected predecessor disappearing still fails safely. A live staging
+rehearsal, when authorized, is recorded separately from local regression evidence.
+
+**Result (2026-09-22):** The [mocked deployment suite](../tests/deploy-app/run.sh)
+passes all ten scenario groups, covering initial failure/recovery/retry, failed
+container and file cleanup, missing candidate files, and missing or corrupt
+predecessor records and manifests. Restore, format verification, Release build
+(zero warnings), and all 72 .NET tests passed. The
+[recovery procedure](setup/hosting.md#application-activation-and-rollback) describes
+the undeployed state, retained diagnostics, and retry. No live staging rehearsal
+was performed for this step.
+
+### 2. Validate frontend packaging before merge
+
+**Finding:** PR CI builds the web project, but Release publishing and the existing
+portability guard run only in [deployment](../.github/workflows/_deploy.yml).
+Smoke JavaScript and its package are also absent from PR validation.
+
+- [x] Add frontend Release publish and [verify-web-publish.sh](../scripts/verify-web-publish.sh)
+      to PR validation, reusing existing checks and avoiding unnecessary duplicate work.
+- [x] Validate the smoke package with `npm ci` and check `smoke.mjs` syntax before
+      deployment. Preserve the stable required `build-test` check and failure diagnostics.
+- [x] Document local equivalents and distinguish build/package checks from browser
+      acceptance. Dependency installation already precedes activation; browser smoke
+      execution follows activation and can trigger recovery.
+
+**Acceptance:** CI rejects a broken publish or leaked environment-specific web
+configuration before merge. Smoke dependency/syntax errors fail validation.
+These checks require no deployment credentials or public deployment.
+
+**Result (2026-09-22):** [Shared validation](../.github/actions/validate/action.yml)
+now publishes and checks the frontend in PR CI and validates the smoke package
+in both callers. Deployment retains its required packaging job without an extra
+publish. Restore, format verification, Release build (zero warnings), all 72 .NET
+tests, all five script suites, Release publish, portability checks, and Node 22
+dependency/syntax checks passed locally. Nine injected packaging/configuration,
+dependency, and syntax failures were rejected with their diagnostics retained.
+[Local commands and browser boundaries](quality/testing.md#ci-and-deployment-validation)
+are documented. The first hosted PR `build-test` run remains unverified; no
+deployment or live browser acceptance was performed for this step.
+
+### 3. Maintain browser-smoke dependencies
+
+**Finding:** [Playwright is pinned](../tests/deploy-smoke/package.json), but
+[Dependabot](../.github/dependabot.yml) has no npm entry for this package.
+
+- [x] Add version updates for `/tests/deploy-smoke` using the existing update cadence.
+- [x] Extend the [supply-chain declaration check](../tests/supply-chain/run.sh) to
+      catch omission of this package without tying the check to a particular version.
+- [x] Validate the package/lockfile and review browser-smoke behavior when updating
+      Playwright; version-update configuration alone is not a browser acceptance test.
+
+**Acceptance:** the declaration check passes and Dependabot recognizes the npm
+directory after merge. Dependency updates receive the checks from step 2.
+
+**Result (2026-09-22):** Weekly npm updates now cover the smoke package with the
+existing dependency cooldowns. The declaration suite passes; isolated cases
+reject omitted coverage, the wrong directory or ecosystem, and coverage split
+across unrelated entries. Node 22 `npm ci` and syntax checks passed with
+Playwright 1.63.0 unchanged. Restore, format verification, Release build (zero
+warnings), and all 72 .NET tests passed. The existing smoke assertions were
+reviewed, and [maintenance guidance](quality/testing.md#browser-smoke-dependency-updates)
+records the package checks and browser evidence needed for future updates.
+Dependabot recognition of the npm directory remains unverified until merge;
+no deployment or live browser acceptance was performed for this step.
+
+### 4. Correct operational documentation and unresolved host evidence
+
+**Finding:** [GitHub setup](setup/github.md) describes a separate unprivileged
+smoke job and old timeouts; smoke now runs in the 45-minute deployment job with
+`packages: write`, after SSH setup. Its opening unpublished-workflow snapshot and
+[hosting's](setup/hosting.md) "before merging" instructions are also obsolete.
+
+- [x] Describe the actual job, token, and on-disk credential boundaries. Review
+      whether the combined job is intentional; record that decision or make a focused
+      change with recovery coverage. Do not imply this audit demonstrated exploitation.
+- [x] State that production workflows must be dispatched from `main`, separately
+      from the protected application source `ref`, in [release guidance](release/README.md).
+- [x] Replace completed rollout instructions and conflicting verification diaries
+      with current procedures and concise evidence links. Keep unresolved host adoption
+      explicit rather than assuming merge means host configuration was applied.
+- [x] Carry forward administrator confirmation of the SSH host key's trusted
+      source and [host verification](setup/hosting.md#host-caddy-conflicts-and-read-only-verification)
+      of the running Caddy digest and competing native-service boot state.
+
+**Acceptance:** workflow code, instructions, and any inspected settings agree.
+Every remaining host action names its owner and unverified state. Documentation
+work does not perform a deployment; successful SSH use alone does not establish
+how the original host key was authenticated.
+
+**Result (2026-09-22):** [GitHub setup](setup/github.md#deployment-job-credential-boundary)
+now matches the workflow's job permissions, retained Docker/SSH credentials,
+timeouts, and combined activation/smoke/recovery decision. Release guidance
+requires `main` dispatch separately from protected application source. Read-only
+GitHub checks confirmed environment branch rules, production approval settings,
+both shared-profile variables, and the completed edge adoption run. The
+[hosting evidence](setup/hosting.md#recorded-deployment-evidence) distinguishes
+that run from the earlier staging browser check; original host-key provenance,
+current Caddy digest/boot state, and application acceptance after adoption remain
+explicitly unverified and assigned to `ostomachion`. Documentation link, anchor,
+workflow-reference, and diff checks passed. No workflow code, credentials,
+services, or deployment state were changed; no new deployment was performed.
+
+## Phase 2: Make the supported contributor path accurate
+
+### 5. Repair development instructions and launch leftovers
+
+**Finding:** [CONTRIBUTING](../CONTRIBUTING.md) promises commit-time formatting,
+although Husky is opt-in. The web project's IIS Express profile advertises origins
+not allowed by development CORS. Fresh-checkout editor acceptance remains open.
+
+- [x] Say that format verification is required and hooks are optional; link the
+      authoritative setup commands instead of duplicating them.
+- [x] Remove the unsupported IIS Express profile, or explicitly support and test
+      it with matching configuration. Preserve the documented direct and Aspire paths.
+- [x] Correct the old `OpenGameBuilder.Web` startup title and scoped-CSS filename
+      hint in [index.html](../src/OpenGameBuilder.Web.Client/wwwroot/index.html).
+- [ ] Follow the setup guide from a fresh checkout in Visual Studio and VS Code,
+      including F5, debugger attachment, frontend startup, and the API request.
+
+**Acceptance:** the solution gate passes after configuration changes. Both
+documented editor paths work without undocumented steps, Docker, or production
+credentials; record actual editor verification separately from CLI results.
+
+**Result (2026-09-22, editor acceptance partial):** CONTRIBUTING now requires
+format verification and links the optional-hook setup. The unsupported web IIS
+Express profile/settings are removed, and the startup title and scoped-CSS hint
+match the application and project. Restore, format verification, Release build
+(zero warnings), all 72 .NET tests, frontend Release publish, and the portability
+guard passed. Fresh-checkout Visual Studio and VS Code F5 rehearsals started the
+API and frontend, hit the API breakpoint, and displayed the Development heading.
+[Setup verification evidence](setup/development.md#recorded-setup-verification)
+records the editor versions, successful checks, and remaining Blazor debugger
+acceptance; the full editor item remains unchecked.
+
+### 6. Remove unused scaffolding and duplicate documentation
+
+**Finding:** root placeholders, unused configuration, template examples, and
+repeated contributor prose still create maintenance work without current benefit.
+
+- [x] Remove or give a useful contributors pointer to `CONTRIBUTORS.md`. Replace
+      the empty `CHANGELOG.md` with the curated release process in step 18.
+- [x] Remove `.browserslistrc` while it has no consumer and update its references.
+      Keep the actual [browser policy and acceptance matrix](frontend/browser-support.md).
+- [x] Remove unused gRPC/Azure/service-discovery examples, unused Bootstrap/form
+      CSS, and stale template hints. Shorten AppHost history while retaining the
+      explanation of its current fixed-port, CORS, and launch-profile constraints.
+- [x] Consolidate significant-change guidance in CONTRIBUTING. Keep SUPPORT
+      focused on choosing a contact route; link policies and forms instead of repeating
+      them. Retain short source-material/privacy reminders at submission points.
+- [x] Replace local reunion rosters and unowned forum-reconstruction plans with
+      useful pointers to the owning archive/community location. Preserve substantive
+      material until an appropriate destination is agreed.
+- [x] Finish the reviewed shared-resource move tracked by [issue #56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56)
+      and [organization PR #1](https://github.com/OpenGameBuilder/.github/pull/1), then
+      replace the temporary shared-content pointer. Recheck their status first.
+
+**Acceptance:** no empty promises or unused declarations remain in scope, and all
+affected local paths/anchors resolve. Code/style removal preserves existing
+behavior. Record cross-repository completion separately from local cleanup.
+
+**Result (2026-09-22):** Root contributor and changelog placeholders now provide
+useful contributor links and a [curated release-note process](release/README.md#curated-release-notes).
+Unused browser configuration, template examples, and form styles are removed;
+contribution/support guidance is consolidated. Community/archive pointers retain
+the historical roster at an existing public revision without claiming current
+membership or promising forum reconstruction. The
+[local cleanup checks](quality/testing.md#frontend-asset-cleanup-evidence) passed,
+including the solution gate, 72 tests, frontend publish, configuration guard,
+and local documentation paths/anchors. No new browser acceptance was performed.
+
+Cross-repository result: [organization PR #1](https://github.com/OpenGameBuilder/.github/pull/1)
+was merged after standards and scope reviews found no issues; all 211 original
+external links, the source license, and local links were verified. Its published
+resources tree matches the reviewed revision, and the documentation index now
+links to `main/resources`. [Issue #56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56)
+remains open until the application-side removal and pointer changes reach `main`;
+these local changes have not been published. Automated changelog selection for
+releases remains in step 18.
+
+## Phase 3: Deliver the first engine slice
+
+Begin this once the supported development path is usable. Do not wait for optional
+documentation cleanup, new hosting capabilities, or additional governance machinery.
+
+### 7. Choose the first engine milestone
+
+**Finding:** the project has useful application boundaries but no selected engine
+behavior, independent fixture, or acceptance contract.
+
+- [ ] Choose one observable behavior and explicit non-goals; decide whether the
+      slice concerns playback, import, or another narrowly defined capability.
+- [ ] Write a small independently created fixture with provenance and expected
+      outputs, including relevant invalid-input behavior. Use no decompiled source.
+- [ ] Record the contract in a short public issue or engine document and update
+      the README's next milestone. Link the existing repository map rather than
+      creating another architecture inventory.
+
+**Acceptance:** another contributor can understand what to implement and how to
+judge it without designing the whole engine, renderer, storage layer, or editor.
+
+### 8. Implement and test that slice
+
+**Depends on:** step 7's accepted behavior and fixture.
+
+- [ ] Implement the selected behavior in a plain library testable without Blazor,
+      HTTP, or a database. Introduce rendering/input/time/randomness seams only when
+      the implemented behavior needs them.
+- [ ] Test the agreed observable results and relevant failure cases. Verify
+      deterministic behavior where the contract requires it.
+- [ ] Add the project/tests to normal validation and document the runnable example
+      and remaining limits. Use the independently authored fixture as a small reference
+      scene or game and a checked documentation example (step 17). Do not infer broad
+      original-game compatibility from it.
+
+**Acceptance:** the fixture works through the normal test gate and demonstrates
+the agreed behavior. No empty generic engine framework or speculative services
+are prerequisites. Further foundation work responds to actual engine needs.
+
+## Phase 4: Prepare for wider participation
+
+### 9. Publish an actionable contributor backlog
+
+**Finding:** the audit found no open `good first issue` or `help wanted` tasks.
+The open database, blob-storage, API-subdomain, and Minimal API proposals describe
+large additions or alternatives rather than bounded onboarding work.
+
+- [ ] Triage [database #37](https://github.com/OpenGameBuilder/opengamebuilder/issues/37),
+      [blob storage #36](https://github.com/OpenGameBuilder/opengamebuilder/issues/36),
+      [API subdomains #46](https://github.com/OpenGameBuilder/opengamebuilder/issues/46),
+      and [Minimal APIs #38](https://github.com/OpenGameBuilder/opengamebuilder/issues/38).
+      Record decisions or concrete deferral triggers; do not present speculative
+      infrastructure or a controller rewrite as required engine work.
+- [ ] Prepare three to five small tasks with acceptance criteria, likely files,
+      validation commands, and a willing maintainer contact. Apply the appropriate
+      newcomer/help labels after checking the tasks are actually approachable.
+- [ ] Include non-code work: setup verification, independent behavior examples,
+      documentation, or accessibility checks for implemented features. Keep consequential
+      decisions public and align README/contribution links with the real queue.
+- [ ] Verify native Project auto-add/status workflows handle agreed issue/PR
+      bookkeeping. Keep triage human-owned; do not close valid reports merely for
+      inactivity or add bots that generate unreviewed issues and comments.
+
+**Acceptance:** a newcomer can select useful work without first designing a major
+subsystem. Preparing task text alone does not count as publishing a usable backlog.
+
+### 10. Establish continuity and rehearse a contribution
+
+**Finding:** [stewardship](community/stewardship.md) records no agreed backup
+operator or independent private-reporting contact. Written procedures do not
+establish another person's access or a newcomer's successful experience.
+
+- [ ] Before broader participation or operational handoff, the primary maintainer
+      obtains a willing delegate's agreement on repository, hosting, domain, release,
+      and recovery responsibilities; verify necessary access and rehearse recovery.
+- [ ] Establish an independent private route for concerns involving the primary
+      contact. Keep sensitive account-recovery details private.
+- [ ] Add CODEOWNERS only when actual area owners accept responsibility. Revisit
+      the sole-maintainer review exception when a second trusted reviewer can routinely
+      review maintainer PRs; preserve the no-bypass CI gate.
+- [ ] Have someone unfamiliar with the repo follow setup and complete a small
+      contribution through the actual review/check process; fix the friction found.
+
+**Acceptance:** agreed people and contact routes are recorded, a backup can perform
+the agreed recovery, and an independent contributor completes the workflow.
+Owner until delegation: `ostomachion`. This remains open until people and access
+are available; no additional committee or policy framework is needed.
+
+## Work tied to a specific trigger
+
+### 11. Complete frontend failure handling and accessibility
+
+**Trigger:** the first functional frontend feature. The placeholder catches HTTP
+errors but lets malformed/null-response exceptions escape; loading, recovery,
+focus, and error controls also have [documented gaps](frontend/browser-support.md).
+
+- [ ] Define loading, success, expected transport/timeout failures, invalid
+      responses, and recovery. Handle known failures without broadly hiding defects;
+      retain useful diagnostics without sensitive response data.
+- [ ] Add meaningful component coverage for those states. Extend the existing
+      published-app PR harness from step 16, sharing applicable assertions with the
+      deployment smoke test. Keep component, browser, and live-deployment evidence
+      separate; this feature-triggered work does not postpone the basic PR harness.
+- [ ] Fix the heading/focus mismatch, loading/error announcements, and keyboard
+      semantics of error controls. Verify the implemented workflow against the browser,
+      keyboard, assistive-technology, and mobile matrix; record unverified targets.
+- [ ] Add axe-based checks to meaningful rendered states, including failures and
+      dialogs when present. Perform manual keyboard, focus, zoom, screen-reader, and
+      touch checks; automated accessibility results do not establish conformance.
+
+**Acceptance:** a wrong API URL or unusable frontend fails the browser check even
+with healthy API liveness. Expected failures offer accessible recovery, and exact
+browser/manual acceptance evidence accompanies the feature.
+
+### 12. Reassess release maintenance only when needed
+
+**Trigger:** supporting an older released version, handing off operations, or
+release accumulation creating measurable operational cost. Owner: `ostomachion`.
+
+- [ ] Decide whether the current standard/patch/tag/merge-back automation earns
+      its maintenance cost. Retaining it with a concrete support need is a valid
+      decision; simplify only with one documented replacement and regression coverage.
+- [ ] Before removing legacy in-place migration code, verify that every supported
+      installation has migrated. Do not infer host state from merged code.
+- [ ] Define release retention/cleanup when needed, preserving active/rollback
+      artifacts and assets needed by older browser sessions. No speculative cleanup job.
+- [ ] Consider a merge queue when concurrent merges cause repeated update/retest
+      work. Add `merge_group` handling to required workflows and verify the gate before
+      enabling it; a queue is not needed to establish the branching policy in step 18.
+
+**Acceptance:** a recorded keep/simplify decision answers an actual need. Any
+change preserves artifact identity, recovery, authorization, and required checks.
+This step does not block engine development or justify further deployment expansion.
+
+## Additional contributor and maintenance infrastructure
+
+### 13. Make setup and validation reproducible
+
+- [x] Add a small `doctor` command that reports selected SDK/tool versions,
+      missing prerequisites, and actionable remedies. Keep installation and trust
+      changes explicit; ordinary checks must not change the developer's environment.
+- [x] Provide documented formatting, quick-check, full-check, and browser-test
+      commands, with shared implementations used locally and by CI. Keep the headless
+      build/test path usable without deployment credentials or running services.
+- [x] Replace accidental SDK drift from `global.json`'s `latestMinor` roll-forward
+      with a deliberate supported baseline for formatting, analyzers, and builds.
+      Log the selected SDK and update it through reviewed dependency changes.
+- [x] Introduce committed NuGet lockfiles for application entry points and locked
+      CI restores after SDK selection is settled. Keep npm tools exactly pinned with
+      committed lockfiles. Document how intentional dependency updates refresh them;
+      a library lockfile does not constrain downstream consumers.
+
+**Acceptance:** a clean checkout runs the documented commands with the declared
+toolchain. Missing prerequisites produce useful diagnostics, CI rejects dependency
+drift, and local/CI checks have equivalent scope. A fresh editor rehearsal remains
+the separate acceptance in step 5. See [NuGet lockfiles](https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#locking-dependencies).
+
+**Result (2026-09-22):** The read-only doctor and shared formatting, quick, full,
+and browser commands are documented in [development setup](setup/development.md)
+and used by CI. SDK selection is exact; application and test entry points have
+committed locks, including separate Windows/Linux AppHost graphs. Locked restores
+also cover CodeQL and packaging. A fresh source snapshot passed the full local
+gate with serialized MSBuild: zero build warnings, 72 tests, frontend packaging,
+smoke-package checks, and all five shell suites. Missing prerequisites, incorrect
+versions, and missing/stale dependency locks were rejected. The
+[validation evidence](quality/testing.md#reproducible-command-validation) separates
+these results from the unverified hosted CI and live browser runs. No deployment
+or editor rehearsal was performed.
+
+### 14. Format and lint first-party content consistently
+
+- [x] Keep `dotnet format` and existing analyzers for C#. Promote selected useful
+      style rules to enforced warnings rather than enabling a large rule set wholesale.
+- [x] Add exactly pinned Prettier for Markdown, JSON, YAML, CSS, and JavaScript;
+      choose explicit indentation/prose wrapping consistent with scoped EditorConfig
+      settings. Use markdownlint-cli2's Prettier-compatible preset for structural rules.
+- [x] Add actionlint for workflows, ShellCheck for shell defects, and shfmt for
+      shell formatting. Use versions compatible with the workflow syntax in this repo.
+- [x] Add pinned lychee checks for local file/image links and anchors, including
+      root and first-party GitHub documents. Check generated HTML when step 17 lands.
+      Schedule bounded external-link reports separately; remote outages must not block
+      unrelated PRs. Keep exclusions narrow and explained.
+- [x] Share configurations between editor, optional hooks, command line, and CI.
+      Exclude generated artifacts, dependencies, and vendored skills; avoid competing
+      formatters for a file type.
+- [ ] Publish the initial formatting sweep as a separate PR. It is isolated in
+      local commit `1f646a6` on `codex/foundation-formatting-sweep`; tooling follows
+      on `codex/foundation-section-14-content`. Neither branch has been published.
+
+**Acceptance:** deliberate formatting, Markdown-structure, missing-target/anchor,
+workflow, and shell defects fail their appropriate checks with clear fixes. Clean
+files pass on Windows and Linux. CI enforces the rules without requiring hooks.
+Defer aggressive prose-style linting unless a recurring problem warrants it.
+Sources: [Prettier](https://prettier.io/docs/install),
+[markdownlint compatibility](https://github.com/DavidAnson/markdownlint/blob/main/doc/Prettier.md),
+[actionlint](https://github.com/rhysd/actionlint/blob/main/docs/checks.md),
+[ShellCheck](https://github.com/koalaman/shellcheck), [shfmt](https://github.com/mvdan/sh),
+[lychee](https://lychee.cli.rs/guides/cli/).
+
+**Result (2026-09-22, local implementation complete):** The
+[shared content workflow](quality/content-checks.md) pins and verifies the tools,
+preserves formatter ownership, checks local links offline, and schedules bounded
+external reports. The full Windows gate passed with zero build warnings and 72
+.NET tests; all seven content regression groups and the final content gate passed.
+[Validation evidence](quality/content-checks.md#recorded-validation) records the
+injected C# failures, installer checks, and narrow actionlint cache-mode exception.
+Linux execution, hosted CI, the scheduled report, and separate PR publication
+remain unverified. No application services or deployments were started.
+
+### 15. Validate the supported platform and keep CI understandable
+
+- [ ] Add a Windows restore/format/Release-build/test lane alongside Linux. Keep
+      Linux shell/container checks in their suitable environment; do not multiply
+      every job across an unnecessary OS matrix.
+- [ ] Use the commands from step 13, with focused document checks for document
+      changes and full relevant checks for application/workflow changes. Path-based
+      selection must not silently omit required validation or strand required checks.
+- [ ] Preserve the stable `build-test` gate. If it becomes an aggregate, explicitly
+      verify every required dependency's result, including failure/cancellation cases.
+      Retain actionable logs, reports, selected versions, and bounded artifact retention.
+
+**Acceptance:** real hosted Windows and Linux runs pass, a failed required lane
+prevents merging, and a documentation-only PR receives its intended checks.
+Record local results separately; Windows CI does not establish F5/debugger support.
+
+### 16. Exercise the published application in PRs
+
+**Depends on:** step 2's packaging checks; this adds browser behavior, not another
+claim that syntax or publication proves rendering.
+
+- [ ] Add an `@playwright/test` harness that serves the Release-published frontend
+      and real API locally with the intended same-origin API path and release base path.
+      Reuse appropriate deployment assertions; require no SSH, registry write access,
+      production secrets, or public deployment.
+- [ ] Run Chromium, Firefox, and WebKit checks for startup, API-backed content,
+      expected revision, routes/reload, assets, and unhandled page errors. Manage local
+      server lifecycle in the harness and start with a small predictable worker count.
+- [ ] When an interactive feature exists, exercise a meaningful user action and
+      assert its visible result. Add this with the feature rather than inventing an
+      interaction for the current placeholder or postponing the startup/API harness.
+- [ ] Retain failure screenshots, traces, and a readable report. Forbid focused
+      tests; bound retries and surface flaky passes rather than treating retries as
+      proof of health. Keep deployment retry policy separate from PR test policy.
+- [ ] Revise the permanent browser policy to distinguish checked current-stable
+      targets from aspirational previous-version/device coverage. Record exact browser
+      and OS versions; Playwright engines, branded browsers, emulation, and physical
+      Safari/iOS checks are different evidence. Promise only coverage that is performed.
+
+**Acceptance:** wrong API routing, a broken release base path, missing assets, or
+an unusable frontend fails PR validation even when API liveness is healthy. Three
+engine results are recorded; live hosting and manual accessibility remain separate.
+Sources: [Playwright servers](https://playwright.dev/docs/test-webserver),
+[browser coverage](https://playwright.dev/docs/browsers),
+[accessibility checks](https://playwright.dev/docs/accessibility-testing).
+
+### 17. Publish searchable documentation and checked examples
+
+- [ ] Build a DocFX site with its modern template from the existing Markdown.
+      Keep one source copy per document, generated HTML untracked, and concise
+      navigation for setup, contribution, architecture, testing, and operations.
+      Exclude this temporary plan from site content and navigation.
+- [ ] Add search and edit links, a PR site build, and checks of rendered local
+      links/anchors. Use appropriate failing diagnostic severities for broken content.
+      Keep external-link maintenance separate as described in step 14.
+- [ ] Configure publication from validated protected content when authorized,
+      and verify the actual hosted navigation, assets, search, and links. Do not treat
+      a successful local site build as publication acceptance.
+- [ ] Make the engine example from step 8 compile/run in CI and reuse its checked
+      content in tutorials. Add filtered public .NET API reference when meaningful
+      engine APIs exist; keep HTTP OpenAPI/Scalar documentation in its appropriate role.
+
+**Acceptance:** contributors can find supported setup and an executable example
+without maintaining a separate wiki or copied guides. Site build/link failures are
+actionable, and hosted acceptance is recorded separately. Custom branding and API
+generation do not block the first engine slice.
+Sources: [DocFX template](https://dotnet.github.io/docfx/docs/template.html),
+[.NET reference](https://dotnet.github.io/docfx/docs/dotnet-api-docs.html).
+
+### 18. Clarify branches and make release notes useful
+
+- [ ] Document protected `main`, short-lived branches, draft PRs, squash merges,
+      and deletion of merged branches in permanent contribution/release guidance.
+      Reserve `patch/vX.Y.Z` for the existing released-hotfix path and its merge-back.
+      Do not introduce a permanent `develop` branch without a demonstrated need.
+- [ ] Make `CHANGELOG.md` the canonical curated account of notable changes.
+      Prepare a reviewed entry before tagging, covering observable changes, breaking
+      behavior, and migration guidance; omit mechanical maintenance noise.
+- [ ] Feed the selected version's entry into the existing production release
+      workflow after deployment validation. Use its existing generated PR notes as
+      drafting material or supplemental references/credits, with `.github/release.yml`
+      categories based on actual PR labels. Avoid two separately maintained summaries.
+- [ ] Keep one owner of version numbers, tags, and publication. Do not bolt
+      Release Please or semantic-release onto the current deploy/smoke/tag contract.
+      Require descriptive PR titles; enforce commit grammar only if a chosen workflow
+      actually uses it. Preserve idempotency and patch-flow regression coverage.
+
+**Acceptance:** a contributor can select a branch/PR path, and a rehearsed release
+selects the correct reviewed changelog entry without changing tag timing or creating
+duplicate releases. Actual publication still requires release authorization.
+Sources: [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow),
+[Common Changelog](https://common-changelog.org/),
+[generated notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes).
+
+### 19. Align AI tooling and verify that it helps
+
+**Finding (2026-09-22):** documented Aspire CLI and AppHost SDK are 13.4.2 while
+the hosting package is 13.5.4. The vendored Aspire skills describe 13.4, and the
+dotnet-inspect guide derives from 0.5.0 without pinning the executable. Verified
+upstream candidates are [Aspire 13.5.4](https://github.com/microsoft/aspire/releases/tag/v13.5.4),
+[skills 0.0.2](https://github.com/microsoft/aspire-skills/releases/tag/v0.0.2)
+(describing 13.5.3), and [dotnet-inspect 0.25.0](https://github.com/richlander/dotnet-inspect/releases/tag/v0.25.0).
+These are update candidates, not proven compatible upgrades; recheck at execution.
+
+- [ ] Update the compatible CLI, AppHost SDK, skill bundle, and documented
+      commands together using [AI tooling maintenance](setup/ai-tooling.md). Preserve
+      source pins, licenses, checksums, local-only scope, and Compose production.
+      Review newly supplied hook/extension assets separately rather than enabling them.
+- [ ] Replace the long dotnet-inspect reference with the upstream entry point
+      that retrieves its installed tool's version-matched guide. Decide and document
+      how the optional executable is pinned/updated without making AI mandatory.
+- [ ] Keep AGENTS.md authoritative and concise; add client-specific adapters only
+      for supported clients that need them. Verify actual instruction/MCP discovery;
+      do not assume a configuration filename works in every client.
+- [ ] Add a read-only tool/version/provenance check and an owned review cadence
+      for pins not covered by Dependabot. Changes arrive as bounded reviewed updates,
+      not unpinned regeneration during build or routine agent work.
+- [ ] Rehearse two or three representative tasks after significant tooling
+      changes, checking commands, repository boundaries, reviewability, and truthful
+      evidence. Use a small manual checklist, not an agent-evaluation service.
+
+**Acceptance:** source checks and the normal gate pass, Windows Aspire startup
+and MCP discovery work on the selected toolchain, and supported clients load the
+intended guidance. Record runtime evidence separately from text provenance.
+Defer extra MCP servers, cloud environments, agent fleets, and repository plugins
+until a recurring workflow justifies them. Enforce permissions outside prompts too.
+Sources: [Codex instructions](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
+[Copilot support](https://docs.github.com/en/copilot/reference/custom-instructions-support).
+
+### 20. Enforce the remaining supply-chain boundaries
+
+**Finding:** secret scanning, push protection, private vulnerability reporting,
+and dependency security updates are already enabled. Full-SHA action references
+exist, but the GitHub setting requiring them was disabled at the audit.
+
+- [ ] Enable the repository's full-SHA action-pinning requirement and verify it
+      rejects an unpinned external action before execution. Keep declaration checks
+      as complementary coverage; review reusable-workflow policy separately.
+- [ ] Add PR dependency review with an explicit severity/triage policy. Cover npm
+      updates from step 3 and newly added tooling alongside existing NuGet updates;
+      check that resolved/transitive dependencies are visible to the chosen checks.
+- [ ] Keep fork-PR validation credential-free and read-only. Review privileged
+      workflow boundaries so untrusted PR code/artifacts are not executed with write
+      tokens or deployment credentials. Preserve protected-source deployment checks.
+- [ ] Scan the actual runtime container, including OS packages, with a pinned
+      scanner and an owned triage policy. Explain narrow exceptions and their review
+      date; avoid hiding old findings behind an unexplained permanent baseline.
+
+**Acceptance:** controlled policy/dependency/scan failures produce actionable
+results and block the intended path. Record actual GitHub setting and hosted PR
+behavior separately from local configuration tests. Extra scanners must cover a
+real gap rather than duplicate existing alerts.
+Sources: [Actions controls](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository),
+[dependency review](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review).
+
+## Later work with concrete adoption triggers
+
+### 21. Grow engine evidence with implemented behavior
+
+**Trigger:** replay, serialization, editing, import, or performance-sensitive
+behavior exists. The initial fixture and runnable example belong to steps 7-8.
+
+- [ ] Record fixture authorship, source, permitted use, and expected behavior.
+      Distinguish independently observed compatibility behavior from assumptions;
+      keep decompiled source and unapproved/private material out of implementation inputs.
+- [ ] Make reproducible bug reports possible with engine version, safe minimal
+      fixture, input sequence, expected result, and seed where relevant. Review/redact
+      diagnostic material before sharing; do not require private archived games.
+- [ ] Add property tests for actual invariants such as serialization round trips,
+      deterministic replay, and edit/undo. Use focused behavioral coverage rather than
+      an arbitrary repository-wide coverage percentage.
+- [ ] Fuzz importers and malformed inputs when an import format exists. Enforce
+      concrete file-size, decompression, path, and execution/resource limits at the
+      relevant boundary and retain minimized failing inputs as safe regressions.
+- [ ] Establish small repeatable performance baselines when engine workloads
+      justify them. Record environment and tolerances before gating regressions; avoid
+      broad benchmark infrastructure or speculative architecture-test frameworks.
+
+**Acceptance:** each added check proves an implemented contract, finds a deliberate
+violation, and produces a reproducible diagnostic. Document limitations and source
+provenance in permanent engine/testing guidance; never infer broad compatibility.
+
+### 22. Make operations and recurring automation actionable
+
+**Trigger:** a maintained public deployment exists, as it does now. Monitoring
+is current work; the separate backup/restore work begins before persistent
+user/project data is relied upon.
+
+- [ ] Add external uptime/API, certificate-expiry, and host-capacity monitoring
+      with a named recipient and a permanent response procedure. Alert on sustained
+      failure and recovery; do not rely solely on GitHub scheduled jobs for uptime.
+- [ ] Give every recurring automation an owner, purpose, cadence/cost or retention
+      limit, and expected failure action. Prefer bounded maintenance reports or PRs;
+      avoid unattended activity that exceeds available review capacity.
+- [ ] When persistent data arrives, document backup scope, retention, recovery
+      objectives, and ownership, then rehearse restoration in an isolated environment.
+      A successful backup job alone does not establish recoverability.
+
+**Acceptance:** a controlled failure reaches the intended operator and the runbook
+leads to a verified response. Data recovery has measured restore evidence when
+applicable. Setup, credentials, and operational rehearsals retain their normal
+authorization requirements; procedures and evidence live in permanent guides.
+
+### 23. Verify packages when distributing them
+
+**Trigger:** engine packages, binaries, or other downloadable release artifacts
+are offered to consumers beyond the in-repository application.
+
+- [ ] Install the produced package into a separate consumer project and exercise
+      its public example. Check dependencies, metadata, license notices, and debugging
+      information; successful in-solution project references are insufficient.
+- [ ] Attach checksums, an SBOM, and provenance attestations to the exact released
+      artifacts, and implement/document verification by consumers or deployment.
+      Generated attestations do not themselves establish correctness.
+- [ ] Evaluate immutable releases. Prepare a draft, attach all intended assets,
+      and publish through the single release owner; verify the policy for assets as
+      well as tags and preserve the existing release authorization boundary.
+
+**Acceptance:** an independent consumer uses the exact package, verifies its
+identity/provenance, and can trace it to source and validation. Release artifacts
+and permanent distribution instructions agree. Defer until distribution exists.
+Sources: [attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations),
+[immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases).
+
+## Completion and removal
+
+### 24. Retire this temporary plan
+
+- [ ] Confirm required near-term work has passed its acceptance checks. Resolve
+      pending hosted/manual evidence explicitly; do not equate local tests with it.
+- [ ] Move genuinely future, trigger-dependent work to durable issues with an
+      owner, trigger, and acceptance criteria, or record a reasoned decision not to
+      pursue it. Do not mark deferred work as implemented.
+- [ ] Ensure permanent setup, testing, browser, AI, release, and hosting guides
+      describe current behavior. Preserve useful decisions, source records, and
+      historical evidence there; ordinary readers must never need this plan.
+- [ ] Verify other tracked files, site navigation, and generated documentation
+      inputs contain no references to this file or its step numbers. Keep this rule
+      throughout implementation, not just at deletion time.
+- [ ] Delete this file in the completion PR and rerun the applicable documentation
+      build/link/reference checks. The Git history retains the completed plan.
+
+**Acceptance:** deleting this file loses no operational instructions, support
+contract, accepted decision, meaningful evidence, or actionable remaining work,
+and introduces no broken links. Historical rollout/rollback records belong in
+[hosting evidence](setup/hosting.md#recorded-deployment-evidence).

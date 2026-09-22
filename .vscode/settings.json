@@ -8,12 +8,11 @@
   "[razor]": {
     "editor.defaultFormatter": "ms-dotnettools.csharp"
   },
-  "[json]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
+  "[markdown][json][jsonc][yaml][css][javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[jsonc]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
+  "prettier.requireConfig": true,
+  "prettier.resolveGlobalModules": false,
   "cSpell.words": [
     "accessibilities",
     "apphost",

@@ -3,6 +3,9 @@
   <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.2" />
 
   <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Aspire restores host-specific dashboard and orchestration packages. -->
+    <NuGetLockFilePath>packages.$(NETCoreSdkRuntimeIdentifier).lock.json</NuGetLockFilePath>
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
     <!-- Keep NuGet-restored orchestration dependencies for IDE and CI builds.

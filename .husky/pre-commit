@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# Husky generates this bootstrap only when a contributor opts into hooks.
+# shellcheck source=/dev/null
 . "$(dirname -- "$0")/_/husky.sh"
 
 dotnet husky run --group pre-commit

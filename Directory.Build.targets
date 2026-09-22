@@ -4,4 +4,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- NuGet can create an absent lock even in locked mode; CI must require it. -->
+  <Target Name="RequireCommittedNuGetLockFile" BeforeTargets="Restore;CollectPackageReferences"
+          Condition="'$(RestoreLockedMode)' == 'true' and '$(RestorePackagesWithLockFile)' == 'true'">
+    <PropertyGroup>
+      <_RequiredNuGetLockFile Condition="'$(NuGetLockFilePath)' == ''">packages.lock.json</_RequiredNuGetLockFile>
+      <_RequiredNuGetLockFile Condition="'$(NuGetLockFilePath)' != ''">$(NuGetLockFilePath)</_RequiredNuGetLockFile>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_RequiredNuGetLockFile)')"
+           Text="Missing dependency lockfile '$(_RequiredNuGetLockFile)' for $(MSBuildProjectName). Restore the committed file, or refresh and review lockfiles using docs/setup/development.md." />
+  </Target>
+
 </Project>

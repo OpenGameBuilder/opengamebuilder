@@ -10,11 +10,11 @@ fi
 environment="$1"
 profile="$2"
 case "$environment:$profile" in
-  staging:staging|production:production|staging:shared|production:shared) ;;
-  *)
-    echo "EDGE_PROFILE must be explicitly set to '$environment' or 'shared' for a staging or production deployment environment." >&2
-    exit 1
-    ;;
+staging:staging | production:production | staging:shared | production:shared) ;;
+*)
+  echo "EDGE_PROFILE must be explicitly set to '$environment' or 'shared' for a staging or production deployment environment." >&2
+  exit 1
+  ;;
 esac
 
 check_production=false

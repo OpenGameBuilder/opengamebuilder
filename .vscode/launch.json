@@ -37,10 +37,7 @@
   "compounds": [
     {
       "name": "Launch All (API + Web)",
-      "configurations": [
-        "Launch API",
-        "Launch Web (Blazor WASM)"
-      ],
+      "configurations": ["Launch API", "Launch Web (Blazor WASM)"],
       "stopAll": true,
       "presentation": {
         "hidden": false,

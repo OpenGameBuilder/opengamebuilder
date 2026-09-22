@@ -2,16 +2,20 @@
 
 ## Supported environment and prerequisites
 
-The supported editor workflow in this guide is **Windows 11**, using PowerShell
+The supported editor workflow in this guide is **Windows 11**, using
+[PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)
 with either Visual Studio 2026 or VS Code. Linux, macOS, and WSL development are
 not yet validated by this guide; Linux CI builds do not establish editor or
 browser-certificate support on those platforms.
 
+- [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows),
+  invoked as `pwsh`.
 - [Git for Windows](https://git-scm.com/download/win).
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), version
-  **10.0.401 or a compatible later 10.0 feature band**, as selected by
-  [`global.json`](../../global.json). Run `dotnet --version` from the repository
-  root to check the selected SDK. Update Visual Studio if its bundled SDK is older.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), exactly
+  **10.0.401**, as selected by [`global.json`](../../global.json). The repository
+  disables SDK roll-forward and prerelease selection so a different feature band
+  is a setup failure, not a substitute. Update Visual Studio if its bundled SDK
+  is older.
 - **Aspire CLI 13.4.2**, the version used for this workflow and the AppHost SDK.
   The SDK and hosting package are separately versioned in the
   [AppHost project](../../src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj)
@@ -24,6 +28,7 @@ browser-certificate support on those platforms.
   ```
 
   Reopen the terminal after installation if `aspire` is not on `PATH`.
+
 - Microsoft Edge or Google Chrome for Blazor WebAssembly debugging.
 - For Visual Studio: **[Visual Studio 2026](https://visualstudio.microsoft.com/vs/)**
   (Community is fine), with **ASP.NET and web development**. The repository's
@@ -37,8 +42,10 @@ development server. **Docker, a database, production credentials, and Discord
 access are not required.** Aspire is the local launcher, not the production
 deployment mechanism.
 
-When updating the SDK requirement in `global.json`, keep the API Dockerfile's
-SDK image compatible. CI builds the API image without pushing it.
+When updating the SDK requirement in `global.json`, review the compatible pinned
+SDK image in the API Dockerfile and the generated dependency lockfiles together.
+Dependabot SDK updates are reviewed with those files; CI builds the API image
+without pushing it.
 
 ## Command-line workflow (start here)
 
@@ -47,8 +54,33 @@ Clone the repository, then run the remaining commands from its root:
 ```pwsh
 git clone https://github.com/OpenGameBuilder/opengamebuilder.git
 Set-Location opengamebuilder
-dotnet --version
-aspire --version
+pwsh ./scripts/doctor.ps1
+pwsh ./scripts/check.ps1 quick
+```
+
+`doctor.ps1` is a read-only prerequisite report. Its default `development`
+scope reports PowerShell, the SDK, Aspire CLI, Git, and Bash with their remedies;
+it does not install tools, trust certificates, start services, or open a browser.
+Use `-Scope quick`, `full`, `content`, `format`, `browser`, or `development` when checking a narrower
+workflow.
+
+The normal solution gate is `pwsh ./scripts/check.ps1 quick`: it runs the quick
+doctor check, a locked restore, C# formatting verification, a Release build, and
+the current 72 solution tests. `check.ps1 format` verifies C# after locked restore
+and checks first-party content with Prettier and shfmt. To apply formatter changes
+deliberately, run `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
+Install the [content-checking prerequisites](../quality/content-checks.md) before
+using `format`, `content`, or `full`:
+
+```pwsh
+npm ci --ignore-scripts
+pwsh ./scripts/install-content-tools.ps1
+pwsh ./scripts/check.ps1 content
+```
+
+The initial browser-debugging setup is an explicit, interactive operation:
+
+```pwsh
 dotnet dev-certs https --trust
 dotnet dev-certs https --check --trust
 ```
@@ -59,16 +91,6 @@ connections. See Microsoft's
 [development certificate guidance](https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate)
 if the check fails.
 
-Restore, check formatting, build, and test before starting services:
-
-```pwsh
-dotnet restore opengamebuilder.slnx
-dotnet format opengamebuilder.slnx --verify-no-changes --no-restore
-dotnet build opengamebuilder.slnx --configuration Debug --no-restore
-dotnet build opengamebuilder.slnx --configuration Release --no-restore
-dotnet test --solution opengamebuilder.slnx --configuration Release --no-build
-```
-
 Ordinary builds do not restore local tools or install Git hooks. The formatter
 ships with the .NET SDK; no Husky installation is needed for these checks.
 CI and shared deployment validation run the same formatting verification with
@@ -77,6 +99,39 @@ CI and shared deployment validation run the same formatting verification with
 Tests use Microsoft.Testing.Platform, selected in `global.json`. To run only one
 test project, replace `--solution opengamebuilder.slnx` with, for example,
 `--project tests\OpenGameBuilder.Api.Tests\OpenGameBuilder.Api.Tests.csproj`.
+
+Direct `dotnet restore`, `build`, `test`, and `format` commands remain useful for
+focused editor work. Use `--locked-mode` for a manual restore that must reproduce
+the committed graph. After an intentional SDK or
+[`Directory.Packages.props`](../../Directory.Packages.props) change, refresh
+locks with:
+
+```pwsh
+dotnet restore opengamebuilder.slnx --force-evaluate -p:RestoreLockedMode=false
+```
+
+Review every generated lockfile and run the full check before committing. See
+[NuGet's lock-file documentation](https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies)
+for the restore model. The API, Web Client, and two test entry points commit
+`packages.lock.json`; shared-library locks cannot constrain the graph selected
+by a downstream consuming application, so shared libraries do not duplicate
+them. The AppHost's implicit SDK packages vary by host, so it commits reviewed
+`packages.win-x64.lock.json` and `packages.linux-x64.lock.json` baselines. For an
+intentional dependency refresh, update the native graph with the solution command
+above, then refresh the Linux AppHost graph and confirm the native graph remains
+locked:
+
+```pwsh
+dotnet restore src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj --force-evaluate -p:RestoreLockedMode=false -p:NETCoreSdkRuntimeIdentifier=linux-x64 -m:1
+dotnet restore opengamebuilder.slnx --locked-mode
+```
+
+Refresh each AppHost lock on its matching host, or review an explicit
+cross-target restore as above. A new host platform needs its own reviewed
+AppHost lock before it is supported. `Directory.Build.targets` rejects a missing
+entry-point lock before a locked restore can create one; `--locked-mode` then
+rejects stale dependency graphs. CI restores with `--locked-mode`, and packaging's
+implicit restore is locked as well.
 
 The root `NuGet.Config` deliberately has one source, `nuget.org`, and clears
 both inherited package sources and inherited package-source mappings. Its `*`
@@ -109,13 +164,13 @@ For a background session instead, use `aspire start`, `aspire wait api`,
 
 ### Expected endpoints and success check
 
-| Endpoint | Purpose |
-| --- | --- |
-| `https://localhost:7001` | Frontend; the home heading shows `OpenGameBuilder <version> (Development)` after loading |
-| `https://localhost:7000/api/about` | Application name, version, and API environment JSON |
-| `https://localhost:7000/api/alive` | API liveness |
-| `https://localhost:7000/scalar` | Interactive API documentation (Development only) |
-| `https://localhost:17170` | Aspire dashboard with the default HTTPS profile; use the login URL printed by the launcher |
+| Endpoint                           | Purpose                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `https://localhost:7001`           | Frontend; the home heading shows `OpenGameBuilder <version> (Development)` after loading   |
+| `https://localhost:7000/api/about` | Application name, version, and API environment JSON                                        |
+| `https://localhost:7000/api/alive` | API liveness                                                                               |
+| `https://localhost:7000/scalar`    | Interactive API documentation (Development only)                                           |
+| `https://localhost:17170`          | Aspire dashboard with the default HTTPS profile; use the login URL printed by the launcher |
 
 HTTP bindings also exist at `http://localhost:5000` (API) and
 `http://localhost:5001` (web); use **HTTPS** for this workflow. The AppHost profile
@@ -195,6 +250,56 @@ load its application information. Stop the compound to stop both debuggers.
 In Visual Studio, use **Configure Startup Projects** to select the API and web
 client for a local multiple-startup configuration instead of the shared Aspire
 profile. Keep their named project launch profiles and the fixed ports above.
+The web client supports the project profile only; there is no IIS Express profile.
+
+### Verify editor debugging from a fresh checkout
+
+Use a fresh checkout without copied `.vs`, `bin`, `obj`, or user settings, and
+complete the prerequisites and command-line checks above. Rehearse each editor
+separately, stopping the previous stack before starting the next one.
+
+1. In Visual Studio, open the solution and select **Aspire** as described above.
+   In VS Code, open the repository root and select **Launch All (API + Web)**.
+2. Set an API breakpoint in `AboutController.Get` in
+   [`AboutController.cs`](../../src/OpenGameBuilder.Api/Controllers/AboutController.cs)
+   and a frontend breakpoint on the `_title` assignment immediately after
+   `await Client.GetAboutAsync()` in
+   [`Home.razor.cs`](../../src/OpenGameBuilder.Web.Client/Pages/Home.razor.cs).
+3. Press F5. Use the debugger's Edge or Chrome window, rather than an unrelated
+   browser tab, and confirm the API and browser debug sessions attach. Open
+   `https://localhost:7001`, confirm that the API breakpoint is hit, and continue.
+   Blazor's debug proxy can start after the first page's `OnInitializedAsync`
+   has run, so an initial missed frontend breakpoint is inconclusive. Retry
+   after the browser debugger is ready and record whether the frontend
+   breakpoint is hit; see [Microsoft's Blazor debugging guidance](https://learn.microsoft.com/aspnet/core/blazor/debug?view=aspnetcore-10.0#debug-a-blazor-webassembly-app-in-an-ide).
+4. Continue execution and perform the browser success check above: the API
+   request returns 200 and the home heading displays the Development version.
+5. Stop debugging and confirm both application processes stop before switching
+   editors or launch methods.
+
+Record the source revision, Windows/editor/browser versions, launch profile,
+breakpoint results, and browser request result. Build and CLI startup checks
+alone do not establish F5, debugger attachment, or fresh-editor acceptance.
+
+### Recorded setup verification
+
+On 2026-09-22, a fresh local clone of `5c5fdbaf0930db009d4d9c6a3f3ee5644a689d60`
+with the contributor-guidance, web launch-profile, and startup-HTML repairs was
+opened without copied editor state or build outputs. The host was Windows 11
+(build 26200), with .NET SDK 10.0.401, Aspire CLI 13.4.2, and an already trusted
+development certificate. No Docker or production credentials were needed.
+
+| Check                                                         | Result                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Solution validation in the working checkout                   | Restore, format verification, Release build (zero warnings), and all 72 tests passed; frontend Release publish and the portability guard also passed.                                                                                                             |
+| Visual Studio Insiders 18.11.12210.170, shared Aspire profile | F5 built and started the fresh clone; Aspire reported both resources healthy. A browser request hit `AboutController.Get`, and continuing displayed `OpenGameBuilder 0.11.0 (Development)` in Chrome 153.0.8010.53.                                               |
+| VS Code 1.138.0, Launch All (API + Web)                       | F5 started both projects. Reloading the launched Edge page hit `AboutController.Get` in VS Code; the frontend displayed the Development heading.                                                                                                                  |
+| Remaining editor acceptance                                   | The frontend `Home.OnInitializedAsync` breakpoint was not hit in the externally opened Visual Studio Chrome tab. Full Blazor breakpoint verification in each editor's debugger-owned browser remains open; neither API debugging nor the heading alone proves it. |
+
+The fresh clone's initial CLI restore hit a local NuGet scratch-lock access error;
+Visual Studio subsequently restored and built it successfully. This records a
+rehearsal on an existing development machine, not a clean-machine installation.
+Repeat the debugger procedure above when closing the remaining editor acceptance.
 
 ## Formatting, warnings, and optional Git hooks
 
@@ -231,6 +336,8 @@ dotnet husky install
 ```
 
 The hook formats staged C# files using the same solution and formatting rules.
+For staged content files it also runs the shared first-party content check against
+the working tree, including unstaged work, without rewriting or staging content.
 Review any resulting changes before committing. If `HUSKY=0` is set in your
 terminal, remove that setting before opting in. To disable hook execution
 temporarily in PowerShell, set `$env:HUSKY = '0'`; use
