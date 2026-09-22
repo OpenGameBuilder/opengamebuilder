@@ -115,12 +115,12 @@ web_sha="$(manifest_value "$manifest" WEB_SHA256)"
 [[ "$web_sha" =~ ^[0-9a-f]{64}$ ]] || die 'invalid web checksum'
 echo "$web_sha  $incoming/web-release.tar.gz" | sha256sum --check --status || die 'web archive checksum mismatch'
 
-docker network inspect ogb-edge >/dev/null || die 'shared edge network is missing'
+docker network inspect ogb-edge >/dev/null || die 'host edge network is missing'
 mapfile -t proxy_networks < <(
   docker network inspect ogb-edge \
     --format '{{range .IPAM.Config}}{{if .Subnet}}{{println .Subnet}}{{end}}{{end}}'
 )
-[[ "${#proxy_networks[@]}" -gt 0 ]] || die 'shared edge network has no configured subnet'
+[[ "${#proxy_networks[@]}" -gt 0 ]] || die 'host edge network has no configured subnet'
 printf -v trusted_proxy_networks '%s;' "${proxy_networks[@]}"
 trusted_proxy_networks="${trusted_proxy_networks%;}"
 

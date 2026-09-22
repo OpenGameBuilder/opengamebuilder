@@ -213,13 +213,20 @@ waiting jobs, `main`-only is not an absolute restriction against an administrato
 Revisit self-review and bypass when a second trusted release operator exists.
 
 Each environment holds only its own `DEPLOY_HOST`, `DEPLOY_USER`, and
-`DEPLOY_SSH_KEY` secrets, plus a `DEPLOY_KNOWN_HOSTS` environment variable.
-The variable contains the complete OpenSSH `known_hosts` entry for that
+`DEPLOY_SSH_KEY` secrets, plus `DEPLOY_KNOWN_HOSTS` and `EDGE_PROFILE` environment
+variables. The hosts and accounts may be the same or different. Set `EDGE_PROFILE`
+explicitly: `shared` in both environments for a shared server, or `staging` and
+`production` respectively for separate servers. There is no default. The edge
+workflow selects the environment whose credentials to use; a shared edge or
+profile migration requires production approval. See
+[host profiles and migration](hosting.md#host-edge-changes).
+`DEPLOY_KNOWN_HOSTS` contains the complete OpenSSH `known_hosts` entry for that
 environment's `DEPLOY_HOST`; the public host key is configuration, not a secret.
 Follow the [deployment host-key guide](deployment-host-key.md) to read the public
 key through an existing SSH connection that strictly checks a saved, trusted
-server key, construct the entry, set both environment variables, and read them
-back. This carries forward the administrator's existing trust decision; it is
+server key, construct the entry, set the selected environment's host-key variable,
+and read it back. Repeat for the other environment and its host. This carries
+forward the administrator's existing trust decision; it is
 not independent verification of an unverified first connection. A provider
 console or another authenticated independent channel is needed when the saved
 key is missing, changed without explanation, or untrusted. Do not populate the

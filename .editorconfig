@@ -188,3 +188,8 @@ indent_size = 2
 end_of_line = lf
 [*.{cmd,bat}]
 end_of_line = crlf
+
+# Caddy's formatter uses tabs for site blocks.
+[Caddyfile*]
+indent_style = tab
+end_of_line = lf

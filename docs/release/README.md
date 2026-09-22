@@ -9,6 +9,12 @@ workflows you need to know about:
 | 🚀 **CD Production** | Manually dispatched (usually from `main`) with a `ref` input | Validate, build, test, deploy to production, smoke test, tag, release, follow-up PR |
 | 🩹 **Prepare Patch** | Manually dispatched                                | Create `patch/vX.Y.(Z+1)` branch and a version-bump PR off the latest tag   |
 
+Host infrastructure is separate: **🌐 CD Edge** updates the selected host's
+explicit edge profile, not an application release. Staging and production may
+use separate hosts and SSH keys. Configure their `EDGE_PROFILE` variables before
+deploying; see [hosting setup](../setup/hosting.md). Shared-host staging keeps
+the production-health guard; isolated staging has no production dependency.
+
 The single source of truth for the version is `<VersionPrefix>` in
 `Directory.Build.props`. See [versioning.md](./versioning.md).
 
