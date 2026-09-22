@@ -406,21 +406,25 @@ This step does not block engine development or justify further deployment expans
 - [x] Replace accidental SDK drift from `global.json`'s `latestMinor` roll-forward
       with a deliberate supported baseline for formatting, analyzers, and builds.
       Log the selected SDK and update it through reviewed dependency changes.
-- [x] Introduce committed NuGet lockfiles for application entry points and locked
+- [x] Introduce committed NuGet lockfiles for shipped application entry points and locked
       CI restores after SDK selection is settled. Keep npm tools exactly pinned with
       committed lockfiles. Document how intentional dependency updates refresh them;
       a library lockfile does not constrain downstream consumers.
 
 **Acceptance:** a clean checkout runs the documented commands with the declared
-toolchain. Missing prerequisites produce useful diagnostics, CI rejects dependency
-drift, and local/CI checks have equivalent scope. A fresh editor rehearsal remains
+toolchain. Missing prerequisites produce useful diagnostics, CI rejects missing
+or stale shipped-application locks, and local/CI checks have equivalent scope. A fresh editor rehearsal remains
 the separate acceptance in step 5. See [NuGet lockfiles](https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files#locking-dependencies).
 
 **Result (2026-09-22):** The read-only doctor and shared formatting, quick, full,
 and browser commands are documented in [development setup](setup/development.md)
-and used by CI. SDK selection is exact; application and test entry points have
-committed locks, including separate Windows/Linux AppHost graphs. Locked restores
-also cover CodeQL and packaging. A fresh source snapshot passed the full local
+and used by CI. SDK selection is exact; the shipped API and Web Client have
+committed locks covering CI, CodeQL, and packaging. Tests and the local-only
+AppHost restore normally and remain in the solution build/test gates; their
+transitive dependency graphs are not frozen. This avoids maintaining custom
+platform locks or a bot that repairs dependency PRs; see the
+[dependency-update rationale](quality/dependency-update-research.md).
+A fresh source snapshot passed the full local
 gate with serialized MSBuild: zero build warnings, 72 tests, frontend packaging,
 smoke-package checks, and all five shell suites. Missing prerequisites, incorrect
 versions, and missing/stale dependency locks were rejected. The

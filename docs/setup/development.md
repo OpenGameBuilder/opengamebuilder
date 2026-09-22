@@ -43,9 +43,9 @@ access are not required.** Aspire is the local launcher, not the production
 deployment mechanism.
 
 When updating the SDK requirement in `global.json`, review the compatible pinned
-SDK image in the API Dockerfile and the generated dependency lockfiles together.
-Dependabot SDK updates are reviewed with those files; CI builds the API image
-without pushing it.
+SDK image in the API Dockerfile and the two shipped-application dependency
+lockfiles together. Dependabot SDK updates are reviewed with those files; CI
+builds the API image without pushing it.
 
 ## Command-line workflow (start here)
 
@@ -65,10 +65,13 @@ Use `-Scope quick`, `full`, `content`, `format`, `browser`, or `development` whe
 workflow.
 
 The normal solution gate is `pwsh ./scripts/check.ps1 quick`: it runs the quick
-doctor check, a locked restore, C# formatting verification, a Release build, and
-the current 72 solution tests. `check.ps1 format` verifies C# after locked restore
-and checks first-party content with Prettier and shfmt. To apply formatter changes
-deliberately, run `pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
+doctor check, a solution restore with `--locked-mode`, C# formatting
+verification, a Release build, and the current 72 solution tests. That restore
+enforces the committed API and Web Client graphs; tests and the local-only
+AppHost do not opt into lockfiles and resolve dependencies normally.
+`check.ps1 format` verifies C# after the same restore and checks first-party
+content with Prettier and shfmt. To apply formatter changes deliberately, run
+`pwsh ./scripts/check.ps1 format -Fix`, then review the diff.
 Install the [content-checking prerequisites](../quality/content-checks.md) before
 using `format`, `content`, or `full`:
 
@@ -102,36 +105,29 @@ test project, replace `--solution opengamebuilder.slnx` with, for example,
 
 Direct `dotnet restore`, `build`, `test`, and `format` commands remain useful for
 focused editor work. Use `--locked-mode` for a manual restore that must reproduce
-the committed graph. After an intentional SDK or
+the shipped applications' committed graphs. After an intentional SDK or
 [`Directory.Packages.props`](../../Directory.Packages.props) change, refresh
-locks with:
+those locks with:
 
 ```pwsh
 dotnet restore opengamebuilder.slnx --force-evaluate -p:RestoreLockedMode=false
 ```
 
-Review every generated lockfile and run the full check before committing. See
+Review any lockfile changes and run the full check before committing. See
 [NuGet's lock-file documentation](https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies)
-for the restore model. The API, Web Client, and two test entry points commit
+for the restore model. The shipped API and Web Client entry points each commit
 `packages.lock.json`; shared-library locks cannot constrain the graph selected
 by a downstream consuming application, so shared libraries do not duplicate
-them. The AppHost's implicit SDK packages vary by host, so it commits reviewed
-`packages.win-x64.lock.json` and `packages.linux-x64.lock.json` baselines. For an
-intentional dependency refresh, update the native graph with the solution command
-above, then refresh the Linux AppHost graph and confirm the native graph remains
-locked:
+them. Tests and the local-only AppHost use normal dependency resolution, so
+their transitive graphs can change between restores. This gives up fixed
+development-only graphs while retaining Central Package Management, exact SDK
+selection, and locked shipped-application restore and packaging.
 
-```pwsh
-dotnet restore src/OpenGameBuilder.AppHost/OpenGameBuilder.AppHost.csproj --force-evaluate -p:RestoreLockedMode=false -p:NETCoreSdkRuntimeIdentifier=linux-x64 -m:1
-dotnet restore opengamebuilder.slnx --locked-mode
-```
-
-Refresh each AppHost lock on its matching host, or review an explicit
-cross-target restore as above. A new host platform needs its own reviewed
-AppHost lock before it is supported. `Directory.Build.targets` rejects a missing
-entry-point lock before a locked restore can create one; `--locked-mode` then
-rejects stale dependency graphs. CI restores with `--locked-mode`, and packaging's
-implicit restore is locked as well.
+[`Directory.Build.targets`](../../Directory.Build.targets) rejects a missing
+lock for an opted-in project before a locked restore can create one;
+`--locked-mode` then rejects stale API or Web Client graphs. CI restores the
+whole solution with `--locked-mode`, and packaging's implicit restore is locked
+as well. No host-specific AppHost lock or lock refresh is required.
 
 The root `NuGet.Config` deliberately has one source, `nuget.org`, and clears
 both inherited package sources and inherited package-source mappings. Its `*`

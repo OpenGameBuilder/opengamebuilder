@@ -94,7 +94,11 @@ it cannot silently skip validation. The selector logs the paths and decision.
 | Documentation | Ubuntu runs `check.ps1 content`: first-party formatting, lint, workflow/shell checks, and all local Markdown links/anchors. Checking all documents catches backlinks broken by deletions or renames. No solution build or container runs. |
 | Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full`, then builds and checks the API container.                                                                   |
 
-Both platforms build the AppHost with their committed platform-specific locks.
+Both platforms restore and build the entire solution, including the AppHost,
+and run both test projects. Only the shipped API and Web Client have committed
+NuGet locks. Tests and the local-only AppHost resolve their dependencies normally;
+their transitive graphs are not frozen. See the
+[lockfile policy](../setup/development.md#command-line-workflow-start-here).
 The shared action installs the exact SDK in a fresh runner-temporary directory
 using [`DOTNET_INSTALL_DIR`](https://github.com/actions/setup-dotnet#environment-variables).
 This prevents preinstalled Visual Studio workload manifests from selecting an
@@ -269,18 +273,37 @@ locked restore, format verification, a Release build with zero warnings, all 72
 dependencies and syntax, and all five isolated shell suites. The serialized
 option avoided a Windows MSBuild task-host failure; it did not omit checks.
 
-Both Windows and Linux AppHost graphs passed locked restore; the Linux graph was
-selected explicitly on Windows, not executed on a Linux host. Deliberately
-missing entry-point locks and changed package requirements stopped the shared
-quick command at restore, before build. Doctor fixtures rejected a missing SDK,
+Deliberately missing shipped-application locks and changed package requirements
+stop restore before build. Doctor fixtures rejected a missing SDK,
 wrong SDK selection/policy, Node 24, and non-exact or mismatched Playwright pins.
 Missing smoke URL inputs failed before launching Chromium. PowerShell/YAML
 parsing, changed documentation targets/anchors, and diff checks passed.
 
-The shared commands and workflow wiring have local evidence. Hosted `build-test`,
-CodeQL, Docker image packaging, and live browser smoke after these changes remain
-unverified. No services, deployments, certificate trust changes, or editor
-rehearsals were performed for this validation.
+These were local command checks. Later hosted platform evidence is recorded in
+[platform CI acceptance](#recorded-platform-ci-acceptance). No services,
+deployments, certificate trust changes, or editor rehearsals were performed for
+this local validation.
+
+### Shipped-application lock policy validation
+
+The narrower policy was tested against a fresh copy of the failing
+[PR #115 CI revision](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35745905146/job/106807351851)
+with its OpenTelemetry 1.19.1 update. Removing the test and AppHost lock opt-ins
+and their four locks made solution restore pass with both Windows and
+Linux-selected SDK RIDs. These restores ran on Windows; they are not Linux-host
+execution evidence. The same snapshot passed `check.ps1 quick -Serial`, including
+format verification, a Release build with zero warnings, and all 72 tests.
+
+The implementation also passed `check.ps1 full -Serial` locally: the solution
+gate, content checks and regressions, frontend publish/portability checks,
+smoke-package checks, and all five isolated shell suites. Both committed
+production lockfiles remained unchanged.
+
+Missing API and Web Client locks were each rejected before restore could
+regenerate them. A deliberately stale API dependency was rejected with NU1004.
+No test or AppHost lockfiles were regenerated. These checks verify that the
+shipped applications retain their lock guards while development graphs restore
+normally; they do not guarantee that every future Dependabot update succeeds.
 
 ### Browser-smoke dependency updates
 
