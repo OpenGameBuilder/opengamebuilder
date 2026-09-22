@@ -39,6 +39,29 @@ source to a commit; tags, arbitrary SHAs, and unprotected branches are rejected.
 The workflow rejects non-`main` dispatches before source resolution. See
 [deployment authority](../setup/github.md#deployment-authority-and-recovery).
 
+## Curated release notes
+
+[`CHANGELOG.md`](../../CHANGELOG.md) is the curated account of notable changes.
+Keep an `Unreleased` section for observable application, contributor, and operator
+changes. Include breaking behavior and migration or configuration steps where
+needed; leave out mechanical dependency and formatting noise. Published releases
+before this changelog remain documented in GitHub Releases.
+
+Before dispatching a production release, review the entry against the selected
+source and version in `Directory.Build.props`, then replace `Unreleased` with that
+version and its planned release date in the release-source PR. A patch entry
+belongs on its patch branch and returns to `main` through the existing merge-back.
+A changelog heading records prepared notes, not proof that deployment succeeded;
+GitHub Releases records publication.
+
+The current workflow still generates GitHub Release notes from PRs; it does not
+read the changelog. After successful publication, the release maintainer copies
+the selected version's curated entry into the release body, retaining generated
+PR links as supplemental references or credits. Correct the entry here first
+when updating the published summary so there is one maintained account. This
+manual notes step does not change deployment validation, tag timing, version
+ownership, or the requirement for release authorization.
+
 ## Standard release (X.Y.0)
 
 1. `main` already has `<VersionPrefix>X.Y.0</VersionPrefix>` (set by the

@@ -219,26 +219,45 @@ acceptance; the full editor item remains unchecked.
 **Finding:** root placeholders, unused configuration, template examples, and
 repeated contributor prose still create maintenance work without current benefit.
 
-- [ ] Remove or give a useful contributors pointer to `CONTRIBUTORS.md`. Replace
+- [x] Remove or give a useful contributors pointer to `CONTRIBUTORS.md`. Replace
   the empty `CHANGELOG.md` with the curated release process in step 18.
-- [ ] Remove `.browserslistrc` while it has no consumer and update its references.
+- [x] Remove `.browserslistrc` while it has no consumer and update its references.
   Keep the actual [browser policy and acceptance matrix](frontend/browser-support.md).
-- [ ] Remove unused gRPC/Azure/service-discovery examples, unused Bootstrap/form
+- [x] Remove unused gRPC/Azure/service-discovery examples, unused Bootstrap/form
   CSS, and stale template hints. Shorten AppHost history while retaining the
   explanation of its current fixed-port, CORS, and launch-profile constraints.
-- [ ] Consolidate significant-change guidance in CONTRIBUTING. Keep SUPPORT
+- [x] Consolidate significant-change guidance in CONTRIBUTING. Keep SUPPORT
   focused on choosing a contact route; link policies and forms instead of repeating
   them. Retain short source-material/privacy reminders at submission points.
-- [ ] Replace local reunion rosters and unowned forum-reconstruction plans with
+- [x] Replace local reunion rosters and unowned forum-reconstruction plans with
   useful pointers to the owning archive/community location. Preserve substantive
   material until an appropriate destination is agreed.
-- [ ] Finish the reviewed shared-resource move tracked by [issue #56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56)
+- [x] Finish the reviewed shared-resource move tracked by [issue #56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56)
   and [organization PR #1](https://github.com/OpenGameBuilder/.github/pull/1), then
   replace the temporary shared-content pointer. Recheck their status first.
 
 **Acceptance:** no empty promises or unused declarations remain in scope, and all
 affected local paths/anchors resolve. Code/style removal preserves existing
 behavior. Record cross-repository completion separately from local cleanup.
+
+**Result (2026-09-22):** Root contributor and changelog placeholders now provide
+useful contributor links and a [curated release-note process](release/README.md#curated-release-notes).
+Unused browser configuration, template examples, and form styles are removed;
+contribution/support guidance is consolidated. Community/archive pointers retain
+the historical roster at an existing public revision without claiming current
+membership or promising forum reconstruction. The
+[local cleanup checks](quality/testing.md#frontend-asset-cleanup-evidence) passed,
+including the solution gate, 72 tests, frontend publish, configuration guard,
+and local documentation paths/anchors. No new browser acceptance was performed.
+
+Cross-repository result: [organization PR #1](https://github.com/OpenGameBuilder/.github/pull/1)
+was merged after standards and scope reviews found no issues; all 211 original
+external links, the source license, and local links were verified. Its published
+resources tree matches the reviewed revision, and the documentation index now
+links to `main/resources`. [Issue #56](https://github.com/OpenGameBuilder/opengamebuilder/issues/56)
+remains open until the application-side removal and pointer changes reach `main`;
+these local changes have not been published. Automated changelog selection for
+releases remains in step 18.
 
 ## Phase 3: Deliver the first engine slice
 

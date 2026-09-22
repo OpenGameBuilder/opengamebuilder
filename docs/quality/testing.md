@@ -26,6 +26,18 @@ only its own production references and additional dependencies. Package versions
 remain in [`Directory.Packages.props`](../../Directory.Packages.props), and the
 same compiler warnings-as-errors policy applies to tests and production code.
 
+## Frontend asset cleanup evidence
+
+On 2026-09-22, source inspection found no consumers for the removed form-validation,
+Bootstrap placeholder, or `code` styles in
+[`app.css`](../../src/OpenGameBuilder.Web.Client/wwwroot/css/app.css).
+Loading and error styles remain. C# and startup HTML changes were limited to
+comments; active service defaults, endpoints, and launch profiles were preserved.
+Restore, format verification, Release build (zero warnings), all 72 .NET tests,
+frontend Release publish, and the published-configuration guard passed. Local
+documentation paths and anchors also resolved. This establishes local cleanup
+and packaging evidence, not a new browser or accessibility acceptance result.
+
 ## CodeQL build coverage
 
 The repository-owned [CodeQL workflow](../../.github/workflows/codeql.yml) traces

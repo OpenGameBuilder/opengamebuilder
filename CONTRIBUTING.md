@@ -37,22 +37,8 @@ tracks work, including the `Triage` status; triage is not an issue label.
 
 For small fixes, documentation improvements, typo fixes, straightforward bugs, and focused cleanup, feel free to open a pull request.
 
-For larger changes, please open an issue or
-[GitHub Discussion](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
-first. Use Discussions for exploratory questions and ideas; private Discord
-access is not required to contribute. This is especially important for changes involving:
-
-- major architecture;
-- game runtime behavior;
-- editor behavior;
-- public APIs;
-- data formats;
-- compatibility decisions;
-- licensing;
-- governance;
-- community or moderation policy.
-
-This helps avoid wasted work and gives maintainers a chance to discuss the direction before implementation starts.
+For larger changes, follow [Significant Changes](#significant-changes) before
+implementation. Private Discord access is not required to contribute.
 
 ## Development Setup
 
@@ -73,7 +59,8 @@ for the required validation commands and
 [formatting and optional hooks](docs/setup/development.md#formatting-warnings-and-optional-git-hooks)
 for applying fixes or enabling the pre-commit hook.
 
-Please keep changes consistent with the existing style and project structure. When future coding standards or architecture documentation are added, contributors should follow those documents as well.
+Keep changes consistent with the existing style and
+[project boundaries](docs/README.md#repository-map).
 
 Before opening a pull request, please make sure the project builds and tests pass locally when practical. CI/CD also runs tests for pull requests and protected branches.
 
@@ -123,11 +110,17 @@ Draft pull requests are welcome when you want early feedback.
 
 ## Significant Changes
 
-Significant changes should usually be discussed before implementation.
+Discuss significant changes before implementation. This includes project
+direction, architecture, game runtime or editor behavior, compatibility, public
+APIs, data formats, releases, licensing, archival policy, contributor expectations,
+governance, and community or moderation policy.
 
-A change is significant if it affects project direction, architecture, compatibility, archival policy, contributor expectations, public APIs, data formats, releases, governance, or how archived MyGameBuilder games are restored, presented, or made playable.
-
-Significant decisions should leave a written record where practical, such as an issue, discussion, pull request, architecture decision record, or documentation update.
+Use a [GitHub Discussion](https://github.com/OpenGameBuilder/opengamebuilder/discussions)
+for exploratory ideas or an [issue](https://github.com/OpenGameBuilder/opengamebuilder/issues/new/choose)
+for a concrete proposal. Describe the problem, intended behavior, and scope so
+maintainers can agree on the direction before substantial work begins. Record
+the decision in the issue, discussion, PR, or a lasting document, including how
+it affects the restoration or presentation of archived games when relevant.
 
 ## Preservation and Archive Contributions
 

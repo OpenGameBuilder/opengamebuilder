@@ -39,11 +39,9 @@ decide and document the intended mobile editing scope when editor controls exist
 Until these checks are recorded, browser coverage and mobile editing remain
 targets, not an acceptance claim.
 
-[`.browserslistrc`](../../.browserslistrc) is a declaration for compatibility
-tooling. No current build step consumes it. The file does not add polyfills,
-transform application code, select test browsers, or verify compatibility. Its
-existing queries are not a test record or a substitute for this matrix; review
-their resolved targets if a build consumer is introduced.
+This matrix is the browser policy. The current build has no Browserslist consumer;
+browser targets are checked through the acceptance procedure below, not selected
+or verified by build configuration.
 
 ## Accessibility baseline and outstanding work
 
