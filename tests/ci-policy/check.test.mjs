@@ -407,4 +407,16 @@ test("CI workflow keeps selection, lanes, and aggregate gate wired to the policy
   );
   assert.equal(gateStep.env.CI_MODE, "${{ needs.select-checks.outputs.mode }}");
   assert.equal(gateStep.env.CI_NEEDS, "${{ toJSON(needs) }}");
+
+  const action = parseYaml(
+    readFileSync(
+      path.join(root, ".github/actions/validate/action.yml"),
+      "utf8",
+    ),
+  );
+  const dotnet = action.runs.steps.find((step) =>
+    step.uses?.startsWith("actions/setup-dotnet@"),
+  );
+  assert.equal(dotnet.env.DOTNET_INSTALL_DIR, "${{ runner.temp }}/ogb-dotnet");
+  assert.equal(action.inputs.mode.default, "full");
 });

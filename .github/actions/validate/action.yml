@@ -35,6 +35,10 @@ runs:
 
     - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
       if: ${{ inputs.mode != 'content' }}
+      env:
+        # Runner-installed workload manifests can override the pinned SDK's
+        # WebAssembly pack version and invalidate the committed NuGet lock.
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/ogb-dotnet
       with:
         global-json-file: ${{ inputs.working-directory }}/global.json
 

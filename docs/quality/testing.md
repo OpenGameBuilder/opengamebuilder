@@ -95,6 +95,10 @@ it cannot silently skip validation. The selector logs the paths and decision.
 | Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full`, then builds and checks the API container.                                                                   |
 
 Both platforms build the AppHost with their committed platform-specific locks.
+The shared action installs the exact SDK in a fresh runner-temporary directory
+using [`DOTNET_INSTALL_DIR`](https://github.com/actions/setup-dotnet#environment-variables).
+This prevents preinstalled Visual Studio workload manifests from selecting an
+older WebAssembly pack and breaking locked restore despite a matching SDK version.
 Shell suites, frontend packaging, smoke-package checks, and Docker runtime checks
 stay in the Linux lane. Deployment still uses the full shared action, with its
 separate required frontend packaging job. Neither path starts Aspire.
