@@ -51,3 +51,19 @@ done
 grep -Fq 'directory: "/.github/actions/validate"' .github/dependabot.yml ||
   fail 'Dependabot does not monitor the composite validation action pins'
 echo 'PASS NuGet mapping inheritance is cleared and pin update automation remains enabled'
+
+# Dependabot separates the Docker registry from the dependency name. Exercise
+# the configured glob against the same names it uses, not the full image URLs.
+mapfile -t api_image_patterns < <(awk '
+  /^      api-base-images:/ { in_group = 1; next }
+  in_group && /^    [^ ]|^      [^ ]/ { exit }
+  in_group && /^          - "/ { sub(/^          - "/, ""); sub(/"[[:space:]]*$/, ""); print }
+' .github/dependabot.yml)
+for dependency in dotnet/sdk dotnet/aspnet; do
+  matched=false
+  for pattern in "${api_image_patterns[@]}"; do
+    if [[ "$dependency" == $pattern ]]; then matched=true; break; fi
+  done
+  [[ "$matched" == true ]] || fail "Dependabot API image group does not match ${dependency}"
+done
+echo 'PASS Dependabot API image group matches normalized Docker dependency names'

@@ -92,7 +92,10 @@ updates:
     groups:
       api-base-images:
         patterns:
-          - "mcr.microsoft.com/dotnet/*"
+          # Dependabot tracks the registry separately from the image name.
+          - "dotnet/*"
+    # Best effort: registry digest updates without publication dates cannot
+    # enforce a cooldown. Review the pinned digest change before merging.
     cooldown:
       default-days: 7
 

@@ -327,6 +327,18 @@ independent authenticated channel, configures both environments, CI passes, and
 a merged staging deployment passes. Follow the
 [host-key setup guide](setup/deployment-host-key.md) for commands and trust limits.
 
+**Live application evidence (2026-09-22 UTC):** the
+[staging retry](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35673447966/attempts/2)
+and [production v0.10.0 release](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35674772060)
+passed the image permission/liveness probe, strict pinned-host SSH connections,
+activation, browser revision checks, and finalization. The automatic version
+bump and [staging rollout of 0.11.0](https://github.com/OpenGameBuilder/opengamebuilder/actions/runs/35675216560)
+also passed. These prove that the configured pins work, not independently how
+the administrator authenticated the original host key. Keep that trust-source
+confirmation explicit. The running Caddy digest and native-service boot state
+still need [host verification](setup/hosting.md#host-caddy-conflicts-and-read-only-verification);
+application deployments do not apply edge-image changes.
+
 ## Phase 3: Prepare to welcome community contributors
 
 ### 16. Replace the placeholder README with a contributor front door

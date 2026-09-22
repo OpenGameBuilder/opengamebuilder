@@ -16,7 +16,7 @@ case "$*" in
   *'config --images') printf '%s\n' 'caddy:2' ;;
   *'validate --config'*) [[ "${FAIL_VALIDATE:-0}" != 1 ]] ;;
   *'exec -T caddy caddy reload'*) [[ "${FAIL_RELOAD:-0}" != 1 ]] ;;
-  *'ps -q caddy') [[ "${CADDY_RUNNING:-1}" == 1 ]] && printf '%s\n' caddy-id ;;
+  *'ps -q caddy') if [[ "${CADDY_RUNNING:-1}" == 1 ]]; then printf '%s\n' caddy-id; fi ;;
   *'up -d') [[ "${FAIL_UP:-0}" != 1 ]] ;;
   *'network inspect ogb-edge') [[ "${NETWORK_EXISTS:-1}" == 1 ]] ;;
 esac
@@ -38,12 +38,40 @@ assert_called() { grep -Fq -- "$1" "$DOCKER_CALLS" || fail "missing Docker call:
 assert_not_called() { if grep -Fq -- "$1" "$DOCKER_CALLS"; then fail "unexpected Docker call: $1"; fi; }
 
 reset_fixture
-export FAIL_VALIDATE=1
+export FAIL_VALIDATE=1 CADDY_RUNNING=0 NETWORK_EXISTS=0
 if run_apply >/dev/null 2>&1; then fail 'invalid candidate was accepted'; fi
 grep -Fq 'old.example.com' "$EDGE_DIR/Caddyfile" || fail 'invalid candidate replaced active configuration'
 assert_not_called 'exec -T caddy caddy reload'
 assert_not_called 'up -d'
+assert_not_called 'network create ogb-edge'
 echo 'PASS invalid candidate preserves active edge'
+
+reset_fixture
+cp "$EDGE_DIR/Caddyfile" "$test_root/candidate/Caddyfile"
+run_apply >/dev/null
+assert_not_called 'up -d'
+assert_not_called 'exec -T caddy caddy reload'
+assert_not_called 'network create ogb-edge'
+echo 'PASS unchanged running edge is left alone'
+
+reset_fixture
+cp "$EDGE_DIR/Caddyfile" "$test_root/candidate/Caddyfile"
+export CADDY_RUNNING=0
+run_apply >/dev/null
+assert_called 'up -d'
+assert_not_called 'exec -T caddy caddy reload'
+cmp -s "$test_root/candidate/compose.yml" "$EDGE_DIR/compose.yml" || fail 'recovery changed active Compose file'
+cmp -s "$test_root/candidate/Caddyfile" "$EDGE_DIR/Caddyfile" || fail 'recovery changed active Caddyfile'
+echo 'PASS unchanged stopped edge starts with its existing configuration'
+
+reset_fixture
+cp "$EDGE_DIR/Caddyfile" "$test_root/candidate/Caddyfile"
+export CADDY_RUNNING=0 FAIL_UP=1
+if run_apply >/dev/null 2>&1; then fail 'failed edge recovery was reported as success'; fi
+assert_called 'up -d'
+cmp -s "$test_root/candidate/compose.yml" "$EDGE_DIR/compose.yml" || fail 'failed recovery changed active Compose file'
+cmp -s "$test_root/candidate/Caddyfile" "$EDGE_DIR/Caddyfile" || fail 'failed recovery changed active Caddyfile'
+echo 'PASS failed recovery preserves the existing edge configuration'
 
 reset_fixture
 run_apply >/dev/null

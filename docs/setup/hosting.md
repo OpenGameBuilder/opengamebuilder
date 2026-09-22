@@ -11,6 +11,9 @@ The reviewed SDK, ASP.NET runtime, and Caddy tags are paired with immutable imag
 digests. Dependabot continues to propose tag/digest updates, but a registry
 retag cannot change an unreviewed build or edge deployment. Each built API image
 is also deployed by its generated GHCR digest.
+Dependabot's Docker cooldown is best effort: when the registry supplies no
+publication date for a digest update, its PR reports that the cooldown could not
+be applied. The digest still requires review and merging before it is used.
 
 The API image declares the .NET image's non-root application user. CI and the
 deployment job verify the effective UID is nonzero, the application assembly is
@@ -52,12 +55,60 @@ the service. A failed reload restores the previous files and attempts to reload
 the previous configuration. The workflow checks both API liveness URLs after
 the update. Inspect the job log and host state if activation or recovery fails;
 do not assume a failed job automatically restored service availability.
+An unchanged candidate leaves a running Caddy container alone, but starts it if
+it is stopped. This cannot repair a port conflict with another host process.
 
 The staging and production application workflows update only their own release
 directory and API service. They require the shared edge network to exist and
 never sync or restart Caddy. Staging deployments queue instead of cancelling an
 in-flight deployment. Production `/api/alive` is checked before and after a
 staging update; a failed preflight stops the update.
+
+### Host Caddy conflicts and read-only verification
+
+Only the Docker edge should own this server's ports 80 and 443. A separately
+installed `caddy.service` can start at boot, occupy those ports, and prevent
+`ogb-edge-caddy-1` from starting. An API container being up does not establish
+that either public site is reachable.
+
+In an existing **root SSH session on the Hetzner server**, from any directory,
+these commands inspect state without changing services or printing environment
+variables or private keys:
+
+```bash
+systemctl is-enabled caddy
+systemctl is-active caddy
+ss -ltnp '( sport = :80 or sport = :443 )'
+docker inspect --format '{{.Name}} image={{.Config.Image}} status={{.State.Status}} restarts={{.RestartCount}}' ogb-edge-caddy-1 ogb-staging-api-1 ogb-production-api-1
+docker logs --since 2h --tail 150 ogb-edge-caddy-1 2>&1
+docker logs --since 2h --tail 150 ogb-staging-api-1 2>&1
+docker logs --since 2h --tail 150 ogb-production-api-1 2>&1
+```
+
+The native Caddy service should be disabled/inactive (or not installed).
+`systemctl` returns a nonzero status for some of those expected states; run
+these inspection commands individually, not in a fail-fast script. Container
+logs may contain client addresses or request data; redact sensitive content
+before sharing them.
+
+If inspection confirms the native service is the conflicting, superseded OGB
+proxy, coordinate a short interruption for **both sites**, then run on the host:
+
+```bash
+systemctl disable --now caddy
+docker start ogb-edge-caddy-1
+curl --fail --show-error https://opengamebuilder.com/api/alive
+curl --fail --show-error https://staging.opengamebuilder.com/api/alive
+```
+
+Do not stop a service hosting unrelated sites. No root-password reset or web
+console is needed when the existing SSH session works. Restarting the container
+restores its existing image; it does **not** apply a new image pin. After an edge
+change is reviewed and merged, use GitHub **Actions > CD Shared Edge > Run
+workflow**, select `main`, and approve the production environment. A Compose
+image change can recreate the shared proxy and briefly interrupt both sites.
+Verify the running image reference matches `deploy/edge/compose.yml` and that
+both workflow liveness checks pass.
 
 After source validation, the package job produces one Release web archive.
 After environment approval, deployment verifies that archive and builds and
@@ -85,7 +136,11 @@ maps the concrete `index.html` URL to the home page. Loaded pages continue to
 request their own release's assets, and the prior web directory remains
 available. The first deployment with this layout copies the
 old in-place web files into a `legacy-*` release and retains its original root
-assets.
+assets when a prior `release-manifest.txt` exists. A first deployment without
+that manifest records `previous release: none`; it has no managed rollback
+target until a subsequent successful release retains this one. Do not infer
+rollback readiness from a successful first release or create a release solely
+to manufacture a predecessor.
 
 `scripts/deploy-app.sh` checks the archive checksum, stages the new files,
 records the previous release, pulls and starts the API by its digest reference,

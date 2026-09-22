@@ -5,6 +5,10 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
+    <!-- Keep NuGet-restored orchestration dependencies for IDE and CI builds.
+         CLI bundle delegation is intentionally not required by this project. -->
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
     <UserSecretsId>89227420-16d3-4bd8-adee-b8fb8ff68c4c</UserSecretsId>
   </PropertyGroup>
 
