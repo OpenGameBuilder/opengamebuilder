@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "markdownlint-cli2": "0.23.3",
+    "parse5": "8.0.1",
     "prettier": "3.9.8"
   }
 }

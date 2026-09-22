@@ -58,6 +58,9 @@ jobs:
           mode: content
           artifact-name: ci-documentation-validation
 
+      - name: Build and validate documentation site
+        uses: ./.github/actions/docs
+
   windows:
     name: Windows solution
     needs: select-checks
@@ -90,6 +93,11 @@ jobs:
         uses: ./.github/actions/validate
         with:
           artifact-name: ci-linux-validation
+
+      - name: Build and validate documentation site
+        uses: ./.github/actions/docs
+        with:
+          install-dotnet: "false"
 
       - name: Build API image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0

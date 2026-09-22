@@ -89,10 +89,10 @@ lane. An empty range, any other path, patch-branch push, or manual run selects
 full validation. A failed comparison fails selection and the required gate;
 it cannot silently skip validation. The selector logs the paths and decision.
 
-| Selection     | Required validation                                                                                                                                                                                                                       |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Documentation | Ubuntu runs `check.ps1 content`: first-party formatting, lint, workflow/shell checks, and all local Markdown links/anchors. Checking all documents catches backlinks broken by deletions or renames. No solution build or container runs. |
-| Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full`, then builds and checks the API container.                                                                   |
+| Selection     | Required validation                                                                                                                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation | Ubuntu runs `check.ps1 content` and `check-docs.ps1`: source formatting, lint, workflow/shell checks, local Markdown links, and the DocFX site with rendered link/anchor and search checks. No application solution build or container runs. |
+| Full          | Windows runs `check.ps1 quick -Serial` for locked restore, C# format, Release build, and tests. Ubuntu runs `check.ps1 full` and `check-docs.ps1`, then builds and checks the API container.                                                 |
 
 Both platforms restore and build the entire solution, including the AppHost,
 and run both test projects. Only the shipped API and Web Client have committed
@@ -125,6 +125,26 @@ node --test tests/ci-policy/check.test.mjs
 These tests exercise real temporary Git histories and lane-result combinations;
 they do not prove GitHub scheduling or merge enforcement. The hosted acceptance
 procedure is in [GitHub setup](../setup/github.md#ci-merge-gate).
+
+### Documentation site validation
+
+Run `pwsh ./scripts/check-docs.ps1` after installing the content prerequisites.
+It restores the pinned DocFX tool, builds the existing guides with warnings as
+errors, checks rendered links and anchors offline, and verifies search entries
+and edit links against the original Markdown. Regression fixtures require an
+unresolved document, missing rendered page, renamed anchor, missing stylesheet,
+missing search entry, and accidentally included temporary plan to fail.
+Additional fixtures check relative page links and repository-source links at two
+different commits, reject omitted documentation and assets, and preserve the
+source Markdown. See the [link resolution rules](../setup/documentation.md#build-and-check).
+
+Both selected Ubuntu lanes run this command through the documentation action;
+the required `build-test` check cannot pass when it fails. The `ci-docs` artifact
+retains the rendered site and available logs for seven days. The command does
+not start an application or browser. See [documentation maintenance](../setup/documentation.md)
+for preview, publication, and the separate hosted acceptance procedure. It is
+separate from `check.ps1 full`, so application deployment validation does not
+acquire an unrelated site build.
 
 ### Recorded platform CI acceptance
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "rules": {
+    "InvalidHref": "error",
+    "InvalidFileLink": "info"
+  },
+  "build": {
+    "content": [
+      {
+        "files": ["*.md", "docs/**/*.md", "toc.yml"],
+        "exclude": ["AGENTS.md", "docs/foundation-checklist.md"]
+      }
+    ],
+    "output": "artifacts/docs/site",
+    "fileMetadataFiles": ["artifacts/docs/source-metadata.json"],
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appName": "OpenGameBuilder",
+      "_appTitle": "OpenGameBuilder documentation",
+      "_enableSearch": true,
+      "_appLogoPath": "",
+      "_gitUrlPattern": "github"
+    }
+  }
+}

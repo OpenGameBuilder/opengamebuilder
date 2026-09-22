@@ -1,7 +1,9 @@
 // Compensate only for actionlint's documented cache-mode schema gap.
 export function checkDeploymentCachePolicy(file, workflow) {
   if (
-    !/^\.github\/workflows\/(_deploy|cd-production|cd-staging)\.yml$/.test(file)
+    !/^\.github\/workflows\/(_deploy|cd-production|cd-staging|docs-pages)\.yml$/.test(
+      file,
+    )
   )
     return;
   if (workflow["cache-mode"] !== "none") {

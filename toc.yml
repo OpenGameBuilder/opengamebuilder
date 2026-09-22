@@ -1,0 +1,44 @@
+- name: Home
+  href: index.md
+- name: Setup
+  href: docs/setup/development.md
+- name: Contribute
+  href: CONTRIBUTING.md
+  items:
+    - name: Support
+      href: SUPPORT.md
+    - name: Security
+      href: SECURITY.md
+    - name: Stewardship
+      href: docs/community/stewardship.md
+    - name: AI policy
+      href: AI_POLICY.md
+- name: Architecture
+  href: docs/README.md
+  items:
+    - name: HTTP API
+      href: docs/backend/api.md
+- name: Testing
+  href: docs/quality/testing.md
+  items:
+    - name: Content checks
+      href: docs/quality/content-checks.md
+    - name: Browser support
+      href: docs/frontend/browser-support.md
+    - name: Documentation site
+      href: docs/setup/documentation.md
+- name: Operations
+  href: docs/setup/hosting.md
+  items:
+    - name: GitHub setup
+      href: docs/setup/github.md
+    - name: Host keys
+      href: docs/setup/deployment-host-key.md
+    - name: Releases
+      href: docs/release/README.md
+    - name: Versioning
+      href: docs/release/versioning.md
+    - name: Changelog
+      href: CHANGELOG.md
+    - name: AI tooling
+      href: docs/setup/ai-tooling.md

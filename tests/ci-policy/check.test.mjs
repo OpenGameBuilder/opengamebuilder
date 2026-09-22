@@ -420,3 +420,69 @@ test("CI workflow keeps selection, lanes, and aggregate gate wired to the policy
   assert.equal(dotnet.env.DOTNET_INSTALL_DIR, "${{ runner.temp }}/ogb-dotnet");
   assert.equal(action.inputs.mode.default, "full");
 });
+
+test("rendered documentation blocks both selected lanes and retains evidence", () => {
+  const workflow = parseYaml(
+    readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8"),
+  );
+  for (const job of ["documentation", "linux"]) {
+    const lane = workflow.jobs[job];
+    const validation = lane.steps.findIndex(
+      (step) => step.uses === "./.github/actions/validate",
+    );
+    const docs = lane.steps.findIndex(
+      (step) => step.uses === "./.github/actions/docs",
+    );
+    assert.ok(validation >= 0 && docs > validation, job);
+    assert.equal(lane.steps[docs]["continue-on-error"], undefined, job);
+  }
+  const docsLane = workflow.jobs.documentation.steps.find(
+    (step) => step.uses === "./.github/actions/docs",
+  );
+  assert.equal(docsLane.with, undefined);
+  const linuxLane = workflow.jobs.linux.steps.find(
+    (step) => step.uses === "./.github/actions/docs",
+  );
+  assert.equal(linuxLane.with["install-dotnet"], "false");
+
+  const action = parseYaml(
+    readFileSync(path.join(root, ".github/actions/docs/action.yml"), "utf8"),
+  );
+  assert.equal(action.inputs["install-dotnet"].default, "true");
+  const dotnet = action.runs.steps.find((step) =>
+    step.uses?.startsWith("actions/setup-dotnet@"),
+  );
+  assert.equal(dotnet.if, "${{ inputs.install-dotnet == 'true' }}");
+  assert.equal(dotnet.env.DOTNET_INSTALL_DIR, "${{ runner.temp }}/ogb-dotnet");
+  assert.equal(dotnet.with["global-json-file"], "global.json");
+  const node = action.runs.steps.find((step) =>
+    step.uses?.startsWith("actions/setup-node@"),
+  );
+  assert.equal(node.with["node-version"], "22");
+  assert.equal(
+    action.runs.steps.some(
+      (step) =>
+        step.run?.includes("npm ci") ||
+        step.run?.includes("install-content-tools.ps1"),
+    ),
+    false,
+  );
+  const check = action.runs.steps.find(
+    (step) => step.run === "./scripts/check-docs.ps1",
+  );
+  assert.equal(check.shell, "pwsh");
+  assert.equal(check["continue-on-error"], undefined);
+  const upload = action.runs.steps.find((step) =>
+    step.uses?.startsWith("actions/upload-artifact@"),
+  );
+  assert.equal(upload.if, "${{ always() && !cancelled() }}");
+  assert.match(upload.with.path, /artifacts\/docs\/site\//);
+  assert.match(upload.with.path, /artifacts\/docs\/\*\.log/);
+  assert.equal(upload.with["retention-days"], 7);
+  assert.deepEqual(workflow.jobs["build-test"].needs, [
+    "select-checks",
+    "documentation",
+    "linux",
+    "windows",
+  ]);
+});

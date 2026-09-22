@@ -72,7 +72,8 @@ content prerequisites before opting into the hook. See
 GitHub supports [`cache-mode: none`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#cache-mode),
 but actionlint 1.7.12 does not recognize that key. The
 [actionlint configuration](../../.github/actionlint.yaml) suppresses only that
-specific root-key diagnostic in the three protected-source deployment workflows.
+specific root-key diagnostic in the protected-source deployment workflows,
+including manual documentation publication.
 The [cache-policy check](../../scripts/workflow-cache-policy.mjs) independently
 requires `none` and rejects job overrides that permit caching. Other workflow
 errors still fail, and the regression suite covers missing/changed cache policy.
