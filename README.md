@@ -38,6 +38,8 @@ initial foundation work.
 
 The [documentation index](docs/README.md) maps the application, operating guides,
 and browser/accessibility expectations.
+Browse the [published searchable documentation](https://opengamebuilder.github.io/opengamebuilder/)
+for the latest explicitly published guides.
 
 Useful starting tasks include following the setup guide in your editor and
 reporting a reproducible failure, improving an unclear setup instruction, or
