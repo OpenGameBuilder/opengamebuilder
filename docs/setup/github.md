@@ -13,15 +13,29 @@ The required pull-request check is **`build-test`**, produced by GitHub Actions
 CodeQL, code quality, and automated review supplement it; none runs the behavior
 tests in its place.
 
-CI runs on every pull request, without path filters, and on pushes to `patch/v*`.
-The [shared validation action](../../.github/actions/validate/action.yml) runs
+CI runs on every pull request, without workflow-level path filters, on pushes
+to `patch/v*`, and by manual dispatch. `build-test` aggregates the selection job
+and its selected lanes. Documentation-only PRs run the shared content check;
+application, workflow, tooling, mixed, and unrecognized changes require both
+Windows solution checks and Linux full validation. Pushes and manual runs always
+require both platforms. See [selection and lane coverage](../quality/testing.md#pr-lanes-and-the-required-gate)
+for the conservative path rules and local equivalents.
+
+The [shared validation action](../../.github/actions/validate/action.yml) uses
+the repository's `content`, `quick`, or `full` command. Both OS lanes run locked
 restore, formatting verification, a Release solution build (including AppHost),
-and all tests, plus smoke-package installation and JavaScript syntax checks.
-CI also publishes the frontend and checks its portable configuration; deployment
-does that in its required `package` job. Both CI and
-[deployment validation](../../.github/workflows/_deploy.yml) use the shared action.
+and all tests. Linux additionally checks content, frontend packaging, smoke-package
+installation/syntax, and the shell suites, then builds and verifies the API
+container without pushing it. The aggregate requires explicit `success` for
+every selected lane and `skipped` for unselected lanes; failures, cancellations,
+missing results, and unexpected skips cannot pass it. Keep only the stable
+`build-test` name as this workflow's required check so intentionally skipped lanes
+do not block documentation-only PRs.
+
+[Deployment validation](../../.github/workflows/_deploy.yml) continues to use
+the full shared action; its required `package` job handles frontend publication.
 Deployment requires validation and packaging to succeed before entering the
-environment job. CI additionally builds the API container without pushing it.
+environment job.
 No deployment credentials are supplied to pull-request CI; the deployment
 validation job also has a read-only repository token.
 
@@ -43,11 +57,14 @@ are pinned to reviewed commit SHAs with adjacent release comments. Separate
 Dependabot entries cover `.github/workflows` and `.github/actions/validate`, so
 both sets continue to receive reviewable version-update PRs.
 
-Validation commands use explicit Bash shells, whose `-e -o pipefail` behavior
-keeps a failing command from being hidden by `tee`. Failures upload the available
+The shared PowerShell command checks native exit codes while retaining output.
+The API image check uses Bash with `-e -o pipefail`, so `tee` cannot hide failure.
+Failures upload the available
 solution, script-suite, frontend-package (when run), and smoke-package console
-logs, plus the formatter's JSON report, as `ci-validation`, `staging-validation`,
-or `production-validation`.
+logs, selected OS/tool versions, and the formatter's JSON report as
+`ci-windows-validation`, `ci-linux-validation`, `ci-documentation-validation`,
+`staging-validation`, or `production-validation`. API runtime failures use
+`ci-linux-image` after the shared action has finished.
 Each name includes the run-attempt suffix so reruns do not collide.
 Artifacts expire after seven days. These are diagnostic logs, not TRX reports;
 test failures and stack traces are in `test.log`. A cancellation, runner loss, or
@@ -386,11 +403,17 @@ Then perform a controlled acceptance check without deploying:
 
 1. After a CI/action/test change is merged, run CI on a representative PR.
    Confirm the reported check is exactly `build-test`, and require it from
-   GitHub Actions in the ruleset.
+   GitHub Actions in the ruleset. Confirm real hosted Windows and Linux lanes
+   both pass and record their runner images and selected SDK versions. Also run
+   a documentation-only PR: content checks and `build-test` must pass while the
+   two build lanes are skipped. A workflow/tooling change must select full checks.
 2. On a temporary PR to `main`, deliberately break an existing test. Confirm the
    test fails, `build-test` is red, the failure artifact contains the assertion,
    and the merge box specifically identifies the failed required check as a
-   blocker for a non-bypass contributor. Do **not** merge the failing PR.
+   blocker for a non-bypass contributor. Use a platform-specific failure so the
+   other lane can still pass. Confirm a cancelled required lane cannot yield a passing gate,
+   and inspect the job logs if cancellation prevents artifact upload.
+   Do **not** merge the failing PR.
 3. Restore the assertion and push. Confirm the check passes. For a PR that does
    not use the sole-maintainer exception, have an eligible human approve, then
    push a small reviewable change and verify reapproval is required.

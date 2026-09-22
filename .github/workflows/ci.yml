@@ -18,9 +18,66 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-test:
-    # This check name is the branch-protection contract; keep it stable.
-    name: build-test
+  select-checks:
+    name: Select validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Compare the complete PR range, without API path-list truncation.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Select checks for the complete change
+        id: select
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci-policy.mjs select
+
+  documentation:
+    name: Documentation checks
+    needs: select-checks
+    if: ${{ needs.select-checks.outputs.mode == 'docs' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate content and local links
+        uses: ./.github/actions/validate
+        with:
+          mode: content
+          artifact-name: ci-documentation-validation
+
+  windows:
+    name: Windows solution
+    needs: select-checks
+    if: ${{ needs.select-checks.outputs.mode == 'full' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate Windows solution
+        uses: ./.github/actions/validate
+        with:
+          mode: quick
+          artifact-name: ci-windows-validation
+
+  linux:
+    name: Linux full validation
+    needs: select-checks
+    if: ${{ needs.select-checks.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -32,7 +89,7 @@ jobs:
       - name: Validate solution
         uses: ./.github/actions/validate
         with:
-          artifact-name: ci-validation
+          artifact-name: ci-linux-validation
 
       - name: Build API image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -44,4 +101,37 @@ jobs:
           tags: opengamebuilder-api:ci
 
       - name: Verify API image runtime
-        run: bash scripts/verify-api-image.sh opengamebuilder-api:ci
+        id: image-runtime
+        shell: bash
+        run: bash scripts/verify-api-image.sh opengamebuilder-api:ci 2>&1 | tee artifacts/validation/api-image.log
+
+      - name: Upload API image failure diagnostics
+        if: ${{ failure() && steps.image-runtime.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-linux-image-${{ github.run_attempt }}
+          path: artifacts/validation/api-image.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  build-test:
+    # This check name is the branch-protection contract; keep it stable.
+    name: build-test
+    needs: [select-checks, documentation, linux, windows]
+    # A skipped or failed dependency must still produce a gate result.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Require every selected lane to pass
+        env:
+          CI_MODE: ${{ needs.select-checks.outputs.mode }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci-policy.mjs gate

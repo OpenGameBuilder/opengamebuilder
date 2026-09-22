@@ -1,5 +1,5 @@
 name: Validate solution
-description: Shared solution, frontend packaging, and smoke-package validation for CI and deployment.
+description: Shared content, solution, and full validation commands for CI and deployment.
 
 inputs:
   checkout-ref:
@@ -13,6 +13,10 @@ inputs:
   artifact-name:
     description: Unique name for this job's failure diagnostics.
     required: true
+  mode:
+    description: Shared check mode (content, quick, or full); deployment keeps full.
+    required: false
+    default: "full"
   publish-web:
     description: Publish and verify the frontend; disable only when the caller has a separate required packaging job.
     required: false
@@ -30,25 +34,39 @@ runs:
         persist-credentials: false
 
     - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      if: ${{ inputs.mode != 'content' }}
+      env:
+        # Runner-installed workload manifests can override the pinned SDK's
+        # WebAssembly pack version and invalidate the committed NuGet lock.
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/ogb-dotnet
       with:
         global-json-file: ${{ inputs.working-directory }}/global.json
 
     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      if: ${{ inputs.mode != 'quick' }}
       with:
         node-version: "22"
         package-manager-cache: false
 
     - name: Install pinned content tools
+      if: ${{ inputs.mode != 'quick' }}
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
       run: ./scripts/install-content-tools.ps1
 
-    - name: Run shared full check
+    - name: Install locked content dependencies
+      if: ${{ inputs.mode == 'content' }}
+      shell: pwsh
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci --ignore-scripts
+
+    - name: Run shared check
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
       env:
+        VALIDATION_MODE: ${{ inputs.mode }}
         PUBLISH_WEB: ${{ inputs.publish-web }}
-      run: ./scripts/check.ps1 full -SkipWebPublish:($env:PUBLISH_WEB -eq 'false')
+      run: ./scripts/check.ps1 $env:VALIDATION_MODE -SkipWebPublish:($env:PUBLISH_WEB -eq 'false') -Serial:($env:RUNNER_OS -eq 'Windows')
 
     - name: Upload validation failure diagnostics
       if: ${{ failure() && !cancelled() }}
